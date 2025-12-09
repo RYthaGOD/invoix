@@ -1,0 +1,650 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   INVOIX - Clean, Modern SaaS Design System
+   Color Palette: Emerald + Slate + Sky Blue
+   ============================================ */
+
+/* LIGHT MODE */
+:root {
+  --button-outline: rgba(16, 185, 129, .12);
+  --badge-outline: rgba(16, 185, 129, .06);
+  --opaque-button-border-intensity: -8;
+
+  /* Hover/active elevation with emerald tint */
+  --elevate-1: rgba(16, 185, 129, .04);
+  --elevate-2: rgba(16, 185, 129, .10);
+
+  --background: 215 25% 97%;
+  --foreground: 215 25% 10%;
+  --border: 215 20% 82%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 215 25% 10%;
+  --card-border: 215 20% 88%;
+
+  --sidebar: 215 25% 95%;
+  --sidebar-foreground: 215 25% 10%;
+  --sidebar-border: 215 20% 85%;
+  --sidebar-primary: 160 84% 39%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 215 20% 92%;
+  --sidebar-accent-foreground: 215 25% 15%;
+  --sidebar-ring: 160 84% 39%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 25% 10%;
+  --popover-border: 215 20% 88%;
+
+  /* Emerald Primary */
+  --primary: 160 84% 39%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 215 20% 88%;
+  --secondary-foreground: 215 25% 20%;
+
+  --muted: 215 20% 94%;
+  --muted-foreground: 215 15% 45%;
+
+  /* Sky Blue Accent */
+  --accent: 199 89% 48%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 215 20% 80%;
+  --ring: 160 84% 39%;
+
+  /* Charts - Emerald/Teal palette */
+  --chart-1: 160 84% 39%;
+  --chart-2: 172 66% 50%;
+  --chart-3: 199 89% 48%;
+  --chart-4: 162 63% 41%;
+  --chart-5: 158 64% 52%;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius: 0.625rem;
+
+  /* Refined shadows for light mode */
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.08), 0 3px 6px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.08);
+  --shadow-2xl: 0 32px 64px rgba(0, 0, 0, 0.14);
+
+  --tracking-normal: -0.011em;
+  --spacing: 0.25rem;
+
+  /* Computed borders */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --primary-border: hsl(var(--primary));
+  --secondary-border: hsl(var(--secondary));
+  --accent-border: hsl(var(--accent));
+  --destructive-border: hsl(var(--destructive));
+}
+
+/* DARK MODE - Slate with Emerald accents */
+.dark {
+  --button-outline: rgba(16, 185, 129, .18);
+  --badge-outline: rgba(16, 185, 129, .10);
+  --opaque-button-border-intensity: 9;
+
+  --elevate-1: rgba(16, 185, 129, .06);
+  --elevate-2: rgba(16, 185, 129, .14);
+
+  /* Deep slate background */
+  --background: 222 47% 6%;
+  --foreground: 210 40% 96%;
+  --border: 217 33% 17%;
+
+  /* Card - slightly elevated slate */
+  --card: 222 47% 9%;
+  --card-foreground: 210 40% 96%;
+  --card-border: 217 33% 15%;
+
+  /* Sidebar */
+  --sidebar: 222 47% 7%;
+  --sidebar-foreground: 210 40% 96%;
+  --sidebar-border: 217 33% 14%;
+  --sidebar-primary: 160 84% 39%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 222 47% 12%;
+  --sidebar-accent-foreground: 210 40% 96%;
+  --sidebar-ring: 160 84% 39%;
+
+  --popover: 222 47% 10%;
+  --popover-foreground: 210 40% 96%;
+  --popover-border: 217 33% 18%;
+
+  /* Emerald Primary - slightly brighter for dark mode */
+  --primary: 160 84% 45%;
+  --primary-foreground: 222 47% 6%;
+
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 160 84% 55%;
+
+  --muted: 217 33% 14%;
+  --muted-foreground: 215 20% 60%;
+
+  /* Sky Blue Accent */
+  --accent: 199 89% 48%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 217 33% 17%;
+  --ring: 160 84% 45%;
+
+  /* Dark mode shadows with subtle emerald glow */
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 1px rgba(16, 185, 129, 0.1);
+  --shadow: 0 4px 8px rgba(0, 0, 0, 0.7), 0 0 2px rgba(16, 185, 129, 0.1);
+  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.8), 0 0 4px rgba(16, 185, 129, 0.1);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.85), 0 0 8px rgba(16, 185, 129, 0.1);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.9), 0 0 12px rgba(16, 185, 129, 0.1);
+  --shadow-2xl: 0 32px 64px rgba(0, 0, 0, 0.95);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+
+  /* ============================================
+     Form Input Styles - Better Contrast
+     ============================================ */
+
+  /* Input, select, textarea base styling */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-radius: 0.5rem;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"])::placeholder,
+  textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  select:focus,
+  textarea:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: hsl(160 84% 45%) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+  }
+
+  /* Select dropdown styling */
+  select option {
+    background: hsl(222 47% 12%) !important;
+    color: white !important;
+    padding: 0.5rem !important;
+  }
+
+  /* Labels */
+  label {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  /* Date input calendar icon */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.7;
+    cursor: pointer;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* Number input arrows */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    opacity: 0.7;
+  }
+
+  /* Hide search cancel button */
+  input[type="search"]::-webkit-search-cancel-button {
+    @apply hidden;
+  }
+
+  /* Contenteditable placeholder */
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+
+  /* ============================================
+     INVOIX Glass Morphism System
+     Clean, minimal glass with emerald tints
+     ============================================ */
+
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+  }
+
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(16, 185, 129, 0.15);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Light mode glass adjustments */
+  :root .glass {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.05);
+  }
+
+  :root .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.06);
+  }
+
+  :root .glass-strong {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  /* ============================================
+     INVOIX Gradient System
+     Emerald-based gradients
+     ============================================ */
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(172 66% 45%));
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(199 89% 48%), hsl(172 66% 50%));
+  }
+
+  .gradient-hero {
+    background: linear-gradient(135deg,
+        hsl(222 47% 6%) 0%,
+        hsl(222 47% 8%) 50%,
+        hsl(222 47% 6%) 100%);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(160 84% 45%), hsl(199 89% 48%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-light {
+    background: linear-gradient(135deg, hsl(160 84% 55%), hsl(172 66% 60%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ============================================
+     INVOIX Glow Effects
+     Subtle emerald glows
+     ============================================ */
+
+  .glow-sm {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+  }
+
+  .glow-md {
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+  }
+
+  .glow-lg {
+    box-shadow: 0 0 50px rgba(16, 185, 129, 0.25);
+  }
+
+  .glow-hover:hover {
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+  }
+
+  /* ============================================
+     INVOIX Button Styles
+     Clean, minimal buttons with subtle animations
+     ============================================ */
+
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl font-medium transition-all duration-200;
+    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 35%));
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 rounded-xl font-medium transition-all duration-200;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  /* ============================================
+     INVOIX Card Animations
+     Smooth, professional hover effects
+     ============================================ */
+
+  .card-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(16, 185, 129, 0.1);
+  }
+
+  /* Feature card specific */
+  .feature-card {
+    @apply glass-card p-8 rounded-2xl card-hover;
+  }
+
+  .feature-card .icon-wrapper {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors duration-200;
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  .feature-card:hover .icon-wrapper {
+    background: rgba(16, 185, 129, 0.2);
+  }
+
+  /* ============================================
+     INVOIX Elevation System
+     ============================================ */
+
+  .toggle-elevate::before,
+  .toggle-elevate-2::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    border-radius: inherit;
+    z-index: -1;
+  }
+
+  .toggle-elevate.toggle-elevated::before {
+    background-color: var(--elevate-2);
+  }
+
+  .border.toggle-elevate::before {
+    inset: -1px;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate),
+  .active-elevate:not(.no-default-active-elevate) {
+    position: relative;
+    z-index: 0;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate)::after,
+  .active-elevate:not(.no-default-active-elevate)::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    border-radius: inherit;
+    z-index: 999;
+  }
+
+  .hover-elevate:hover:not(.no-default-hover-elevate)::after {
+    background-color: var(--elevate-1);
+  }
+
+  .active-elevate:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-2);
+  }
+
+  /* ============================================
+     Solana Wallet Adapter Overrides
+     Emerald theme
+     ============================================ */
+
+  /* ============================================
+     Solana Wallet Adapter Overrides
+     Ensure proper visibility and z-index
+     ============================================ */
+
+  .wallet-adapter-button {
+    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 35%)) !important;
+    color: white !important;
+    border-radius: 0.75rem !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+    height: auto !important;
+    padding: 0.5rem 1rem !important;
+  }
+
+  .wallet-adapter-button:not([disabled]):hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35) !important;
+  }
+
+  .wallet-adapter-button-trigger {
+    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 35%)) !important;
+    color: white !important;
+  }
+
+  /* Modal wrapper - ensure high z-index */
+  .wallet-adapter-modal-wrapper {
+    background: rgba(0, 0, 0, 0.75) !important;
+    z-index: 9999 !important;
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Modal container */
+  .wallet-adapter-modal-container {
+    background: hsl(222 47% 10%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 1rem !important;
+    max-width: 400px !important;
+    width: 90% !important;
+    z-index: 10000 !important;
+    position: relative !important;
+  }
+
+  .wallet-adapter-modal-title {
+    color: white !important;
+    font-weight: 600 !important;
+  }
+
+  .wallet-adapter-modal-list {
+    margin: 0 !important;
+  }
+
+  .wallet-adapter-modal-list li {
+    margin: 0.5rem 0 !important;
+  }
+
+  .wallet-adapter-modal-list-more {
+    color: hsl(160 84% 45%) !important;
+  }
+
+  /* Wallet list items */
+  .wallet-adapter-modal-list .wallet-adapter-button {
+    background: rgba(255, 255, 255, 0.05) !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+
+  .wallet-adapter-modal-list .wallet-adapter-button:hover {
+    background: rgba(16, 185, 129, 0.15) !important;
+    transform: none !important;
+  }
+
+  /* Close button */
+  .wallet-adapter-modal-button-close {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+  }
+
+  .wallet-adapter-modal-button-close:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  /* Collapse button */
+  .wallet-adapter-collapse-button {
+    color: hsl(160 84% 45%) !important;
+  }
+
+  /* Dropdown menu */
+  .wallet-adapter-dropdown {
+    z-index: 9998 !important;
+  }
+
+  .wallet-adapter-dropdown-list {
+    background: hsl(222 47% 10%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.75rem !important;
+    z-index: 9999 !important;
+  }
+
+  .wallet-adapter-dropdown-list-item {
+    color: white !important;
+  }
+
+  .wallet-adapter-dropdown-list-item:hover {
+    background: rgba(16, 185, 129, 0.15) !important;
+  }
+
+  /* ============================================
+     Status Indicators
+     ============================================ */
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-success {
+    @apply bg-emerald-500;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  }
+
+  .status-warning {
+    @apply bg-amber-500;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  }
+
+  .status-error {
+    @apply bg-red-500;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  }
+
+  /* ============================================
+     Typography Enhancements
+     ============================================ */
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .heading-xl {
+    @apply text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight;
+    line-height: 1.1;
+  }
+
+  .heading-lg {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
+    line-height: 1.2;
+  }
+
+  .heading-md {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight;
+    line-height: 1.3;
+  }
+
+  .body-lg {
+    @apply text-lg md:text-xl text-muted-foreground;
+    line-height: 1.7;
+  }
+
+  /* ============================================
+     Scrollbar Styling
+     ============================================ */
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(217 33% 20%);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(217 33% 28%);
+  }
+}
