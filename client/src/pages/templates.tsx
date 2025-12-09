@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useAuth } from "@/hooks/use-auth";
 import { Plus, Edit, Trash2, FileText, Copy } from "lucide-react";
 import { TemplateForm } from "@/components/template-form";
 
@@ -22,23 +22,25 @@ interface Template {
 }
 
 export default function Templates() {
-    const { publicKey } = useWallet();
+    const { walletAddress } = useAuth();
     const [templates, setTemplates] = useState<Template[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
 
     useEffect(() => {
-        if (publicKey) {
+        if (walletAddress) {
             fetchTemplates();
+        } else {
+            setLoading(false);
         }
-    }, [publicKey]);
+    }, [walletAddress]);
 
     const fetchTemplates = async () => {
-        if (!publicKey) return;
+        if (!walletAddress) return;
 
         try {
-            const response = await fetch(`/api/templates?wallet=${publicKey.toBase58()}`);
+            const response = await fetch(`/api/templates?wallet=${walletAddress}`);
             const data = await response.json();
 
             if (data.success) {
@@ -52,10 +54,10 @@ export default function Templates() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!publicKey || !confirm("Are you sure you want to delete this template?")) return;
+        if (!walletAddress || !confirm("Are you sure you want to delete this template?")) return;
 
         try {
-            const response = await fetch(`/api/templates/${id}?wallet=${publicKey.toBase58()}`, {
+            const response = await fetch(`/api/templates/${id}?wallet=${walletAddress}`, {
                 method: "DELETE",
             });
 
@@ -78,7 +80,7 @@ export default function Templates() {
         window.location.href = `/invoices/create?template=${templateId}`;
     };
 
-    if (!publicKey) {
+    if (!walletAddress) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
                 <div className="glass-card p-8 text-center">

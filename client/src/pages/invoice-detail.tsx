@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import {
   ArrowLeft,
   Download,
@@ -89,6 +90,7 @@ const statusConfig = {
 export default function InvoiceDetail() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/invoices/:id");
+  const { walletAddress } = useAuth();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -101,21 +103,21 @@ export default function InvoiceDetail() {
   const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
-    if (params?.id) {
+    if (params?.id && walletAddress) {
       loadInvoice(params.id);
+    } else if (!walletAddress) {
+      setLoading(false);
+      // Maybe redirect or show connect wallet screen
     }
-  }, [params?.id]);
+  }, [params?.id, walletAddress]);
 
   const loadInvoice = async (invoiceId: string) => {
+    if (!walletAddress) return;
+
     setLoading(true);
     setError(null);
 
     try {
-      const walletAddress = localStorage.getItem("walletAddress");
-      if (!walletAddress) {
-        throw new Error("Please connect your wallet");
-      }
-
       // Load invoice
       const invoiceResponse = await fetch(`/api/invoices/${invoiceId}?wallet=${walletAddress}`);
       if (!invoiceResponse.ok) {
@@ -150,7 +152,6 @@ export default function InvoiceDetail() {
     setSubmittingPayment(true);
 
     try {
-      const walletAddress = localStorage.getItem("walletAddress");
       if (!walletAddress) {
         throw new Error("Please connect your wallet");
       }
@@ -247,7 +248,6 @@ export default function InvoiceDetail() {
     );
   }
 
-  const walletAddress = localStorage.getItem("walletAddress") || "";
   const isInvoicer = invoice.invoicerWalletAddress === walletAddress;
   const isInvoicee = invoice.invoiceeWalletAddress === walletAddress;
 

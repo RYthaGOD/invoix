@@ -187,25 +187,27 @@ export default function InvoiceLanding() {
           </p>
 
           {/* Native Token */}
-          <div className="mt-10 inline-block glass-strong p-6 rounded-2xl smoke-shadow">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <div className="text-2xl">🔷</div>
-              <h3 className="text-lg font-semibold">B2B Native Token</h3>
+          {import.meta.env.VITE_TOKEN_ADDRESS && (
+            <div className="mt-10 inline-block glass-strong p-6 rounded-2xl smoke-shadow">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="text-2xl">🔷</div>
+                <h3 className="text-lg font-semibold">B2B Native Token</h3>
+              </div>
+              <div className="flex items-center justify-center gap-3 flex-wrap">
+                <code className="text-sm md:text-base font-mono bg-background/50 px-4 py-2 rounded-lg border border-border/50">
+                  {import.meta.env.VITE_TOKEN_ADDRESS}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(import.meta.env.VITE_TOKEN_ADDRESS || '');
+                  }}
+                  className="px-4 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors font-medium"
+                >
+                  Copy Address
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-center gap-3 flex-wrap">
-              <code className="text-sm md:text-base font-mono bg-background/50 px-4 py-2 rounded-lg border border-border/50">
-                AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump
-              </code>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText('AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump');
-                }}
-                className="px-4 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors font-medium"
-              >
-                Copy Address
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Stats Grid */}

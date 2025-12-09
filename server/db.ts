@@ -44,6 +44,7 @@ if (useSQLite) {
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }, // Required for most cloud Postgres providers
   });
 
   db = drizzlePg(pool, { schema });

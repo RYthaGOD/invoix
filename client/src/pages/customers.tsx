@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Plus, Search, Edit, Trash2, User, Mail, Phone, Building } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Customer {
     id: string;
@@ -20,6 +21,7 @@ interface Customer {
 
 export default function Customers() {
     const [, navigate] = useLocation();
+    const { walletAddress } = useAuth();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -27,17 +29,18 @@ export default function Customers() {
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
     useEffect(() => {
-        loadCustomers();
-    }, []);
+        if (walletAddress) {
+            loadCustomers();
+        } else {
+            setLoading(false);
+        }
+    }, [walletAddress]);
 
     const loadCustomers = async () => {
+        if (!walletAddress) return;
+
         setLoading(true);
         try {
-            const walletAddress = localStorage.getItem("walletAddress");
-            if (!walletAddress) {
-                throw new Error("Please connect your wallet");
-            }
-
             const response = await fetch(`/api/customers?wallet=${walletAddress}`);
             if (!response.ok) throw new Error("Failed to load customers");
 
@@ -52,9 +55,9 @@ export default function Customers() {
 
     const handleDelete = async (customerId: string) => {
         if (!confirm("Are you sure you want to delete this customer?")) return;
+        if (!walletAddress) return;
 
         try {
-            const walletAddress = localStorage.getItem("walletAddress");
             const response = await fetch(`/api/customers/${customerId}?wallet=${walletAddress}`, {
                 method: "DELETE",
             });
@@ -75,7 +78,9 @@ export default function Customers() {
     const handleFormClose = () => {
         setShowForm(false);
         setEditingCustomer(null);
-        loadCustomers();
+        if (walletAddress) {
+            loadCustomers();
+        }
     };
 
     const filteredCustomers = customers.filter((customer) => {
@@ -239,6 +244,7 @@ function CustomerForm({
     customer: Customer | null;
     onClose: () => void;
 }) {
+    const { walletAddress } = useAuth();
     const [formData, setFormData] = useState({
         walletAddress: customer?.walletAddress || "",
         name: customer?.name || "",
@@ -256,7 +262,6 @@ function CustomerForm({
         setError(null);
 
         try {
-            const walletAddress = localStorage.getItem("walletAddress");
             if (!walletAddress) throw new Error("Please connect your wallet");
 
             const url = customer

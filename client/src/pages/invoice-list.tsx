@@ -11,12 +11,13 @@
 
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Eye, 
-  DollarSign, 
+import { useAuth } from "@/hooks/use-auth";
+import {
+  Plus,
+  Search,
+  Filter,
+  Eye,
+  DollarSign,
   Clock,
   CheckCircle,
   XCircle,
@@ -53,6 +54,7 @@ const statusConfig = {
 
 export default function InvoiceList() {
   const [, navigate] = useLocation();
+  const { walletAddress } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,19 +63,22 @@ export default function InvoiceList() {
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
 
   useEffect(() => {
-    loadInvoices();
-  }, [statusFilter, currencyFilter]);
+    if (walletAddress) {
+      loadInvoices();
+    } else {
+      setLoading(false);
+      // Optional: Redirect or show empty state if not connected
+    }
+  }, [walletAddress, statusFilter, currencyFilter]);
 
   const loadInvoices = async () => {
+    // Prevent loading if no wallet (should be handled by effect, but safety check)
+    if (!walletAddress) return;
+
     setLoading(true);
     setError(null);
 
     try {
-      const walletAddress = localStorage.getItem("walletAddress");
-      if (!walletAddress) {
-        throw new Error("Please connect your wallet");
-      }
-
       const params = new URLSearchParams({
         wallet: walletAddress,
         ...(statusFilter !== "all" && { status: statusFilter }),
@@ -95,16 +100,14 @@ export default function InvoiceList() {
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
-    const matchesSearch = 
+    const matchesSearch =
       invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.invoiceeWalletAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesSearch;
   });
 
-  const walletAddress = localStorage.getItem("walletAddress") || "";
-  
   const sentInvoices = filteredInvoices.filter(
     (inv) => inv.invoicerWalletAddress === walletAddress
   );
@@ -124,7 +127,7 @@ export default function InvoiceList() {
   const getStatusBadge = (status: string) => {
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
     const Icon = config.icon;
-    
+
     return (
       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${config.color}`}>
         <Icon className="w-3.5 h-3.5" />
@@ -138,7 +141,7 @@ export default function InvoiceList() {
     const displayStatus = isOverdue ? "overdue" : invoice.status;
 
     return (
-      <tr 
+      <tr
         className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors"
         onClick={() => navigate(`/invoices/${invoice.id}`)}
       >
