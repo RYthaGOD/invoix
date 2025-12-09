@@ -216,6 +216,92 @@ export default function InvoiceLanding() {
         </div>
       </section>
 
+      {/* Rewards Program Section */}
+      <section className="container mx-auto px-6 py-16">
+        <div className="max-w-5xl mx-auto glass-strong p-8 md:p-12 rounded-3xl glow-md border border-primary/20">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+              <Sparkles className="w-4 h-4 mr-2" />
+              REWARDS PROGRAM
+            </div>
+            <h2 className="heading-md mb-4">Earn While You Invoice</h2>
+            <p className="body-lg text-muted-foreground max-w-2xl mx-auto">
+              50% of all protocol fees are used to buy back $B2B tokens and distribute them to early users and holders
+            </p>
+          </div>
+
+          {/* Token Address Card */}
+          <div className="glass-card p-6 rounded-2xl mb-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center glow-sm">
+                  <div className="text-2xl">🔷</div>
+                </div>
+                <div className="text-left">
+                  <h3 className="text-lg font-semibold mb-1">$B2B Token</h3>
+                  <code className="text-xs md:text-sm font-mono text-muted-foreground break-all">
+                    AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump
+                  </code>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump');
+                }}
+                className="btn-secondary whitespace-nowrap"
+              >
+                Copy Address
+              </button>
+            </div>
+          </div>
+
+          {/* Rewards Breakdown */}
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="text-center p-6 rounded-xl bg-background/50">
+              <div className="text-3xl font-bold text-primary mb-2">50%</div>
+              <div className="text-sm text-muted-foreground">Protocol Fees</div>
+              <div className="text-xs text-muted-foreground mt-1">Used for buybacks</div>
+            </div>
+            <div className="text-center p-6 rounded-xl bg-background/50">
+              <div className="text-3xl font-bold text-primary mb-2">0.5%</div>
+              <div className="text-sm text-muted-foreground">Per Transaction</div>
+              <div className="text-xs text-muted-foreground mt-1">Platform fee</div>
+            </div>
+            <div className="text-center p-6 rounded-xl bg-background/50">
+              <div className="text-3xl font-bold text-primary mb-2">100%</div>
+              <div className="text-sm text-muted-foreground">Early Users</div>
+              <div className="text-xs text-muted-foreground mt-1">Rewards distributed</div>
+            </div>
+          </div>
+
+          {/* How It Works */}
+          <div className="mt-8 p-6 rounded-xl border border-border/50 bg-background/30">
+            <h4 className="font-semibold mb-4 flex items-center">
+              <Zap className="w-5 h-5 mr-2 text-primary" />
+              How It Works
+            </h4>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <span>Every time a payment is processed, 0.5% goes to the protocol</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <span>50% of collected fees are used to buy back $B2B tokens from the market</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <span>Bought-back tokens are distributed proportionally to early users and holders</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <span>The more you use Invoix, the more rewards you earn</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       {activeTab === "features" && (
         <section className="container mx-auto px-6 py-24 border-t border-border/50">
