@@ -134,6 +134,20 @@ export default function InvoiceLanding() {
               </button>
             </div>
 
+            {/* Token Address */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card">
+              <div className="text-xs">🔷</div>
+              <code className="text-xs font-mono text-muted-foreground">AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump</code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump');
+                }}
+                className="px-2 py-1 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+
             <WalletButton />
           </div>
         </div>
@@ -186,28 +200,7 @@ export default function InvoiceLanding() {
             0.5% on payments only
           </p>
 
-          {/* Native Token */}
-          {import.meta.env.VITE_TOKEN_ADDRESS && (
-            <div className="mt-10 inline-block glass-strong p-6 rounded-2xl smoke-shadow">
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <div className="text-2xl">🔷</div>
-                <h3 className="text-lg font-semibold">B2B Native Token</h3>
-              </div>
-              <div className="flex items-center justify-center gap-3 flex-wrap">
-                <code className="text-sm md:text-base font-mono bg-background/50 px-4 py-2 rounded-lg border border-border/50">
-                  {import.meta.env.VITE_TOKEN_ADDRESS}
-                </code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(import.meta.env.VITE_TOKEN_ADDRESS || '');
-                  }}
-                  className="px-4 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors font-medium"
-                >
-                  Copy Address
-                </button>
-              </div>
-            </div>
-          )}
+
         </div>
 
         {/* Stats Grid */}
@@ -447,9 +440,22 @@ export default function InvoiceLanding() {
             <p className="text-sm text-muted-foreground">
               © 2025 Invoix. All rights reserved.
             </p>
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <span>Built on</span>
-              <span className="font-medium text-foreground">Solana</span>
+            <div className="flex items-center space-x-6 text-sm">
+              <a
+                href="https://x.com/InvoixSola24238"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                <span>Follow @InvoixSola24238</span>
+              </a>
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <span>Built on</span>
+                <span className="font-medium text-foreground">Solana</span>
+              </div>
             </div>
           </div>
         </div>
