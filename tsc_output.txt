@@ -1,0 +1,63 @@
+server/health.ts(66,11): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/health.ts(121,11): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-routes.ts(24,10): error TS7034: Variable 'db' implicitly has type 'any' in some locations where its type cannot be determined.
+server/invoice-routes.ts(1032,33): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-routes.ts(1106,34): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-routes.ts(1106,118): error TS7006: Parameter 'r' implicitly has an 'any' type.
+server/invoice-routes.ts(1112,30): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-routes.ts(1115,24): error TS7006: Parameter 'r' implicitly has an 'any' type.
+server/invoice-storage.ts(40,10): error TS7034: Variable 'db' implicitly has type 'any' in some locations where its type cannot be determined.
+server/invoice-storage.ts(125,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(130,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(138,17): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(176,17): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(196,32): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(201,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(210,26): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(219,18): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(226,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(231,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(240,26): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(249,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(254,18): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(261,18): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(271,32): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(304,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(317,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(325,32): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(330,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(343,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(354,18): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(361,32): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(366,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(375,26): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(419,36): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(427,50): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+server/invoice-storage.ts(427,55): error TS7006: Parameter 'inv' implicitly has an 'any' type.
+server/invoice-storage.ts(428,49): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+server/invoice-storage.ts(428,54): error TS7006: Parameter 'inv' implicitly has an 'any' type.
+server/invoice-storage.ts(431,50): error TS7006: Parameter 'inv' implicitly has an 'any' type.
+server/invoice-storage.ts(433,30): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+server/invoice-storage.ts(433,35): error TS7006: Parameter 'inv' implicitly has an 'any' type.
+server/invoice-storage.ts(440,34): error TS7006: Parameter 'latest' implicitly has an 'any' type.
+server/invoice-storage.ts(440,42): error TS7006: Parameter 'inv' implicitly has an 'any' type.
+server/invoice-storage.ts(444,30): error TS7006: Parameter 'latest' implicitly has an 'any' type.
+server/invoice-storage.ts(444,38): error TS7006: Parameter 'inv' implicitly has an 'any' type.
+server/invoice-storage.ts(462,30): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(467,18): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(474,33): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(479,29): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(488,26): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(513,25): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(524,12): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(548,25): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(560,24): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(574,24): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(588,31): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(614,31): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/invoice-storage.ts(632,32): error TS7005: Variable 'db' implicitly has an 'any' type.
+server/nft-service.ts(20,3): error TS2724: '"@metaplex-foundation/mpl-bubblegum"' has no exported member named 'CreateTreeInstructionAccounts'. Did you mean 'CreateTreeConfigInstructionAccounts'?
+server/nft-service.ts(123,44): error TS2739: Type 'Keypair' is missing the following properties from type 'Signer': signMessage, signTransaction, signAllTransactions
+server/nft-service.ts(167,26): error TS2339: Property 'sendAndConfirm' does not exist on type 'Promise<TransactionBuilder>'.
+server/nft-service.ts(280,9): error TS2353: Object literal may only specify known properties, and 'tokenStandard' does not exist in type 'Omit<CreateV1InstructionAccounts & Omit<CreateV1InstructionDataArgs & CreateV1InstructionExtraArgs, "tokenStandard" | ... 4 more ... | "printSupply"> & Partial<...> & Omit<...>, "amount" | "tokenStandard">'.
+server/nft-service.ts(341,9): error TS2353: Object literal may only specify known properties, and 'tokenStandard' does not exist in type 'Omit<CreateV1InstructionAccounts & Omit<CreateV1InstructionDataArgs & CreateV1InstructionExtraArgs, "tokenStandard" | ... 4 more ... | "printSupply"> & Partial<...> & Omit<...>, "amount" | "tokenStandard">'.

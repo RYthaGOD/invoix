@@ -24,12 +24,45 @@ function Router() {
     <Switch>
       <Route path="/" component={InvoiceLanding} />
       <Route path="/stats" component={Stats} />
-      <Route path="/invoices" component={InvoiceList} />
-      <Route path="/invoices/create" component={InvoiceCreate} />
-      <Route path="/invoices/:id" component={InvoiceDetail} />
       <Route path="/pay/:invoiceId" component={PayInvoice} />
-      <Route path="/customers" component={Customers} />
-      <Route path="/templates" component={Templates} />
+
+      {/* Dashboard Routes with Layout */}
+      <Route path="/invoices">
+        {() => (
+          <DashboardLayout>
+            <InvoiceList />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/invoices/create">
+        {() => (
+          <DashboardLayout>
+            <InvoiceCreate />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/invoices/:id">
+        {(params: { id: string }) => (
+          <DashboardLayout>
+            <InvoiceDetail />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/customers">
+        {() => (
+          <DashboardLayout>
+            <Customers />
+          </DashboardLayout>
+        )}
+      </Route>
+      <Route path="/templates">
+        {() => (
+          <DashboardLayout>
+            <Templates />
+          </DashboardLayout>
+        )}
+      </Route>
+
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,6 +1,6 @@
 // Database integration - SQLite for development, Postgres for production
-import { drizzle as drizzleSQLite } from 'drizzle-orm/better-sqlite3';
-import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
+import { drizzle as drizzleSQLite, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzlePg, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 const { Pool } = pg;
 import Database from 'better-sqlite3';
@@ -14,13 +14,11 @@ const useSQLite = isDevelopment && !process.env.DATABASE_URL;
 
 const schema = useSQLite ? schemaSqlite : schemaPg;
 
-// Type re-exports based on schema being used
-// Note: Types between schemas should be compatible enough for this application
-// but in strict TypeScript, they might diverge slightly (e.g. number vs Date).
-// Since we use 'mode: timestamp' in SQLite, Dates should be preserved.
+// Export strictly typed DB instance using Postgres schema (Production Priority)
+export type AppDatabase = NodePgDatabase<typeof schemaPg>;
 
-
-let db;
+// Explicitly type db for strict TypeScript validation across the app
+export let db: AppDatabase;
 
 if (useSQLite) {
   // SQLite setup for local development
@@ -31,7 +29,9 @@ if (useSQLite) {
 
   console.log('✅ Using SQLite database: ./data/invoices.db');
 
-  db = drizzleSQLite(sqlite, { schema });
+  // Force cast SQLite instance to AppDatabase to satisfy TypeScript
+  // This allows strict typing in the rest of the app based on the Production schema
+  db = drizzleSQLite(sqlite, { schema: schema as any }) as unknown as AppDatabase;
 } else {
   // PostgreSQL setup for production (using pg driver for Railway/Standard Postgres)
   if (!process.env.DATABASE_URL) {
@@ -47,7 +47,7 @@ if (useSQLite) {
     ssl: { rejectUnauthorized: false }, // Required for most cloud Postgres providers
   });
 
-  db = drizzlePg(pool, { schema });
+  db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
 }
 
-export { db };
+

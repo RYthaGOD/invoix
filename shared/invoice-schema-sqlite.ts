@@ -391,7 +391,8 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
 }).extend({
     invoicerWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
     invoiceeWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
-    tokenMintAddress: z.string().min(32, "Invalid token mint address"),
+    tokenMint: z.string().min(32, "Invalid token mint address").optional(),
+    tokenMintAddress: z.string().min(32, "Invalid token mint address").optional(), // Compat
     totalAmount: z.string().refine(val => parseFloat(val) > 0, "Total amount must be positive"),
     dueDate: z.date().or(z.string()),
 });

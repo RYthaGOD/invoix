@@ -10,7 +10,7 @@
  * - Actions (send, download, cancel)
  */
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -252,54 +252,50 @@ export default function InvoiceDetail() {
   const isInvoicee = invoice.invoiceeWalletAddress === walletAddress;
 
   return (
-    <div className="min-h-screen" style={{ background: "hsl(225 20% 8%)" }}>
+    <div className="space-y-6">
       {/* Header */}
-      <nav className="glass border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <button
-              onClick={() => navigate("/invoices")}
-              className="text-gray-300 hover:text-white transition-colors flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Invoices
+      <div className="flex justify-between items-center">
+        <button
+          onClick={() => navigate("/invoices")}
+          className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Invoices
+        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              const paymentLink = `${window.location.origin}/pay/${invoice.id}`;
+              copyToClipboard(paymentLink, "paymentLink");
+            }}
+            className="smoke-shadow px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all flex items-center gap-2"
+          >
+            {copied === "paymentLink" ? (
+              <>
+                <Check className="w-4 h-4 text-green-400" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Link className="w-4 h-4" />
+                Share Link
+              </>
+            )}
+          </button>
+          <button className="smoke-shadow px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            Download
+          </button>
+          {isInvoicer && invoice.status === "draft" && (
+            <button className="smoke-shadow px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-all flex items-center gap-2">
+              <Send className="w-4 h-4" />
+              Send
             </button>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  const paymentLink = `${window.location.origin}/pay/${invoice.id}`;
-                  copyToClipboard(paymentLink, "paymentLink");
-                }}
-                className="smoke-shadow px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all flex items-center gap-2"
-              >
-                {copied === "paymentLink" ? (
-                  <>
-                    <Check className="w-4 h-4 text-green-400" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Link className="w-4 h-4" />
-                    Share Link
-                  </>
-                )}
-              </button>
-              <button className="smoke-shadow px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Download
-              </button>
-              {isInvoicer && invoice.status === "draft" && (
-                <button className="smoke-shadow px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-all flex items-center gap-2">
-                  <Send className="w-4 h-4" />
-                  Send
-                </button>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-      </nav>
+      </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Invoice Header */}
         <div className="glass-card p-6">
           <div className="flex justify-between items-start mb-6">
@@ -519,7 +515,7 @@ export default function InvoiceDetail() {
                     min="0.01"
                     max={invoice.remainingAmount}
                     value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentAmount(e.target.value)}
                     required
                     className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder={`Max: ${formatCurrency(invoice.remainingAmount)}`}
@@ -533,7 +529,7 @@ export default function InvoiceDetail() {
                   <input
                     type="text"
                     value={paymentTxSignature}
-                    onChange={(e) => setPaymentTxSignature(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentTxSignature(e.target.value)}
                     required
                     minLength={88}
                     maxLength={88}

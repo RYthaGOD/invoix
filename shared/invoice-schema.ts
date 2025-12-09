@@ -514,6 +514,22 @@ export const insertInvoiceMarketplaceSchema = createInsertSchema(invoiceMarketpl
 });
 
 // ============================================
+// SECURITY TABLES
+// ============================================
+
+/**
+ * Auth Nonces - Prevents signature replay attacks
+ * Stores used signatures with an expiration
+ */
+export const authNonces = pgTable("auth_nonces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  signature: text("signature").notNull().unique(), // The used signature
+  expiresAt: timestamp("expires_at").notNull(), // When this nonce record can be purged
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ============================================
 // TYPE EXPORTS
 // ============================================
 
@@ -547,6 +563,6 @@ export type InsertInvoiceMarketplaceListing = z.infer<typeof insertInvoiceMarket
 export type SelectInvoice = Invoice;
 export type SelectPayment = Payment;
 export type SelectBusinessProfile = BusinessProfile;
-export type InsertCustomerProfile = z.infer<typeof insertCustomerProfileSchema>;
+
 
 export type X402Micropayment = typeof x402Micropayments.$inferSelect;

@@ -9,7 +9,7 @@
  * - Arcium encryption option
  */
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { Plus, Trash2, Lock, DollarSign, Calendar, User, FileText } from "lucide-react";
@@ -243,40 +243,39 @@ export default function InvoiceCreate() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "hsl(225 20% 8%)" }}>
+    <div className="space-y-6">
       {/* Header */}
-      <nav className="glass border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <button
-              onClick={() => navigate("/invoices")}
-              className="text-gray-300 hover:text-white transition-colors"
-            >
-              ← Back to Invoices
-            </button>
-            <h1 className="text-xl font-semibold text-white">Create Invoice</h1>
-            <div className="flex items-center gap-3">
-              {!isAuthenticated && connected && (
-                <button
-                  onClick={login}
-                  disabled={authLoading}
-                  className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
-                >
-                  {authLoading ? "Loading..." : "Login"}
-                </button>
-              )}
-              {isAuthenticated && walletAddress && (
-                <div className="text-sm text-gray-400">
-                  Logged in: {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/invoices")}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            ← Back
+          </button>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Create Invoice</h1>
         </div>
-      </nav>
+
+        <div className="flex items-center gap-3">
+          {!isAuthenticated && connected && (
+            <button
+              onClick={login}
+              disabled={authLoading}
+              className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+            >
+              {authLoading ? "Loading..." : "Login"}
+            </button>
+          )}
+          {isAuthenticated && walletAddress && (
+            <div className="text-sm text-gray-400">
+              Logged in: {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Form */}
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Error Message */}
           {error && (
@@ -294,7 +293,7 @@ export default function InvoiceCreate() {
               </label>
               <select
                 value={selectedTemplate}
-                onChange={(e) => handleTemplateSelect(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleTemplateSelect(e.target.value)}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">-- Select a template --</option>

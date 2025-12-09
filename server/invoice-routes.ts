@@ -1121,7 +1121,7 @@ export function registerInvoiceRoutes(app: Express): void {
         symbol: "BIZ",
         description: `Verified business credentials for ${businessData.businessName}`,
         image: `${process.env.API_URL || "https://api.solanainvoice.com"}/images/business-${verificationLevel}-nft.png`,
-        external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/business/${businessData.walletAddress}`,
+        external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/business/${businessData.ownerWalletAddress}`,
         attributes: [
           {
             trait_type: "Business Name",
@@ -1132,12 +1132,8 @@ export function registerInvoiceRoutes(app: Express): void {
             value: verificationLevel,
           },
           {
-            trait_type: "Industry",
-            value: businessData.industry || "Not specified",
-          },
-          {
             trait_type: "Wallet",
-            value: businessData.walletAddress,
+            value: businessData.ownerWalletAddress,
           },
           {
             trait_type: "Registration Date",
@@ -1149,7 +1145,7 @@ export function registerInvoiceRoutes(app: Express): void {
           category: "business_identity",
           creators: [
             {
-              address: businessData.walletAddress,
+              address: businessData.ownerWalletAddress,
               share: 100,
               verified: true,
             },

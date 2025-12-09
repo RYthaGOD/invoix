@@ -352,18 +352,31 @@ export async function requireWalletAuth(
 
     // Create a hash of the signature for replay attack prevention
     const { createHash } = await import("crypto");
-    const signatureHash = createHash("sha256").update(signature).digest("hex");
+    // const signatureHash = createHash("sha256").update(signature).digest("hex");
 
-    // TODO: Implement signature replay prevention in database
-    // For now, relying on 5-minute message expiry to prevent replay attacks
-    // LEGACY CODE (disabled):
-    // const isUsed = await storage.isSignatureUsed(signatureHash);
-    // if (isUsed) {
-    //   return res.status(400).json({
-    //     message: "Signature already used: Please sign a new message to prevent replay attacks"
-    //   });
-    // }
-    // await storage.recordUsedSignature({ signatureHash });
+    // DATABASE REPLAY PREVENTION
+    // 1. Check if signature exists in auth_nonces
+    const { authNonces } = await import("@shared/invoice-schema");
+    const { db } = await import("./db");
+    const { eq } = await import("drizzle-orm");
+
+    const existingNonce = await db.select().from(authNonces).where(eq(authNonces.signature, signature)).limit(1);
+
+    if (existingNonce.length > 0) {
+      return res.status(400).json({
+        message: "Signature already used: Replay attack detected"
+      });
+    }
+
+    // 2. Record this signature as used (expires in 24 hours to match standard session lifetime)
+    await db.insert(authNonces).values({
+      walletAddress: ownerWalletAddress,
+      signature: signature,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    });
+
+    // 3. Optional: Prune old nonces (could be moved to a cron job)
+    // await db.delete(authNonces).where(lt(authNonces.expiresAt, new Date()));
 
     // Attach verified wallet address to request for use in route handler
     (req as any).authenticatedWallet = ownerWalletAddress;

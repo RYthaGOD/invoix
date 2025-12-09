@@ -4,12 +4,13 @@
  * Database operations for B2B invoicing system
  */
 
-// Schema selection based on environment
-import * as pgSchema from "@shared/invoice-schema";
-import * as sqliteSchema from "@shared/invoice-schema-sqlite";
+// Schema selection - Enforcing Postgres schema for Production typing compliance
+// as requested: "fix it as the production version is using postgres"
+import * as schema from "@shared/invoice-schema";
+// import * as sqliteSchema from "@shared/invoice-schema-sqlite"; // disabled for strict typing
 
-const isSQLite = !process.env.DATABASE_URL;
-const schema = isSQLite ? sqliteSchema : pgSchema;
+// const isSQLite = !process.env.DATABASE_URL;
+// const schema = isSQLite ? sqliteSchema : pgSchema;
 
 const {
   invoices,
@@ -123,7 +124,7 @@ class InvoiceStorage implements IInvoiceStorage {
 
   async getInvoice(id: string): Promise<Invoice | undefined> {
     const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
-    return invoice;
+    return invoice as Invoice | undefined;
   }
 
   async getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined> {
@@ -131,7 +132,7 @@ class InvoiceStorage implements IInvoiceStorage {
       .from(invoices)
       .where(eq(invoices.invoiceNumber, invoiceNumber))
       .limit(1);
-    return invoice;
+    return invoice as Invoice | undefined;
   }
 
   async getInvoices(invoicerWallet: string, filters?: InvoiceFilters): Promise<Invoice[]> {
@@ -169,7 +170,7 @@ class InvoiceStorage implements IInvoiceStorage {
       query = query.offset(filters.offset);
     }
 
-    return await query;
+    return (await query) as Invoice[];
   }
 
   async getInvoicesForCustomer(invoiceeWallet: string, filters?: InvoiceFilters): Promise<Invoice[]> {
@@ -189,21 +190,32 @@ class InvoiceStorage implements IInvoiceStorage {
       query = query.limit(filters.limit);
     }
 
-    return await query;
+    return (await query) as Invoice[];
   }
 
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
-    const [newInvoice] = await db.insert(invoices).values(invoice).returning();
-    return newInvoice;
+    // Ensure strict type compatibility for Postgres
+    const insertData: any = { ...invoice };
+    if (typeof insertData.dueDate === 'string') {
+      insertData.dueDate = new Date(insertData.dueDate);
+    }
+    const [newInvoice] = await db.insert(invoices).values(insertData).returning();
+    return newInvoice as Invoice;
   }
 
   async updateInvoice(id: string, updates: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+    // Ensure dates are Date objects for strict Postgres typing
+    const cleanUpdates: any = { ...updates, updatedAt: new Date() };
+    if (cleanUpdates.dueDate && typeof cleanUpdates.dueDate === 'string') {
+      cleanUpdates.dueDate = new Date(cleanUpdates.dueDate);
+    }
+
     const [updated] = await db
       .update(invoices)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(cleanUpdates)
       .where(eq(invoices.id, id))
       .returning();
-    return updated;
+    return updated as Invoice | undefined;
   }
 
   async deleteInvoice(id: string): Promise<boolean> {
@@ -247,24 +259,26 @@ class InvoiceStorage implements IInvoiceStorage {
 
   async getPayment(id: string): Promise<Payment | undefined> {
     const [payment] = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
-    return payment;
+    return payment as Payment | undefined;
   }
 
   async getPaymentsByInvoice(invoiceId: string): Promise<Payment[]> {
-    return await db.select()
+    const rows = await db.select()
       .from(payments)
       .where(eq(payments.invoiceId, invoiceId))
       .orderBy(desc(payments.createdAt));
+    return rows as Payment[];
   }
 
   async getPaymentsByWallet(walletAddress: string): Promise<Payment[]> {
-    return await db.select()
+    const rows = await db.select()
       .from(payments)
       .where(or(
         eq(payments.fromAddress, walletAddress),
         eq(payments.toAddress, walletAddress)
       ))
       .orderBy(desc(payments.createdAt));
+    return rows as Payment[];
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {

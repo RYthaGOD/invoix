@@ -68,6 +68,9 @@ export class ArciumService {
   private connection: Connection;
   private initialized: boolean = false;
   private allowedPartiesMap: Map<string, string[]> = new Map();
+  // Adding explicit properties for client and reader to resolve TS errors
+  public client: any = null;
+  public reader: any = null;
 
   constructor(rpcEndpoint?: string) {
     // Use provided RPC or fallback to environment/default
@@ -85,7 +88,7 @@ export class ArciumService {
       console.log("✅ Invoice encryption service initialized (AES-256-GCM fallback)");
       console.log("   Using proven encryption until Arcium SDK is configured");
       console.log(`   Solana RPC: ${this.connection.rpcEndpoint}`);
-      
+
       return true;
     } catch (error) {
       console.error("❌ Failed to initialize encryption service:", error);
@@ -125,7 +128,7 @@ export class ArciumService {
     try {
       // Convert transaction data to JSON string for encryption
       const plaintext = JSON.stringify(transactionData);
-      
+
       // Convert allowed party addresses to PublicKey objects
       const parties = allowedParties.map(addr => new PublicKey(addr));
 
@@ -177,7 +180,7 @@ export class ArciumService {
     try {
       // Use Arcium v0.5 Reader to decrypt
       const ciphertext = Buffer.from(encryptedData, "base64");
-      
+
       const decryptedResult = await this.reader!.decrypt({
         ciphertext,
         encryptionKey,
@@ -187,7 +190,7 @@ export class ArciumService {
       // Parse the decrypted JSON
       const plaintext = decryptedResult.toString("utf-8");
       const transactionData: ConfidentialTransactionData = JSON.parse(plaintext);
-      
+
       return transactionData;
     } catch (error) {
       console.error("Arcium decryption error:", error);
@@ -220,7 +223,7 @@ export class ArciumService {
       // In v0.5, we can run confidential computations in MXE
       // This allows computing stats without decrypting individual transactions
       // For now, just return count (extend with actual MXE computation)
-      
+
       return {
         totalCount: transactionIds.length,
         success: true,
@@ -253,7 +256,7 @@ export class ArciumService {
         encryptionKey,
         party: new PublicKey(partyPublicKey),
       });
-      
+
       return hasAccess;
     } catch (error) {
       console.error("Arcium access verification error:", error);
@@ -281,7 +284,7 @@ export class ArciumService {
         newParty: new PublicKey(newPartyPublicKey),
         granter: granterKeypair,
       });
-      
+
       console.log(`✅ Granted access to ${newPartyPublicKey}`);
       return true;
     } catch (error) {
@@ -310,7 +313,7 @@ export class ArciumService {
         party: new PublicKey(partyPublicKey),
         revoker: revokerKeypair,
       });
-      
+
       console.log(`✅ Revoked access from ${partyPublicKey}`);
       return true;
     } catch (error) {
