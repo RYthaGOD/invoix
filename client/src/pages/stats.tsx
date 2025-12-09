@@ -75,6 +75,27 @@ export default function Stats() {
                     <p className="text-muted-foreground max-w-2xl mx-auto">
                         Real-time performance metrics of the SolanaInvoice protocol.
                     </p>
+
+                    {/* Native Token Contract */}
+                    <div className="mt-8 glass-strong p-6 rounded-xl max-w-3xl mx-auto smoke-shadow">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                            <div className="text-2xl">🔷</div>
+                            <h3 className="text-lg font-semibold">B2B Native Token</h3>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                            <code className="text-sm md:text-base font-mono bg-background/50 px-4 py-2 rounded-lg border border-border/50">
+                                AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump
+                            </code>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText('AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump');
+                                }}
+                                className="px-3 py-2 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors"
+                            >
+                                Copy
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -85,8 +106,8 @@ export default function Stats() {
                                     {stat.icon}
                                 </div>
                                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.change.startsWith("+") ? "bg-green-500/10 text-green-500" :
-                                        stat.change.startsWith("-") ? "bg-blue-500/10 text-blue-500" :
-                                            "bg-muted text-muted-foreground"
+                                    stat.change.startsWith("-") ? "bg-blue-500/10 text-blue-500" :
+                                        "bg-muted text-muted-foreground"
                                     }`}>
                                     {stat.change}
                                 </span>
