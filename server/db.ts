@@ -27,6 +27,10 @@ if (useSQLite) {
   // Enable foreign keys
   sqlite.pragma('foreign_keys = ON');
 
+  // Polyfill generic Postgres functions for SQLite compatibility
+  sqlite.function('gen_random_uuid', () => crypto.randomUUID());
+  sqlite.function('now', () => new Date().toISOString());
+
   console.log('✅ Using SQLite database: ./data/invoices.db');
 
   // Force cast SQLite instance to AppDatabase to satisfy TypeScript
