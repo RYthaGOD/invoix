@@ -91,6 +91,24 @@ export default function PayInvoice() {
                 recipientPubkey
             );
 
+            // Check if recipient's token account exists, create if needed
+            const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
+            const transaction = new Transaction();
+
+            if (!recipientAccountInfo) {
+                // Import createAssociatedTokenAccountInstruction
+                const { createAssociatedTokenAccountInstruction } = await import('@solana/spl-token');
+
+                // Add instruction to create recipient's ATA (payer pays ~0.002 SOL)
+                const createAtaIx = createAssociatedTokenAccountInstruction(
+                    publicKey, // payer
+                    recipientTokenAccount, // ata address
+                    recipientPubkey, // owner
+                    mintPubkey // mint
+                );
+                transaction.add(createAtaIx);
+            }
+
             // Create transfer instruction
             const transferInstruction = createTransferInstruction(
                 senderTokenAccount,
@@ -101,12 +119,23 @@ export default function PayInvoice() {
                 TOKEN_PROGRAM_ID
             );
 
-            // Create and send transaction
-            const transaction = new Transaction().add(transferInstruction);
+            // Add transfer to transaction and send
+            transaction.add(transferInstruction);
             const signature = await sendTransaction(transaction, connection);
 
-            // Wait for confirmation
-            await connection.confirmTransaction(signature, 'confirmed');
+            // Wait for confirmation with retry logic
+            let confirmed = false;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    await connection.confirmTransaction(signature, 'confirmed');
+                    confirmed = true;
+                    break;
+                } catch (confirmError) {
+                    if (attempt === 2) throw confirmError;
+                    // Wait before retry (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+                }
+            }
 
             setTxSignature(signature);
 

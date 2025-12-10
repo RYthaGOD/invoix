@@ -237,12 +237,10 @@ export default function InvoiceCreate() {
           // BUT, to save cost/complexity for this MVP iteration, we will use the API endpoint as the URI.
           // In production, `API_URL` should be the public domain.
 
-          // Just use a placeholder URI or the API endpoint if it's public.
-          // Since the prompt is for "mainnet also", we should probably assume the user wants real metadata.
-          // But uploading to Arweave via client requires user to pay storage fees or use a gateway.
-          // The server implementation had `uploadMetadata` which used Irys/Bundlr. 
-          // Let's stick to using the server's API endpoint as the URI for now, as that's what was implemented before.
-          const uri = `${window.location.origin}/api/nft-metadata/invoice-${invoiceId}`;
+          // Use environment variable for stable API URL, fallback to current origin
+          // This prevents NFT metadata from breaking if Railway domain changes
+          const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+          const uri = `${apiUrl}/api/nft-metadata/invoice-${invoiceId}`;
 
           await createNft(umi, {
             mint,
