@@ -51,12 +51,16 @@ export default defineConfig({
   define: {
     // Make global available
     global: 'globalThis',
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+    'process.env.REPL_ID': JSON.stringify(process.env.REPL_ID),
   },
   optimizeDeps: {
     esbuildOptions: {
       define: {
         global: 'globalThis',
       },
+      // Plugins to polyfill node modules in development
+      plugins: [],
     },
   },
 });
