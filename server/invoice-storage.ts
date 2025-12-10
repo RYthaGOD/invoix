@@ -40,6 +40,7 @@ import type {
 } from "@shared/invoice-schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc, sql, isNotNull } from "drizzle-orm";
+import { safeAdd, safeSubtract } from "@shared/math";
 
 export interface IInvoiceStorage {
   // Invoice operations
@@ -312,27 +313,25 @@ class InvoiceStorage implements IInvoiceStorage {
     // Update invoice paid amount and status
     const invoice = await this.getInvoice(payment.invoiceId);
     if (invoice) {
-      // NOTE: Using parseFloat for financial calculations
-      // For production with high-precision requirements, consider:
-      // - Using decimal.js or bignumber.js library
-      // - Storing amounts as integers (e.g., cents/lamports)
-      // - Using database NUMERIC type with adequate precision
-      const newPaidAmount = parseFloat(invoice.paidAmount) + parseFloat(payment.amount);
-      const totalAmount = parseFloat(invoice.totalAmount);
-      const remainingAmount = totalAmount - newPaidAmount;
+      // Use safe string-based math to avoid floating point errors
+      const newPaidAmount = safeAdd(invoice.paidAmount, payment.amount);
+      const remainingAmount = safeSubtract(invoice.totalAmount, newPaidAmount);
+
+      const isPaid = parseFloat(remainingAmount) <= 0;
+      const isPartial = parseFloat(newPaidAmount) > 0;
 
       let newStatus = invoice.status;
-      if (remainingAmount <= 0) {
+      if (isPaid) {
         newStatus = "paid";
-      } else if (newPaidAmount > 0) {
+      } else if (isPartial) {
         newStatus = "partial";
       }
 
       await this.updateInvoice(payment.invoiceId, {
-        paidAmount: newPaidAmount.toString(),
-        remainingAmount: Math.max(0, remainingAmount).toString(),
+        paidAmount: newPaidAmount,
+        remainingAmount: isPaid ? "0" : remainingAmount,
         status: newStatus,
-        paidAt: remainingAmount <= 0 ? new Date() : invoice.paidAt,
+        paidAt: isPaid ? new Date() : invoice.paidAt,
       });
     }
 

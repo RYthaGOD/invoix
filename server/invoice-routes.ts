@@ -500,6 +500,32 @@ export function registerInvoiceRoutes(app: Express): void {
         });
       }
 
+      // SECURITY: Verify transaction on-chain
+      // We must ensure the user actually sent the funds
+      if (validatedData.paymentMethod === "solana_transfer" || !validatedData.paymentMethod) {
+        // If it's a crypto payment, verify it
+        const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
+
+        console.log(`Verifying payment tx: ${validatedData.txSignature} for ${validatedData.amount} ${validatedData.currency}`);
+
+        const verification = await verifyStablecoinPayment(
+          connection,
+          validatedData.txSignature,
+          parseFloat(validatedData.amount),
+          validatedData.toAddress,
+          validatedData.currency
+        );
+
+        if (!verification.verified) {
+          console.error(`Starting Payment verification failed:`, verification);
+          return res.status(400).json({
+            message: `Payment verification failed: ${verification.error || "Transaction invalid"}`
+          });
+        }
+
+        console.log("✅ Payment Verified On-Chain:", verification);
+      }
+
       // Create payment (this auto-updates invoice status)
       const payment = await invoiceStorage.createPayment(validatedData);
 
