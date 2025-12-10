@@ -439,7 +439,7 @@ export class InvoiceNFTService {
   /**
    * Generate invoice NFT metadata
    */
-  private generateInvoiceMetadata(invoice: SelectInvoice): InvoiceNFTMetadata {
+  public generateInvoiceMetadata(invoice: SelectInvoice): InvoiceNFTMetadata {
     const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
 
     return {
@@ -496,7 +496,7 @@ export class InvoiceNFTService {
   /**
    * Generate payment receipt NFT metadata
    */
-  private generatePaymentReceiptMetadata(
+  public generatePaymentReceiptMetadata(
     payment: SelectPayment,
     invoice: SelectInvoice
   ): InvoiceNFTMetadata {
@@ -561,7 +561,7 @@ export class InvoiceNFTService {
   /**
    * Generate business identity NFT metadata
    */
-  private generateBusinessIdentityMetadata(
+  public generateBusinessIdentityMetadata(
     businessProfile: SelectBusinessProfile,
     verificationLevel: string
   ): InvoiceNFTMetadata {

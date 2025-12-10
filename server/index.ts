@@ -17,6 +17,8 @@ import {
 } from "./security";
 import { validateEnvironment } from "./env-validator";
 import { healthCheck, liveness, readiness } from "./health";
+import { initializeNFTService } from "./nft-service";
+import { loadKeypairFromPrivateKey } from "./arcium-service";
 
 // Validate environment variables on startup (before security check)
 validateEnvironment();
@@ -146,6 +148,19 @@ export async function triggerGracefulShutdown() {
     console.log("🚀 Starting Invoix B2B Platform...");
     console.log("Environment:", process.env.NODE_ENV || "development");
     console.log("Port:", process.env.PORT || "5000");
+
+    // Initialize NFT Service
+    if (process.env.PAYER_PRIVATE_KEY) {
+      try {
+        const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+        await initializeNFTService(payerKeypair);
+        console.log("✅ NFT Service initialized with payer wallet");
+      } catch (error) {
+        console.warn("⚠️ Failed to initialize NFT service:", error);
+      }
+    } else {
+      console.warn("⚠️ PAYER_PRIVATE_KEY not set - NFT minting will fail");
+    }
 
     server = await registerRoutes(app);
     console.log("✅ Routes registered");

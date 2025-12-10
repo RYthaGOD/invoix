@@ -18,7 +18,11 @@ import {
   Monitor
 } from "lucide-react";
 
+import { useTokenStats } from "@/hooks/use-token-stats";
+
 export default function InvoiceLanding() {
+  const { data: tokenStats, isLoading: isStatsLoading } = useTokenStats();
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -162,9 +166,9 @@ export default function InvoiceLanding() {
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12">
               {[
-                { val: "<1s", label: "Settlement", icon: Zap },
-                { val: "$0.0002", label: "Avg Cost", icon: Check },
-                { val: "$10M+", label: "Volume", icon: BarChart3 },
+                { val: isStatsLoading ? "..." : `$${Number(tokenStats?.priceUsd || 0).toFixed(6)}`, label: "Token Price", icon: Zap },
+                { val: isStatsLoading ? "..." : `${Number(tokenStats?.priceChange24h || 0).toFixed(2)}%`, label: "24h Change", icon: Check },
+                { val: isStatsLoading ? "..." : `$${(Number(tokenStats?.volume24h || 0) / 1000).toFixed(1)}K+`, label: "24h Volume", icon: BarChart3 },
                 { val: "24/7", label: "Uptime", icon: Globe },
               ].map((stat, i) => (
                 <div key={i} className="text-center p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors">
@@ -309,12 +313,12 @@ export default function InvoiceLanding() {
                   <span className="gradient-text">get paid.</span>
                 </h2>
                 <p className="text-lg text-muted-foreground mb-10 leading-relaxed max-w-xl">
-                  Invoix isn't just a tool; it's a protocol. 50% of fees go toward buying back $B2B tokens and rewarding active users.
+                  Invoix isn't just a tool; it's a protocol. 50% of fees go toward buying back $INVOIX tokens and rewarding active users.
                 </p>
 
                 <div className="flex flex-col gap-4">
                   {[
-                    "Earn $B2B for every invoice paid",
+                    "Earn $INVOIX for every invoice paid",
                     "Stake for reduced platform fees",
                     "Vote on protocol governance"
                   ].map((item, i) => (
@@ -338,7 +342,7 @@ export default function InvoiceLanding() {
                   <div className="space-y-4 mb-8">
                     <div className="flex justify-between items-center p-4 rounded-xl bg-black/20">
                       <span className="text-muted-foreground">My Rewards</span>
-                      <span className="font-mono font-bold text-primary">1,420.69 B2B</span>
+                      <span className="font-mono font-bold text-primary">1,420.69 INVOIX</span>
                     </div>
                     <div className="flex justify-between items-center p-4 rounded-xl bg-black/20">
                       <span className="text-muted-foreground">Est. Value</span>
@@ -372,12 +376,17 @@ export default function InvoiceLanding() {
                 Built on the Solana blockchain.
               </p>
               <div className="flex gap-4">
-                {/* Socials placeholders */}
+                {/* Socials */}
+                <a href="https://x.com/InvoixSola24238" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors">
+                  <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </a>
                 <div className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors">
-                  <Globe className="w-5 h-5 text-muted-foreground" {...({} as any)} />
+                  <Globe className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors">
-                  <Monitor className="w-5 h-5 text-muted-foreground" {...({} as any)} />
+                  <Monitor className="w-5 h-5 text-muted-foreground" />
                 </div>
               </div>
             </div>

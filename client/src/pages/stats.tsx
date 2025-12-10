@@ -2,12 +2,16 @@ import { Link } from "wouter";
 import { ArrowLeft, BarChart3, Activity, Users, Shield, Zap, Globe } from "lucide-react";
 import { WalletButton } from "@/components/wallet-button";
 
+import { useTokenStats } from "@/hooks/use-token-stats";
+
 export default function Stats() {
+    const { data: tokenStats, isLoading: isStatsLoading } = useTokenStats();
+
     const stats = [
         {
-            label: "Total Volume (24h)",
-            value: "$1.2M+",
-            change: "+12%",
+            label: "Total Token Volume (24h)",
+            value: isStatsLoading ? "..." : `$${(Number(tokenStats?.volume24h || 0) / 1000).toFixed(1)}K+`,
+            change: isStatsLoading ? "..." : `${Number(tokenStats?.priceChange24h || 0).toFixed(2)}%`,
             icon: <BarChart3 className="w-5 h-5 text-primary" />
         },
         {
@@ -80,7 +84,7 @@ export default function Stats() {
                     <div className="mt-8 glass-strong p-6 rounded-xl max-w-3xl mx-auto smoke-shadow">
                         <div className="flex items-center justify-center gap-3 mb-3">
                             <div className="text-2xl">🔷</div>
-                            <h3 className="text-lg font-semibold">B2B Native Token</h3>
+                            <h3 className="text-lg font-semibold">INVOIX Native Token</h3>
                         </div>
                         <div className="flex items-center justify-center gap-2 flex-wrap">
                             <code className="text-sm md:text-base font-mono bg-background/50 px-4 py-2 rounded-lg border border-border/50">
