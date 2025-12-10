@@ -96,8 +96,16 @@ jobs:
 
     - name: Check for critical vulnerabilities
       run: |
-        CRITICAL=$(cat audit-report.json | grep -o '"critical":[0-9]*' | cut -d':' -f2 || echo "0")
-        HIGH=$(cat audit-report.json | grep -o '"high":[0-9]*' | cut -d':' -f2 || echo "0")
+        # Use jq for robust JSON parsing instead of grep
+        if command -v jq &> /dev/null; then
+          CRITICAL=$(jq -r '.metadata.vulnerabilities.critical // 0' audit-report.json)
+          HIGH=$(jq -r '.metadata.vulnerabilities.high // 0' audit-report.json)
+        else
+          # Fallback to grep if jq is not available
+          CRITICAL=$(grep -o '"critical":[0-9]*' audit-report.json | cut -d':' -f2 || echo "0")
+          HIGH=$(grep -o '"high":[0-9]*' audit-report.json | cut -d':' -f2 || echo "0")
+        fi
+        
         echo "Critical vulnerabilities: $CRITICAL"
         echo "High vulnerabilities: $HIGH"
         

@@ -8,20 +8,23 @@ import { describe, it, expect } from "vitest";
 describe("Security and Validation Tests", () => {
   describe("Wallet Address Validation", () => {
     const isValidSolanaAddress = (address: string): boolean => {
-      // Solana addresses are base58 encoded and 32-44 characters
+      // Solana public keys are exactly 44 characters when base58-encoded
+      // However, some older addresses or special cases may be 32-43 characters
+      // The range 32-44 is used for maximum compatibility
       const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
       return base58Regex.test(address);
     };
 
     it("should validate correct Solana addresses", () => {
       const validAddresses = [
-        "7fUAJdStEuGbc3sM84cKRL6yYaaSstyLSU4ve5oovLS7",
-        "HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH",
-        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "7fUAJdStEuGbc3sM84cKRL6yYaaSstyLSU4ve5oovLS7", // 44 chars
+        "HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH", // 44 chars
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // 44 chars (USDC mint)
       ];
 
       validAddresses.forEach((addr) => {
         expect(isValidSolanaAddress(addr)).toBe(true);
+        expect(addr.length).toBe(44); // Standard length
       });
     });
 
@@ -71,6 +74,10 @@ describe("Security and Validation Tests", () => {
   });
 
   describe("Input Sanitization", () => {
+    // NOTE: This is a basic sanitization example for testing purposes.
+    // In production, use a dedicated sanitization library like DOMPurify
+    // for comprehensive XSS prevention including nested tags, CDATA sections,
+    // and encoded content.
     const sanitizeString = (input: string): string => {
       return input
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
@@ -135,6 +142,9 @@ describe("Security and Validation Tests", () => {
   });
 
   describe("Currency Validation", () => {
+    // Import from shared config in production to maintain single source of truth
+    // For testing purposes, we replicate the list here but note it should
+    // be kept in sync with shared/stablecoin-config.ts
     const validCurrencies = ["USDC", "USDT", "PYUSD", "EURC", "SOL"];
 
     const isValidCurrency = (currency: string): boolean => {
