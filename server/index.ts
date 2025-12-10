@@ -3,6 +3,7 @@ import 'dotenv/config';
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
 import { db, pool } from "./db";
 import { registerRoutes } from "./routes";

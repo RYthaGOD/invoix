@@ -3,8 +3,7 @@ import { drizzle as drizzleSQLite, type BetterSQLite3Database } from 'drizzle-or
 import { drizzle as drizzlePg, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 const { Pool } = pg;
-// Export Pool type for usage in other files
-export type { Pool } from 'pg';
+const { Pool } = pg;
 import Database from 'better-sqlite3';
 import * as schemaPg from "@shared/invoice-schema";
 import * as schemaSqlite from "@shared/invoice-schema-sqlite";
@@ -23,7 +22,7 @@ export type AppDatabase = NodePgDatabase<typeof schemaPg>;
 export let db: AppDatabase;
 
 // Declare pool at top level for export (will be undefined in SQLite mode)
-export let pool: Pool | undefined;
+export let pool: pg.Pool | undefined;
 
 if (useSQLite) {
   // SQLite setup for local development
