@@ -11,9 +11,9 @@ interface SolanaWalletProviderProps {
 }
 
 export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }) => {
-  // Use devnet endpoint for hackathon demo
-  const endpoint = useMemo(() => clusterApiUrl('devnet'), []);
-  
+  // Mainnet for production
+  const endpoint = useMemo(() => clusterApiUrl('mainnet-beta'), []);
+
   // Browser wallets auto-detected (Phantom, Solflare, etc.)
   const wallets = useMemo(() => [], []);
 

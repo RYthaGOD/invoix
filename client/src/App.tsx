@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { SolanaWalletProvider } from "@/lib/wallet-provider";
 import { RealtimeProvider } from "@/hooks/use-realtime";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -78,18 +79,20 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <SolanaWalletProvider>
-        <AuthProvider>
-          <ThemeProvider defaultTheme="dark">
-            <TooltipProvider>
-              <RealtimeProvider>
-                <Toaster />
-                <Router />
-              </RealtimeProvider>
-            </TooltipProvider>
-          </ThemeProvider>
-        </AuthProvider>
-      </SolanaWalletProvider>
+      <ErrorBoundary>
+        <SolanaWalletProvider>
+          <AuthProvider>
+            <ThemeProvider defaultTheme="dark">
+              <TooltipProvider>
+                <RealtimeProvider>
+                  <Toaster />
+                  <Router />
+                </RealtimeProvider>
+              </TooltipProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </SolanaWalletProvider>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

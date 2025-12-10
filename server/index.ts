@@ -159,7 +159,7 @@ export async function triggerGracefulShutdown() {
         console.warn("⚠️ Failed to initialize NFT service:", error);
       }
     } else {
-      console.warn("⚠️ PAYER_PRIVATE_KEY not set - NFT minting will fail");
+      console.log("ℹ️ PAYER_PRIVATE_KEY not set - Server-side NFT minting disabled (Client-side minting enabled)");
     }
 
     server = await registerRoutes(app);
