@@ -3,9 +3,7 @@ import 'dotenv/config';
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
-import pg from "pg";
-const { Pool } = pg;
+import createMemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -30,19 +28,13 @@ checkSecurityEnvVars();
 
 const app = express();
 
-// Session store setup - Use Postgres for persistence
-const PgSession = connectPgSimple(session);
+// Session store setup - Using MemoryStore temporarily (TODO: fix Postgres SSL)
+const MemoryStore = createMemoryStore(session);
 const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
 
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
   console.warn("⚠️  WARNING: SESSION_SECRET not set in production! Using insecure default.");
 }
-
-// Create Postgres pool for session store
-const sessionPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined
-});
 
 // Trust proxy - MUST be set before rate limiting middleware
 // This is required when the app is behind a reverse proxy (production)
@@ -54,10 +46,8 @@ app.use(corsPolicy());
 
 // Session middleware - BEFORE body parsing so it's available in all routes
 app.use(session({
-  store: new PgSession({
-    pool: sessionPool,
-    tableName: 'user_sessions',
-    createTableIfMissing: true,
+  store: new MemoryStore({
+    checkPeriod: 86400000,
   }),
   secret: sessionSecret,
   resave: false,
