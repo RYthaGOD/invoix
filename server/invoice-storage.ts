@@ -309,34 +309,56 @@ class InvoiceStorage implements IInvoiceStorage {
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
-    const [newPayment] = await db.insert(payments).values(payment).returning();
-
-    // Update invoice paid amount and status
-    const invoice = await this.getInvoice(payment.invoiceId);
-    if (invoice) {
-      // Use safe string-based math to avoid floating point errors
-      const newPaidAmount = safeAdd(invoice.paidAmount, payment.amount);
-      const remainingAmount = safeSubtract(invoice.totalAmount, newPaidAmount);
-
-      const isPaid = parseFloat(remainingAmount) <= 0;
-      const isPartial = parseFloat(newPaidAmount) > 0;
-
-      let newStatus = invoice.status;
-      if (isPaid) {
-        newStatus = "paid";
-      } else if (isPartial) {
-        newStatus = "partial";
+    // Check for duplicate transaction signature to ensure idempotency
+    if (payment.txSignature) {
+      const existingPayment = await db.select()
+        .from(payments)
+        .where(eq(payments.txSignature, payment.txSignature))
+        .limit(1);
+      
+      if (existingPayment.length > 0) {
+        // Payment with this transaction signature already exists
+        throw new Error(`Payment already processed: transaction ${payment.txSignature} has already been recorded`);
       }
-
-      await this.updateInvoice(payment.invoiceId, {
-        paidAmount: newPaidAmount,
-        remainingAmount: isPaid ? "0" : remainingAmount,
-        status: newStatus,
-        paidAt: isPaid ? new Date() : invoice.paidAt,
-      });
     }
 
-    return newPayment;
+    // Use a transaction to ensure atomicity between payment and invoice updates
+    const result = await db.transaction(async (tx) => {
+      // Insert the payment
+      const [newPayment] = await tx.insert(payments).values(payment).returning();
+
+      // Update invoice paid amount and status
+      const invoice = await this.getInvoice(payment.invoiceId);
+      if (invoice) {
+        // Use safe string-based math to avoid floating point errors
+        const newPaidAmount = safeAdd(invoice.paidAmount, payment.amount);
+        const remainingAmount = safeSubtract(invoice.totalAmount, newPaidAmount);
+
+        const isPaid = parseFloat(remainingAmount) <= 0;
+        const isPartial = parseFloat(newPaidAmount) > 0;
+
+        let newStatus = invoice.status;
+        if (isPaid) {
+          newStatus = "paid";
+        } else if (isPartial && invoice.status !== "overdue") {
+          newStatus = "partial";
+        }
+
+        await tx.update(invoices)
+          .set({
+            paidAmount: newPaidAmount,
+            remainingAmount: isPaid ? "0" : remainingAmount,
+            status: newStatus,
+            paidAt: isPaid ? new Date() : invoice.paidAt,
+            updatedAt: new Date(),
+          })
+          .where(eq(invoices.id, payment.invoiceId));
+      }
+
+      return newPayment;
+    });
+
+    return result;
   }
 
   async updatePayment(id: string, updates: Partial<InsertPayment>): Promise<Payment | undefined> {

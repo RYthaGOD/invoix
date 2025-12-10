@@ -1,14 +1,123 @@
-# GigaBrain - Deployment Guide
+# Solana B2B Invoicing System - Deployment Guide
 
 ## Overview
 
-This guide covers deploying GigaBrain to various platforms for the Solana hackathon demo.
+This guide covers deploying the Solana B2B Invoicing System securely to production environments.
+
+---
+
+## Security Prerequisites
+
+### Required Encryption Keys
+
+Before deploying, generate secure encryption keys:
+
+```bash
+# Invoice encryption key (32 bytes, base64 encoded)
+openssl rand -base64 32
+
+# Session secret (32+ characters)
+openssl rand -base64 32
+
+# Legacy encryption master key (if needed)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Key Management Best Practices
+
+1. **Never commit secrets to version control**
+   - Use `.env` files locally (already in `.gitignore`)
+   - Use environment variables or secrets management in production
+
+2. **Use KMS for production**
+   - AWS KMS, Google Cloud KMS, or Azure Key Vault
+   - Rotate keys on a schedule (see below)
+
+3. **Separate keys per environment**
+   - Development, staging, and production must use different keys
+   - Never reuse production keys in other environments
+
+4. **Key Rotation Schedule**
+   - SESSION_SECRET: Every 90 days
+   - INVOICE_ENCRYPTION_KEY: Every 180 days (requires data re-encryption)
+   - ENCRYPTION_MASTER_KEY: Every 180 days (requires data re-encryption)
+   - Database credentials: Every 90 days
+   - PAYER_PRIVATE_KEY: Every 365 days or immediately if compromised
 
 ---
 
 ## Platform Options
 
-### 1. Replit (Recommended for Demo)
+### 1. Production Deployment (AWS/GCP/Azure)
+
+**Recommended for production workloads with high security requirements**
+
+#### AWS Deployment
+
+1. **Setup RDS PostgreSQL**
+   ```bash
+   # Use AWS RDS with encryption at rest
+   # Enable automated backups
+   # Use VPC for network isolation
+   # Enable SSL connections (DB_SSL_MODE=require)
+   ```
+
+2. **Use AWS Secrets Manager**
+   ```bash
+   # Store encryption keys in Secrets Manager
+   aws secretsmanager create-secret \
+     --name invoix/production/encryption-key \
+     --secret-string "$(openssl rand -base64 32)"
+   ```
+
+3. **Deploy Application**
+   ```bash
+   # Use EC2, ECS, or Lambda
+   # Set environment variables from Secrets Manager
+   # Enable CloudWatch logging
+   # Use Application Load Balancer with SSL
+   ```
+
+4. **Configure Auto-scaling**
+   ```bash
+   # Setup CloudWatch alarms
+   # Configure Auto Scaling groups
+   # Enable health checks
+   ```
+
+#### GCP Deployment
+
+1. **Setup Cloud SQL**
+   ```bash
+   # Use Cloud SQL for PostgreSQL
+   # Enable automatic backups
+   # Use private IP
+   # Enable SSL enforcement
+   ```
+
+2. **Use Secret Manager**
+   ```bash
+   gcloud secrets create invoice-encryption-key \
+     --data-file=<(openssl rand -base64 32)
+   ```
+
+3. **Deploy to Cloud Run or GKE**
+   ```bash
+   # Build container
+   docker build -t gcr.io/PROJECT_ID/invoix:latest .
+   
+   # Push to registry
+   docker push gcr.io/PROJECT_ID/invoix:latest
+   
+   # Deploy to Cloud Run
+   gcloud run deploy invoix \
+     --image gcr.io/PROJECT_ID/invoix:latest \
+     --set-secrets=INVOICE_ENCRYPTION_KEY=invoice-encryption-key:latest
+   ```
+
+---
+
+### 2. Replit (Development/Demo)
 
 **Pros:**
 - Zero configuration
