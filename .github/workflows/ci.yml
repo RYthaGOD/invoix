@@ -1,0 +1,123 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, copilot/** ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: TypeScript type check
+      run: npm run check
+
+    - name: Run tests
+      run: npm run test
+      env:
+        NODE_ENV: test
+
+    - name: Security audit
+      run: npm audit --audit-level=high
+      continue-on-error: true
+
+    - name: Build project
+      run: npm run build
+      env:
+        NODE_ENV: production
+        DATABASE_URL: postgresql://test:test@localhost:5432/test
+        SESSION_SECRET: test-secret-key-min-32-chars-for-testing-purposes-only
+        SOLANA_RPC_URL: https://api.mainnet-beta.solana.com
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Check for secrets in code
+      run: |
+        echo "Checking for potential secrets in codebase..."
+        ! grep -r "privateKey.*=.*['\"]" --include="*.ts" --include="*.js" --include="*.mjs" --exclude-dir=node_modules --exclude-dir=dist . || (echo "ERROR: Found hardcoded private keys!" && exit 1)
+        ! grep -r "secretKey.*=.*['\"]" --include="*.ts" --include="*.js" --include="*.mjs" --exclude-dir=node_modules --exclude-dir=dist . || (echo "ERROR: Found hardcoded secret keys!" && exit 1)
+        echo "No hardcoded secrets found."
+
+    - name: Check package-lock.json is in sync
+      run: |
+        npm ci
+        git diff --exit-code package-lock.json || (echo "ERROR: package-lock.json is out of sync. Run 'npm install' locally and commit the changes." && exit 1)
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run npm audit
+      run: npm audit --json > audit-report.json || true
+
+    - name: Check for critical vulnerabilities
+      run: |
+        CRITICAL=$(cat audit-report.json | grep -o '"critical":[0-9]*' | cut -d':' -f2 || echo "0")
+        HIGH=$(cat audit-report.json | grep -o '"high":[0-9]*' | cut -d':' -f2 || echo "0")
+        echo "Critical vulnerabilities: $CRITICAL"
+        echo "High vulnerabilities: $HIGH"
+        
+        # Fail if critical vulnerabilities found
+        if [ "$CRITICAL" != "0" ]; then
+          echo "ERROR: Critical vulnerabilities found!"
+          cat audit-report.json
+          exit 1
+        fi
+        
+        # Warn about high vulnerabilities but don't fail
+        if [ "$HIGH" != "0" ]; then
+          echo "WARNING: High vulnerabilities found. Please review."
+          cat audit-report.json
+        fi
+
+    - name: Upload audit report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: npm-audit-report
+        path: audit-report.json
+        retention-days: 30
