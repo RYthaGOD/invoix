@@ -50,6 +50,12 @@ app.use(session({
     conString: process.env.DATABASE_URL,
     tableName: 'user_sessions',
     createTableIfMissing: true, // Auto-create sessions table
+    // SSL configuration for Railway Postgres
+    ...(process.env.NODE_ENV === 'production' && {
+      pool: {
+        ssl: { rejectUnauthorized: false }
+      }
+    })
   }),
   secret: sessionSecret,
   resave: false,
