@@ -126,7 +126,7 @@ export async function runMigrations() {
   }
 }
 
-export async function checkDatabaseConnection(retries = 10, delay = 2000): Promise<boolean> {
+export async function checkDatabaseConnection(retries = 30, delay = 2000): Promise<boolean> {
   if (useSQLite) return true;
   if (!pool) return false;
 
@@ -139,7 +139,7 @@ export async function checkDatabaseConnection(retries = 10, delay = 2000): Promi
       console.log('✅ Database connection established');
       return true;
     } catch (err) {
-      console.log(`⏳ Waiting for database... (Attempt ${i + 1}/${retries})`);
+      console.log(`⏳ Waiting for database... (Attempt ${i + 1}/${retries}) - Error: ${(err as Error).message}`);
       if (i === retries - 1) {
         console.error('❌ Database connection failed:', (err as Error).message);
         // Don't throw here, let the caller decide or just return false
@@ -150,6 +150,3 @@ export async function checkDatabaseConnection(retries = 10, delay = 2000): Promi
 
   throw new Error(`❌ Failed to connect to database after ${retries} attempts`);
 }
-
-
-
