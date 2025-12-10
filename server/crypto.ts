@@ -2,30 +2,91 @@ import crypto from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32; // 256 bits
-const IV_LENGTH = 16; // 128 bits
-const AUTH_TAG_LENGTH = 16; // 128 bits
-const SALT_LENGTH = 32;
+const IV_LENGTH = 16; // 128 bits (GCM standard)
+const AUTH_TAG_LENGTH = 16; // 128 bits (GCM standard)
+const SALT_LENGTH = 32; // 256 bits for scrypt
+const SCRYPT_N = 16384; // CPU/memory cost parameter (2^14)
+const SCRYPT_R = 8; // Block size parameter
+const SCRYPT_P = 1; // Parallelization parameter
 
-// Get master encryption key from environment or generate for development
+/**
+ * Get master encryption key from environment
+ * Supports multiple key sources with fallback hierarchy:
+ * 1. INVOICE_ENCRYPTION_KEY (base64-encoded 32 bytes) - preferred
+ * 2. INVOICE_ENCRYPTION_PASSPHRASE + SALT (scrypt derivation)
+ * 3. ENCRYPTION_MASTER_KEY (legacy, hex or base64)
+ * 4. Development fallback (insecure, dev only)
+ */
 function getMasterKey(): Buffer {
-  const envKey = process.env.ENCRYPTION_MASTER_KEY;
-  
-  if (envKey) {
-    // Convert from hex or base64
+  // Priority 1: Direct key from INVOICE_ENCRYPTION_KEY
+  const invoiceKey = process.env.INVOICE_ENCRYPTION_KEY;
+  if (invoiceKey) {
     try {
-      return Buffer.from(envKey, "hex");
-    } catch {
-      return Buffer.from(envKey, "base64");
+      const keyBuffer = Buffer.from(invoiceKey, "base64");
+      if (keyBuffer.length !== KEY_LENGTH) {
+        throw new Error(`INVOICE_ENCRYPTION_KEY must be exactly ${KEY_LENGTH} bytes, got ${keyBuffer.length} bytes`);
+      }
+      return keyBuffer;
+    } catch (error) {
+      console.error("Failed to parse INVOICE_ENCRYPTION_KEY:", error instanceof Error ? error.message : "Unknown error");
+      throw new Error("Invalid INVOICE_ENCRYPTION_KEY format. Must be base64-encoded 32 bytes. Generate with: openssl rand -base64 32");
+    }
+  }
+
+  // Priority 2: Passphrase-based key derivation
+  const passphrase = process.env.INVOICE_ENCRYPTION_PASSPHRASE;
+  const salt = process.env.INVOICE_ENCRYPTION_SALT;
+  if (passphrase && salt) {
+    try {
+      // Use scrypt for secure key derivation
+      return crypto.scryptSync(passphrase, salt, KEY_LENGTH, {
+        N: SCRYPT_N,
+        r: SCRYPT_R,
+        p: SCRYPT_P,
+      });
+    } catch (error) {
+      console.error("Failed to derive key from passphrase:", error instanceof Error ? error.message : "Unknown error");
+      throw new Error("Failed to derive encryption key from INVOICE_ENCRYPTION_PASSPHRASE");
+    }
+  }
+
+  // Priority 3: Legacy ENCRYPTION_MASTER_KEY
+  const envKey = process.env.ENCRYPTION_MASTER_KEY;
+  if (envKey) {
+    try {
+      // Try hex first (64 characters)
+      if (envKey.length === 64) {
+        const keyBuffer = Buffer.from(envKey, "hex");
+        if (keyBuffer.length === KEY_LENGTH) {
+          return keyBuffer;
+        }
+      }
+      // Try base64 (44 characters)
+      const keyBuffer = Buffer.from(envKey, "base64");
+      if (keyBuffer.length === KEY_LENGTH) {
+        return keyBuffer;
+      }
+      throw new Error(`Key length mismatch: expected ${KEY_LENGTH} bytes, got ${keyBuffer.length} bytes`);
+    } catch (error) {
+      console.error("Failed to parse ENCRYPTION_MASTER_KEY:", error instanceof Error ? error.message : "Unknown error");
+      throw new Error("Invalid ENCRYPTION_MASTER_KEY format");
     }
   }
   
   // Development fallback - NOT FOR PRODUCTION
   if (process.env.NODE_ENV !== "production") {
-    console.warn("⚠️  WARNING: Using development encryption key. Set ENCRYPTION_MASTER_KEY for production!");
-    return crypto.scryptSync("solanainvoice-dev-key-insecure", "salt", KEY_LENGTH);
+    console.warn("⚠️  WARNING: Using insecure development encryption key!");
+    console.warn("⚠️  Set INVOICE_ENCRYPTION_KEY for production!");
+    console.warn("⚠️  Generate with: openssl rand -base64 32");
+    // Use a consistent salt for development
+    return crypto.scryptSync("solanainvoice-dev-key-insecure", "dev-salt-insecure", KEY_LENGTH);
   }
   
-  throw new Error("ENCRYPTION_MASTER_KEY environment variable is required in production");
+  throw new Error(
+    "No encryption key configured. Set INVOICE_ENCRYPTION_KEY (base64 32 bytes) or " +
+    "INVOICE_ENCRYPTION_PASSPHRASE + INVOICE_ENCRYPTION_SALT. " +
+    "Generate key with: openssl rand -base64 32"
+  );
 }
 
 interface EncryptedData {

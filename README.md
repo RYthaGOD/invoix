@@ -87,29 +87,60 @@ npm run dev
 
 ### Environment Variables
 
-Create a `.env` file:
+Create a `.env` file (see `.env.example` for full documentation):
 
 ```bash
-# Database
+# Database (REQUIRED)
 DATABASE_URL=postgresql://user:pass@localhost:5432/invoicing
+
+# Session Security (REQUIRED)
+SESSION_SECRET=<generate with: openssl rand -base64 32>
+
+# Invoice Encryption (REQUIRED for production)
+INVOICE_ENCRYPTION_KEY=<generate with: openssl rand -base64 32>
 
 # Solana Configuration
 SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 SOLANA_NETWORK=mainnet-beta
+TREASURY_WALLET_PUBLIC_KEY=YOUR_TREASURY_WALLET
 
-# Arcium Configuration (for invoice encryption)
+# Arcium Configuration (optional - for multi-party encryption)
 ARCIUM_MXE_ENDPOINT=https://mxe-mainnet.arcium.com
 ARCIUM_PROGRAM_ID=Arc1umRPHMxZ5u8CcVJHCZv5F6DAP7S3RkHvBJmKEWCA
+ENABLE_ARCIUM_ENCRYPTION=false
 
-# x402 Configuration (for service fees)
+# x402 Micropayments (optional)
 X402_SERVICE_WALLET=YOUR_USDC_WALLET_ADDRESS
 X402_INVOICE_FEE_USD=0.01
+```
 
-# Encryption (optional - for non-Arcium data)
-ENCRYPTION_MASTER_KEY=<generate with: openssl rand -hex 32>
+### Build and Test Commands
 
-# Session Security
-SESSION_SECRET=<generate with: openssl rand -base64 32>
+```bash
+# Install dependencies (use npm ci for reproducible builds)
+npm ci
+
+# Type checking (no compilation, just validation)
+npm run check
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Development server with hot reload
+npm run dev
+
+# Database operations
+npm run db:push        # Push schema changes to database
+npm run db:indexes     # Create performance indexes
 ```
 
 ---
