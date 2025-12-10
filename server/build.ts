@@ -20,4 +20,9 @@ const dependencies = Object.keys(packageJson.dependencies || {});
         external: dependencies,
         logLevel: "info",
     });
+
+    // Copy migrations folder to dist
+    const { cpSync } = await import("fs");
+    cpSync(resolve("migrations"), resolve("dist/migrations"), { recursive: true });
+    console.log("✅ Migrations copied to dist/migrations");
 })();

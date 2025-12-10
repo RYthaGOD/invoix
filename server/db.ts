@@ -90,12 +90,35 @@ export async function runMigrations() {
     // Dynamic import to avoid bundling issues if possible, or just standard import
     const { migrate } = await import("drizzle-orm/node-postgres/migrator");
 
-    // "migrations" folder is copied to "dist/migrations" or similar in build?
-    // We need to resolve the path correctly relative to the build output.
-    // In dev (tsx), it's relative to project root. In prod (node dist/index.js), it might be different.
-    // Usually drizzle-kit generate outputs to ./migrations.
-    // We should pass absolute path or ensure CWD is correct.
-    await migrate(db, { migrationsFolder: "migrations" });
+    // In production (bundled), the migrations are copied to dist/migrations
+    // But we are running from dist/index.js, so the relative path "migrations" locally works if cwd is project root.
+    // However, if we start from dist, we need to be careful.
+    // The build script now copies migrations to dist/migrations.
+
+    // Determine the correct path
+    // If running in tsx (dev), it's "migrations" in root.
+    // If running in production (node dist/index.js), we expect "migrations" relative to the script OR "dist/migrations" if relative to root?
+    // Let's try to resolve it relative to the current working directory first.
+
+    // Try to find the migrations folder
+    const fs = await import("fs");
+    const path = await import("path");
+
+    let migrationsFolder = "migrations";
+
+    if (process.env.NODE_ENV === "production") {
+      // In production, we might be running "node dist/index.js" from root
+      // So "dist/migrations" would be the path if copied there
+      if (fs.existsSync(path.resolve("dist/migrations"))) {
+        migrationsFolder = "dist/migrations";
+      } else if (fs.existsSync(path.resolve("migrations"))) {
+        // Fallback to root migrations if verified
+        migrationsFolder = "migrations";
+      }
+    }
+
+    console.log(`Using migrations folder: ${migrationsFolder}`);
+    await migrate(db, { migrationsFolder });
     console.log('✅ Migrations completed successfully');
   } catch (error) {
     console.error('❌ Migration failed:', error);
