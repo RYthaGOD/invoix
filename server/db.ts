@@ -126,5 +126,30 @@ export async function runMigrations() {
   }
 }
 
+export async function checkDatabaseConnection(retries = 10, delay = 2000): Promise<boolean> {
+  if (useSQLite) return true;
+  if (!pool) return false;
+
+  console.log(`🔍 Checking database connection... (Timeout: ${retries * delay}ms)`);
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      const client = await pool.connect();
+      client.release();
+      console.log('✅ Database connection established');
+      return true;
+    } catch (err) {
+      console.log(`⏳ Waiting for database... (Attempt ${i + 1}/${retries})`);
+      if (i === retries - 1) {
+        console.error('❌ Database connection failed:', (err as Error).message);
+        // Don't throw here, let the caller decide or just return false
+      }
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+
+  throw new Error(`❌ Failed to connect to database after ${retries} attempts`);
+}
+
 
 
