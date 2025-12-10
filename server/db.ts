@@ -3,7 +3,7 @@ import { drizzle as drizzleSQLite, type BetterSQLite3Database } from 'drizzle-or
 import { drizzle as drizzlePg, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 const { Pool } = pg;
-const { Pool } = pg;
+
 import Database from 'better-sqlite3';
 import * as schemaPg from "@shared/invoice-schema";
 import * as schemaSqlite from "@shared/invoice-schema-sqlite";
