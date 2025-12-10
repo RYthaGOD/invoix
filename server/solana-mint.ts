@@ -4,7 +4,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getMint } from "@solana/spl-token";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 /**
  * Fetch token mint decimals from Solana blockchain
@@ -16,7 +16,7 @@ export async function getTokenDecimals(mintAddress: string): Promise<number> {
     const connection = new Connection(SOLANA_RPC_URL, "confirmed");
     const mintPublicKey = new PublicKey(mintAddress);
     const mintInfo = await getMint(connection, mintPublicKey);
-    
+
     console.log(`[Mint] Fetched decimals for ${mintAddress}: ${mintInfo.decimals}`);
     return mintInfo.decimals;
   } catch (error: any) {

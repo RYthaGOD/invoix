@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -28,8 +28,8 @@ checkSecurityEnvVars();
 
 const app = express();
 
-// Session store setup
-const MemoryStore = createMemoryStore(session);
+// Session store setup - Use Postgres for persistence
+const PgSession = connectPgSimple(session);
 const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
 
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
@@ -46,8 +46,10 @@ app.use(corsPolicy());
 
 // Session middleware - BEFORE body parsing so it's available in all routes
 app.use(session({
-  store: new MemoryStore({
-    checkPeriod: 86400000, // Prune expired entries every 24h
+  store: new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'user_sessions',
+    createTableIfMissing: true, // Auto-create sessions table
   }),
   secret: sessionSecret,
   resave: false,

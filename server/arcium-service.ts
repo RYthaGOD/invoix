@@ -74,7 +74,7 @@ export class ArciumService {
 
   constructor(rpcEndpoint?: string) {
     // Use provided RPC or fallback to environment/default
-    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
     this.connection = new Connection(endpoint, "confirmed");
   }
 

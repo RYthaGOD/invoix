@@ -106,7 +106,7 @@ export class InvoiceNFTService {
     rpcEndpoint?: string,
     config: Partial<NFTMintConfig> = {}
   ) {
-    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
     this.umi = createUmi(endpoint);
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -642,7 +642,7 @@ export class InvoiceNFTService {
   private async extractLeafIndexFromTransaction(signature: string): Promise<number> {
     try {
       // Get connection from UMI
-      const rpcEndpoint = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+      const rpcEndpoint = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
       const connection = new Connection(rpcEndpoint, "confirmed");
 
       // Fetch transaction with logs
