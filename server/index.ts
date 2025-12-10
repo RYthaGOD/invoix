@@ -4,6 +4,8 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
+const { Pool } = pg;
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -36,6 +38,12 @@ if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
   console.warn("⚠️  WARNING: SESSION_SECRET not set in production! Using insecure default.");
 }
 
+// Create Postgres pool for session store
+const sessionPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined
+});
+
 // Trust proxy - MUST be set before rate limiting middleware
 // This is required when the app is behind a reverse proxy (production)
 app.set('trust proxy', true);
@@ -47,9 +55,9 @@ app.use(corsPolicy());
 // Session middleware - BEFORE body parsing so it's available in all routes
 app.use(session({
   store: new PgSession({
-    conString: process.env.DATABASE_URL + (process.env.NODE_ENV === 'production' ? '?sslmode=require' : ''),
+    pool: sessionPool,
     tableName: 'user_sessions',
-    createTableIfMissing: true, // Auto-create sessions table
+    createTableIfMissing: true,
   }),
   secret: sessionSecret,
   resave: false,
