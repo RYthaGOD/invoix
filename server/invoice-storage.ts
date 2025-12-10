@@ -21,6 +21,7 @@ const {
   customerProfiles,
   paymentReceiptNFTs,
   businessIdentityNFTs,
+  systemSettings, // Added systemSettings here
 } = schema;
 
 // Types are exported from the main schema file (assuming compatibility)
@@ -422,9 +423,9 @@ class InvoiceStorage implements IInvoiceStorage {
     const allInvoices = await this.getInvoices(walletAddress);
 
     const totalInvoices = allInvoices.length;
-    const totalAmount = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.totalAmount), 0);
-    const paidAmount = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.paidAmount), 0);
-    const pendingAmount = totalAmount - paidAmount;
+    const totalAmount = allInvoices.reduce((sum, inv) => safeAdd(sum, inv.totalAmount), "0");
+    const paidAmount = allInvoices.reduce((sum, inv) => safeAdd(sum, inv.paidAmount), "0");
+    const pendingAmount = safeSubtract(totalAmount, paidAmount);
 
     // Count overdue invoices (past due date and not fully paid)
     const now = new Date();
@@ -445,9 +446,9 @@ class InvoiceStorage implements IInvoiceStorage {
 
     return {
       totalInvoices,
-      totalAmount: totalAmount.toFixed(2),
-      paidAmount: paidAmount.toFixed(2),
-      pendingAmount: pendingAmount.toFixed(2),
+      totalAmount: parseFloat(totalAmount).toFixed(2),
+      paidAmount: parseFloat(paidAmount).toFixed(2),
+      pendingAmount: parseFloat(pendingAmount).toFixed(2),
       overdueCount,
       averagePaymentDays: Math.round(averagePaymentDays),
     };
@@ -462,8 +463,8 @@ class InvoiceStorage implements IInvoiceStorage {
       ));
 
     const totalInvoices = customerInvoices.length;
-    const totalAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.totalAmount), 0);
-    const paidAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.paidAmount), 0);
+    const totalAmount = customerInvoices.reduce((sum, inv) => safeAdd(sum, inv.totalAmount), "0");
+    const paidAmount = customerInvoices.reduce((sum, inv) => safeAdd(sum, inv.paidAmount), "0");
 
     // Calculate average payment days
     const paidInvoices = customerInvoices.filter(inv => inv.status === "paid" && inv.paidAt);
@@ -484,8 +485,8 @@ class InvoiceStorage implements IInvoiceStorage {
 
     return {
       totalInvoices,
-      totalAmount: totalAmount.toFixed(2),
-      paidAmount: paidAmount.toFixed(2),
+      totalAmount: parseFloat(totalAmount).toFixed(2),
+      paidAmount: parseFloat(paidAmount).toFixed(2),
       averagePaymentDays: Math.round(averagePaymentDays),
       lastInvoiceDate,
       lastPaymentDate,

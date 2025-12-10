@@ -6,7 +6,7 @@
 
 import type { Express } from "express";
 import { invoiceStorage } from "./invoice-storage";
-import { safeSubtract } from "@shared/math";
+import { safeSubtract, safeAdd, safeMultiply } from "@shared/math";
 import {
   insertInvoiceSchema,
   insertInvoiceWithItemsSchema,
@@ -17,6 +17,8 @@ import {
   payments,
   businessProfiles,
   businessIdentityNFTs,
+  invoices,
+  invoiceLineItems,
   type Invoice
 } from "@shared/invoice-schema";
 import { fromZodError } from "zod-validation-error";
@@ -441,11 +443,28 @@ export function registerInvoiceRoutes(app: Express): void {
   app.patch("/api/line-items/:id", requireWalletOwnership, async (req, res) => {
     try {
       const { id } = req.params;
-      const updated = await invoiceStorage.updateLineItem(id, req.body);
+      const walletAddress = req.query.wallet as string; // We trust this because of requireWalletOwnership
 
-      if (!updated) {
+      // Security Check: Ensure user owns the invoice this line item belongs to
+      const lineItemResult = await db.select()
+        .from(invoiceLineItems)
+        .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
+        .where(eq(invoiceLineItems.id, id))
+        .limit(1);
+
+      if (lineItemResult.length === 0) {
         return res.status(404).json({ message: "Line item not found" });
       }
+
+      const { invoices: invoice } = lineItemResult[0];
+
+      if (invoice.invoicerWalletAddress !== walletAddress) {
+        return res.status(403).json({ message: "Unauthorized: You do not own this invoice" });
+      }
+
+      const updated = await invoiceStorage.updateLineItem(id, req.body);
+      // Wait, updateLineItem returns the updated item, or undefined/null.
+      // But we just checked it exists.
 
       res.json({
         success: true,
@@ -464,6 +483,25 @@ export function registerInvoiceRoutes(app: Express): void {
   app.delete("/api/line-items/:id", requireWalletOwnership, async (req, res) => {
     try {
       const { id } = req.params;
+      const walletAddress = req.query.wallet as string;
+
+      // Security Check: Ensure user owns the invoice this line item belongs to
+      const lineItemResult = await db.select()
+        .from(invoiceLineItems)
+        .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
+        .where(eq(invoiceLineItems.id, id))
+        .limit(1);
+
+      if (lineItemResult.length === 0) {
+        return res.status(404).json({ message: "Line item not found" });
+      }
+
+      const { invoices: invoice } = lineItemResult[0];
+
+      if (invoice.invoicerWalletAddress !== walletAddress) {
+        return res.status(403).json({ message: "Unauthorized: You do not own this invoice" });
+      }
+
       const success = await invoiceStorage.deleteLineItem(id);
 
       res.json({
@@ -517,13 +555,29 @@ export function registerInvoiceRoutes(app: Express): void {
         );
 
         if (!verification.verified) {
-          console.error(`Starting Payment verification failed:`, verification);
+          console.error(`Payment verification failed:`, verification);
           return res.status(400).json({
             message: `Payment verification failed: ${verification.error || "Transaction invalid"}`
           });
         }
 
         console.log("✅ Payment Verified On-Chain:", verification);
+      } else {
+        // MANUAL PAYMENT (e.g. Cash, Bank Transfer)
+        // Only the Invoicer can record manual payments.
+        // We need to check authentication manually here since the route is public for crypto payments.
+
+        // Check session (assuming logic from requireWalletOwnership or similar)
+        // note: req.isAuthenticated() is not standard express, dependent on passport or similar, 
+        // but here we likely use session.walletAddress based on prior context.
+        const session = (req as any).session;
+        if (!session || !session.walletAddress) {
+          return res.status(401).json({ message: "Authentication required for manual payments" });
+        }
+
+        if (session.walletAddress !== invoice.invoicerWalletAddress) {
+          return res.status(403).json({ message: "Unauthorized: Only the invoicer can record manual payments" });
+        }
       }
 
       // Create payment (this auto-updates invoice status)
@@ -1367,9 +1421,11 @@ export function registerInvoiceRoutes(app: Express): void {
       const lineItems = customLineItems || (template.defaultLineItems ? JSON.parse(template.defaultLineItems) : []);
 
       // Calculate totals
-      const subtotal = lineItems.reduce((sum: number, item: any) => {
-        return sum + (parseFloat(item.quantity) * parseFloat(item.unitPrice));
-      }, 0);
+      // Calculate totals
+      const subtotal = lineItems.reduce((sum: string, item: any) => {
+        const itemTotal = safeMultiply(item.quantity, item.unitPrice);
+        return safeAdd(sum, itemTotal);
+      }, "0");
 
       // Calculate due date
       const invoiceDueDate = dueDate ? new Date(dueDate) : new Date(Date.now() + template.defaultDueDays * 24 * 60 * 60 * 1000);
@@ -1406,7 +1462,7 @@ export function registerInvoiceRoutes(app: Express): void {
       // Add line items
       for (let i = 0; i < lineItems.length; i++) {
         const item = lineItems[i];
-        const lineTotal = parseFloat(item.quantity) * parseFloat(item.unitPrice);
+        const lineTotal = safeMultiply(item.quantity, item.unitPrice);
 
         await invoiceStorage.createLineItem({
           invoiceId: invoice.id,

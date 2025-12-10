@@ -518,6 +518,17 @@ export const insertInvoiceMarketplaceSchema = createInsertSchema(invoiceMarketpl
 });
 
 // ============================================
+// SYSTEM TABLES
+// ============================================
+
+export const systemSettings = pgTable("system_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ============================================
 // SECURITY TABLES
 // ============================================
 

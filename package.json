@@ -92,7 +92,6 @@
     "cmdk": "^1.1.1",
     "connect-pg-simple": "^10.0.0",
     "cron-parser": "^5.4.0",
-    "cross-env": "^10.1.0",
     "date-fns": "^3.6.0",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.4",
@@ -142,5 +141,8 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
   }
 }

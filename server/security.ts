@@ -480,10 +480,12 @@ export function checkSecurityEnvVars(): void {
   }
 
   // Check Merkle Tree Persistence (Critical for pNFTs)
+  // Check Merkle Tree Persistence (Critical for pNFTs)
   if (!process.env.MERKLE_TREE_ADDRESS && process.env.NODE_ENV !== "test") {
-    console.warn("\n⚠️  MERKLE_TREE_ADDRESS not set in .env");
-    console.warn("   A new tree will be created on start. Existing NFTs may become invalid if the tree address is lost.");
-    console.warn("   Check server logs for the new address and add it to .env: MERKLE_TREE_ADDRESS=...\n");
+    console.warn("\nℹ️  MERKLE_TREE_ADDRESS not set in .env");
+    console.warn("   System will attempt to load it from the database 'system_settings' table.");
+    console.warn("   If not found, a new tree will be created and persisted to the DB.");
+    console.warn("   (This is normal for the first run or if relying on DB persistence)\n");
   }
 
   // Verify ENCRYPTION_MASTER_KEY strength if present

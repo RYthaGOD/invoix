@@ -62,9 +62,11 @@ if (useSQLite) {
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: sslConfig,
-    max: 20, // Limit pool size
+    max: 10, // Reduce pool size for safety on smaller plans
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000, // Increased from 2s to 10s to prevent flaky connections
+    connectionTimeoutMillis: 10000,
+    keepAlive: true, // Prevent TCP dropouts
+    keepAliveInitialDelayMillis: 10000,
   });
 
   // Global pool error handler to prevent crashing on "Connection terminated unexpectedly"

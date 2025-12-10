@@ -17,7 +17,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useAuth } from "@/hooks/use-auth";
 import { CurrencySelector } from "@/components/currency-selector";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
-import { safeMultiply, safeAdd } from "@shared/math";
+import { safeAdd, safeMultiply, safeSubtract } from "@shared/math";
 
 // Umi Imports for Client-Side Minting
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
@@ -147,7 +147,9 @@ export default function InvoiceCreate() {
 
   const taxAmount = safeMultiply(subtotal, safeMultiply(taxRate || "0", "0.01"));
   const discountVal = discountAmount || "0";
-  const total = (parseFloat(subtotal) + parseFloat(taxAmount) - parseFloat(discountVal)).toFixed(2);
+  // safeAdd(subtotal, taxAmount) - discountVal
+  const totalWithTax = safeAdd(subtotal, taxAmount);
+  const total = safeSubtract(totalWithTax, discountVal);
 
   const onSubmit = async (data: InvoiceFormData) => {
     if (!isAuthenticated || !walletAddress) {
