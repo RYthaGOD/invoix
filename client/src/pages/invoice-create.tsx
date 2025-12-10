@@ -485,7 +485,7 @@ export default function InvoiceCreate() {
                     placeholder="0"
                   />
                 </div>
-                <div className="text-right text-white">-${discount.toFixed(2)}</div>
+                <div className="text-right text-white">-${parseFloat(discountVal).toFixed(2)}</div>
 
                 <div className="text-right text-gray-300 font-semibold text-lg pt-3 border-t border-white/10">
                   Total:

@@ -16,6 +16,7 @@ import Customers from "@/pages/customers";
 import Templates from "@/pages/templates";
 import DashboardLayout from "@/pages/dashboard-layout";
 import NotFound from "@/pages/not-found";
+import ComingSoon from "@/pages/coming-soon";
 
 import Stats from "@/pages/stats";
 
@@ -62,6 +63,12 @@ function Router() {
           </DashboardLayout>
         )}
       </Route>
+
+      {/* Placeholders for Future Features */}
+      <Route path="/pricing" component={ComingSoon} />
+      <Route path="/rewards" component={ComingSoon} />
+      <Route path="/dashboard/settings" component={ComingSoon} />
+      <Route path="/dashboard/blacklist" component={ComingSoon} />
 
       <Route component={NotFound} />
     </Switch>
