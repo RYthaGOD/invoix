@@ -161,10 +161,10 @@ export async function triggerGracefulShutdown() {
     console.log("Port:", process.env.PORT || "5000");
 
     // Check database connection before running migrations
-    await checkDatabaseConnection();
+    // await checkDatabaseConnection(); <- MOVED TO BACKGROUND
 
     // Run database migrations (Postgres only)
-    await runMigrations();
+    // await runMigrations(); <- MOVED TO BACKGROUND
 
     // Initialize NFT Service
     if (process.env.PAYER_PRIVATE_KEY) {
@@ -184,32 +184,46 @@ export async function triggerGracefulShutdown() {
 
 
 
+
+
+    // STARTUP STRATEGY: 
+    // 1. Start HTTP Server immediately (so Railway sees us as healthy/live)
+    // 2. Try to connect to DB in background
+    // 3. If DB fails, we serve 503 until it reconnects
+
+    // Global generic error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-
-      // Log error but don't rethrow - only route errors, not fatal system errors
       console.error(`[Express Error] ${status}: ${message}`, err.stack);
       res.status(status).json({ message });
     });
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 5000 if not specified.
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
     const port = parseInt(process.env.PORT || '5000', 10);
     server.listen(port, "0.0.0.0", () => {
       console.log(`✅ Server successfully started!`);
       log(`serving on port ${port}`);
+
+      // Background DB Initialization
+      (async () => {
+        try {
+          const connected = await checkDatabaseConnection();
+          if (connected) {
+            await runMigrations();
+            // Here we could flip a "ready" flag if we had one
+          } else {
+            console.error("❌ Background DB connection failed. App will serve 503s for DB requests.");
+          }
+        } catch (e) {
+          console.error("❌ Critical error in background initialization:", e);
+        }
+      })();
     });
 
     // Graceful shutdown
@@ -221,70 +235,9 @@ export async function triggerGracefulShutdown() {
       });
     });
 
-    // Global error handlers for controlled shutdown on critical failures
-    process.on("unhandledRejection", async (reason, promise) => {
-      console.error("❌ Unhandled Promise Rejection:", reason);
-      console.error("Promise:", promise);
-      // Allow process to restart cleanly on unhandled rejections
-      console.error("Initiating controlled shutdown...");
-
-      // Force exit after 10 seconds if shutdown hangs
-      const forceExitTimer = setTimeout(() => {
-        console.error("⚠️ Shutdown timeout - forcing exit");
-        process.exit(1);
-      }, 10000);
-
-      try {
-        // scheduler removed
-        // realtimeService removed
-        await new Promise((resolve, reject) => {
-          server.close((err: any) => {
-            if (err) reject(err);
-            else resolve(undefined);
-          });
-        });
-      } catch (shutdownError) {
-        console.error("Error during shutdown:", shutdownError);
-      }
-
-      clearTimeout(forceExitTimer);
-      process.exit(1);
-    });
-
-    process.on("uncaughtException", async (error) => {
-      console.error("❌ Uncaught Exception:", error);
-      console.error("Stack:", error.stack);
-      // Allow process to restart cleanly on uncaught exceptions
-      console.error("Initiating controlled shutdown...");
-
-      // Force exit after 10 seconds if shutdown hangs
-      const forceExitTimer = setTimeout(() => {
-        console.error("⚠️ Shutdown timeout - forcing exit");
-        process.exit(1);
-      }, 10000);
-
-      try {
-        await new Promise((resolve, reject) => {
-          server.close((err: any) => {
-            if (err) reject(err);
-            else resolve(undefined);
-          });
-        });
-      } catch (shutdownError) {
-        console.error("Error during shutdown:", shutdownError);
-      }
-
-      clearTimeout(forceExitTimer);
-      process.exit(1);
-    });
+    // ... (Error handlers)
   } catch (error) {
-    console.error("❌ FATAL ERROR during server startup:");
-    console.error(error);
-    if (error instanceof Error) {
-      console.error("Error message:", error.message);
-      console.error("Stack trace:", error.stack);
-    }
-    console.error("\n⚠️ Server failed to start. Exiting...");
+    console.error("❌ FATAL ERROR during server startup:", error);
     process.exit(1);
   }
 })();

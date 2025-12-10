@@ -130,6 +130,11 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
   if (useSQLite) return true;
   if (!pool) return false;
 
+  const connectionString = process.env.DATABASE_URL || "";
+  const isInternal = connectionString.includes('railway.internal');
+  const host = connectionString.split('@')[1]?.split(':')[0] || 'unknown';
+
+  console.log(`🔍 Connection Config: Host=${host}, Internal=${isInternal}, SSL=${process.env.DB_SSL_MODE || (isInternal ? 'disable' : 'require')}`);
   console.log(`🔍 Checking database connection... (Timeout: ${retries * delay}ms)`);
 
   for (let i = 0; i < retries; i++) {
@@ -142,11 +147,11 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
       console.log(`⏳ Waiting for database... (Attempt ${i + 1}/${retries}) - Error: ${(err as Error).message}`);
       if (i === retries - 1) {
         console.error('❌ Database connection failed:', (err as Error).message);
-        // Don't throw here, let the caller decide or just return false
+        return false;
       }
       await new Promise(res => setTimeout(res, delay));
     }
   }
 
-  throw new Error(`❌ Failed to connect to database after ${retries} attempts`);
+  return false;
 }
