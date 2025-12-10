@@ -215,31 +215,37 @@ export async function triggerGracefulShutdown() {
 
       // Background DB Initialization
       (async () => {
-        try {
-          const connected = await checkDatabaseConnection();
-          if (connected) {
-            await runMigrations();
+        let connected = false;
 
-            // Initialize NFT Service (After DB is ready)
-            if (process.env.PAYER_PRIVATE_KEY) {
-              try {
-                const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
-                await initializeNFTService(payerKeypair);
-                console.log("✅ NFT Service initialized with payer wallet");
-              } catch (error) {
-                console.warn("⚠️ Failed to initialize NFT service:", error);
+        while (!connected) {
+          try {
+            connected = await checkDatabaseConnection(5, 2000); // Check in small bursts
+            if (connected) {
+              await runMigrations();
+
+              // Initialize NFT Service (After DB is ready)
+              if (process.env.PAYER_PRIVATE_KEY) {
+                try {
+                  const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+                  await initializeNFTService(payerKeypair);
+                  console.log("✅ NFT Service initialized with payer wallet");
+                } catch (error) {
+                  console.warn("⚠️ Failed to initialize NFT service:", error);
+                }
+              } else {
+                console.log("ℹ️ PAYER_PRIVATE_KEY not set - Server-side NFT minting disabled (Client-side minting enabled)");
               }
-            } else {
-              console.log("ℹ️ PAYER_PRIVATE_KEY not set - Server-side NFT minting disabled (Client-side minting enabled)");
-            }
 
-            isServiceReady = true;
-            console.log("✅ Database connected. Service is now READY.");
-          } else {
-            console.error("❌ Background DB connection failed. App will serve 503s for DB requests.");
+              isServiceReady = true;
+              console.log("✅ Database connected. Service is now READY.");
+            } else {
+              console.log("⏳ Database not yet ready. Retrying in 5 seconds...");
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+          } catch (e) {
+            console.error("❌ Critical error in background initialization (Retrying in 5s):", e);
+            await new Promise(resolve => setTimeout(resolve, 5000));
           }
-        } catch (e) {
-          console.error("❌ Critical error in background initialization:", e);
         }
       })();
     });
