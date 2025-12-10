@@ -179,14 +179,28 @@ export async function triggerGracefulShutdown() {
       console.log("ℹ️ PAYER_PRIVATE_KEY not set - Server-side NFT minting disabled (Client-side minting enabled)");
     }
 
+
+
+    // Service Readiness Flag
+    let isServiceReady = false;
+
+    // Maintenance Mode Middleware - Must come before routes!
+    app.use((req, res, next) => {
+      if (!isServiceReady && req.path !== '/health') {
+        return res.status(503).json({
+          message: 'Service starting up - Waiting for database...',
+          status: 'maintenance'
+        });
+      }
+      next();
+    });
+
+    // Register routes after maintenance middleware
     server = await registerRoutes(app);
+
     console.log("✅ Routes registered");
 
-
-
-
-
-    // STARTUP STRATEGY: 
+    // STARTUP STRATEGY:
     // 1. Start HTTP Server immediately (so Railway sees us as healthy/live)
     // 2. Try to connect to DB in background
     // 3. If DB fails, we serve 503 until it reconnects
@@ -216,7 +230,8 @@ export async function triggerGracefulShutdown() {
           const connected = await checkDatabaseConnection();
           if (connected) {
             await runMigrations();
-            // Here we could flip a "ready" flag if we had one
+            isServiceReady = true;
+            console.log("✅ Database connected. Service is now READY.");
           } else {
             console.error("❌ Background DB connection failed. App will serve 503s for DB requests.");
           }
