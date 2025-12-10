@@ -48,7 +48,11 @@ if (useSQLite) {
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }, // Required for most cloud Postgres providers
+    // Disable SSL for Railway internal network (private networking)
+    // Enable SSL for public connections (required for most cloud providers)
+    ssl: process.env.DATABASE_URL?.includes('railway.internal')
+      ? false
+      : { rejectUnauthorized: false },
   });
 
   db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
