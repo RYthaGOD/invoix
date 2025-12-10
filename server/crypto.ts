@@ -24,7 +24,7 @@ function getMasterKey(): Buffer {
     try {
       const keyBuffer = Buffer.from(invoiceKey, "base64");
       if (keyBuffer.length !== KEY_LENGTH) {
-        throw new Error(`INVOICE_ENCRYPTION_KEY must be exactly ${KEY_LENGTH} bytes (44 base64 characters), got ${keyBuffer.length} bytes`);
+        throw new Error(`INVOICE_ENCRYPTION_KEY must be exactly ${KEY_LENGTH} bytes, got ${keyBuffer.length} bytes`);
       }
       return keyBuffer;
     } catch (error) {

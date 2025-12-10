@@ -327,8 +327,12 @@ class InvoiceStorage implements IInvoiceStorage {
       // Insert the payment
       const [newPayment] = await tx.insert(payments).values(payment).returning();
 
-      // Update invoice paid amount and status
-      const invoice = await this.getInvoice(payment.invoiceId);
+      // Get invoice INSIDE transaction to prevent race conditions
+      const [invoice] = await tx.select()
+        .from(invoices)
+        .where(eq(invoices.id, payment.invoiceId))
+        .limit(1);
+
       if (invoice) {
         // Use safe string-based math to avoid floating point errors
         const newPaidAmount = safeAdd(invoice.paidAmount, payment.amount);

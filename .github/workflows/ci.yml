@@ -89,18 +89,22 @@ jobs:
           echo "Running security audit..."
           npm audit --json > audit-results.json || true
           
-          # Check for high/critical vulnerabilities
-          HIGH_VULNS=$(cat audit-results.json | grep -o '"high":[0-9]*' | grep -o '[0-9]*' || echo "0")
-          CRITICAL_VULNS=$(cat audit-results.json | grep -o '"critical":[0-9]*' | grep -o '[0-9]*' || echo "0")
-          
-          echo "High vulnerabilities: $HIGH_VULNS"
-          echo "Critical vulnerabilities: $CRITICAL_VULNS"
-          
-          # Fail if critical vulnerabilities found
-          if [ "$CRITICAL_VULNS" -gt "0" ]; then
-            echo "❌ Critical vulnerabilities found!"
-            exit 1
-          fi
+          # Use Node.js to parse JSON reliably
+          node -e "
+            const audit = require('./audit-results.json');
+            const metadata = audit.metadata || {};
+            const vulnerabilities = metadata.vulnerabilities || {};
+            const high = vulnerabilities.high || 0;
+            const critical = vulnerabilities.critical || 0;
+            
+            console.log('High vulnerabilities:', high);
+            console.log('Critical vulnerabilities:', critical);
+            
+            if (critical > 0) {
+              console.log('❌ Critical vulnerabilities found!');
+              process.exit(1);
+            }
+          "
 
       - name: Upload audit results
         if: always()
