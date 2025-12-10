@@ -93,13 +93,15 @@ export async function healthCheck(req: Request, res: Response): Promise<void> {
   result.checks.environment.info = getEnvInfo();
 
   // Set HTTP status based on health
+  // IMPORTANT: We return 200 even if unhealthy to prevent Railway/K8s from killing the container
+  // The 'status' field in the JSON should be used for monitoring alerts instead.
   const statusToHttpCode: Record<string, number> = {
     healthy: 200,
     degraded: 200,
-    unhealthy: 503,
+    unhealthy: 200, // Was 503, changed to 200 to keep container alive during DB outages
   };
 
-  const httpStatus = statusToHttpCode[result.status] || 503;
+  const httpStatus = statusToHttpCode[result.status] || 200;
 
   res.status(httpStatus).json(result);
 }

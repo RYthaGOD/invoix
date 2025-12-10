@@ -167,17 +167,6 @@ export async function triggerGracefulShutdown() {
     // await runMigrations(); <- MOVED TO BACKGROUND
 
     // Initialize NFT Service
-    if (process.env.PAYER_PRIVATE_KEY) {
-      try {
-        const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
-        await initializeNFTService(payerKeypair);
-        console.log("✅ NFT Service initialized with payer wallet");
-      } catch (error) {
-        console.warn("⚠️ Failed to initialize NFT service:", error);
-      }
-    } else {
-      console.log("ℹ️ PAYER_PRIVATE_KEY not set - Server-side NFT minting disabled (Client-side minting enabled)");
-    }
 
 
 
@@ -230,6 +219,20 @@ export async function triggerGracefulShutdown() {
           const connected = await checkDatabaseConnection();
           if (connected) {
             await runMigrations();
+
+            // Initialize NFT Service (After DB is ready)
+            if (process.env.PAYER_PRIVATE_KEY) {
+              try {
+                const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+                await initializeNFTService(payerKeypair);
+                console.log("✅ NFT Service initialized with payer wallet");
+              } catch (error) {
+                console.warn("⚠️ Failed to initialize NFT service:", error);
+              }
+            } else {
+              console.log("ℹ️ PAYER_PRIVATE_KEY not set - Server-side NFT minting disabled (Client-side minting enabled)");
+            }
+
             isServiceReady = true;
             console.log("✅ Database connected. Service is now READY.");
           } else {
