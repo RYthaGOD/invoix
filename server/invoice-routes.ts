@@ -6,6 +6,7 @@
 
 import type { Express } from "express";
 import { invoiceStorage } from "./invoice-storage";
+import { safeSubtract } from "@shared/math";
 import {
   insertInvoiceSchema,
   insertInvoiceWithItemsSchema,
@@ -42,6 +43,11 @@ export function registerInvoiceRoutes(app: Express): void {
    * POST /api/invoices
    * Requires authentication
    */
+  /**
+   * Create a new invoice
+   * POST /api/invoices
+   * Requires authentication
+   */
   app.post("/api/invoices", requireWalletOwnership, strictRateLimit, async (req, res) => {
     try {
       // Get authenticated wallet from session
@@ -50,16 +56,9 @@ export function registerInvoiceRoutes(app: Express): void {
       const validatedData = insertInvoiceWithItemsSchema.parse(req.body);
       const { lineItems, ...invoiceData } = validatedData;
 
-      // Safe financial math helper
-      const safeSubtract = (a: string, b: string): string => {
-        const PRECISION = 1000000000; // 9 decimals
-        const valA = Math.round(parseFloat(a) * PRECISION);
-        const valB = Math.round(parseFloat(b) * PRECISION);
-        return ((valA - valB) / PRECISION).toString();
-      };
-
-      // Auto-calculate remaining amount
+      // Auto-calculate remaining amount using shared utility
       const remainingAmount = safeSubtract(invoiceData.totalAmount, invoiceData.paidAmount || "0");
+
 
       // Create invoice with line items atomically
       const invoice = await invoiceStorage.createInvoiceWithItems(
@@ -1403,4 +1402,3 @@ export function registerInvoiceRoutes(app: Express): void {
     }
   });
 }
-

@@ -479,6 +479,13 @@ export function checkSecurityEnvVars(): void {
     console.warn("   SESSION_SECRET: openssl rand -base64 32\n");
   }
 
+  // Check Merkle Tree Persistence (Critical for pNFTs)
+  if (!process.env.MERKLE_TREE_ADDRESS && process.env.NODE_ENV !== "test") {
+    console.warn("\n⚠️  MERKLE_TREE_ADDRESS not set in .env");
+    console.warn("   A new tree will be created on start. Existing NFTs may become invalid if the tree address is lost.");
+    console.warn("   Check server logs for the new address and add it to .env: MERKLE_TREE_ADDRESS=...\n");
+  }
+
   // Verify ENCRYPTION_MASTER_KEY strength if present
   const masterKey = process.env.ENCRYPTION_MASTER_KEY;
   if (masterKey && masterKey.length < 64) {

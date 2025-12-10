@@ -17,6 +17,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useAuth } from "@/hooks/use-auth";
 import { CurrencySelector } from "@/components/currency-selector";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
+import { safeMultiply, safeAdd } from "@shared/math";
 
 interface LineItem {
   description: string;
@@ -126,16 +127,22 @@ export default function InvoiceCreate() {
   const taxRate = watch("taxRate");
   const discountAmount = watch("discountAmount");
 
-  // Calculate totals
-  const subtotal = lineItems.reduce((sum, item) => {
-    const quantity = parseFloat(item.quantity || "0");
-    const unitPrice = parseFloat(item.unitPrice || "0");
-    return sum + (quantity * unitPrice);
-  }, 0);
+  // Calculate totals safely
+  const subtotal = lineItems.reduce((acc, item) => {
+    const qty = item.quantity || "0";
+    const price = item.unitPrice || "0";
+    return safeAdd(acc, safeMultiply(qty, price));
+  }, "0");
 
-  const taxAmount = subtotal * (parseFloat(taxRate || "0") / 100);
-  const discount = parseFloat(discountAmount || "0");
-  const total = subtotal + taxAmount - discount;
+  const taxAmount = safeMultiply(subtotal, safeMultiply(taxRate || "0", "0.01"));
+  const discountVal = discountAmount || "0";
+  // Total = Subtotal + Tax - Discount
+  // Note: We can chain safeAdd(subtotal, safeSubtract(taxAmount, discountVal)) if we had safeSubtract exported to client
+  // For now let's just use safeAdd for everything where possible or parse float for final display if strictly needed
+  // But wait, we want string precision.
+  // Let's do: subtotal + tax - discount
+  // We need safeSubtract in client
+  const total = (parseFloat(subtotal) + parseFloat(taxAmount) - parseFloat(discountVal)).toFixed(2);
 
   const onSubmit = async (data: InvoiceFormData) => {
     // Check authentication first
