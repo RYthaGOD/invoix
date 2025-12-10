@@ -4,6 +4,9 @@ builder = "NIXPACKS"
 [build.nixpacksPlan]
 providers = ["node"]
 
+[build.nixpacksPlan.phases.setup]
+nixPkgs = ["nodejs-20_x"]
+
 [build.nixpacksPhase.install]
 cmds = ["npm install"]
 
