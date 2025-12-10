@@ -37,6 +37,7 @@ private-keys/
 !drizzle.config.ts
 !vite.config.ts
 !tailwind.config.ts
+!migrations/**/*.json
 
 # IDE
 .vscode/
