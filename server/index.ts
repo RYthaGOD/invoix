@@ -47,15 +47,9 @@ app.use(corsPolicy());
 // Session middleware - BEFORE body parsing so it's available in all routes
 app.use(session({
   store: new PgSession({
-    conString: process.env.DATABASE_URL,
+    conString: process.env.DATABASE_URL + (process.env.NODE_ENV === 'production' ? '?sslmode=require' : ''),
     tableName: 'user_sessions',
     createTableIfMissing: true, // Auto-create sessions table
-    // SSL configuration for Railway Postgres
-    ...(process.env.NODE_ENV === 'production' && {
-      pool: {
-        ssl: { rejectUnauthorized: false }
-      }
-    })
   }),
   secret: sessionSecret,
   resave: false,
