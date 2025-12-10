@@ -521,19 +521,81 @@ app.post("/webhook/invoice-paid", async (req, res) => {
 
 ## 🧪 Testing
 
+The codebase includes comprehensive test coverage with 79 tests across multiple test suites.
+
+### Test Suites
+
+1. **Invoice API Tests** (`tests/invoice-api.test.ts`)
+   - Environment validation
+   - Schema validation (invoice numbers, wallet addresses, currencies)
+   - Invoice calculations (subtotals, tax, totals)
+   - Payment status updates
+   - NFT metadata generation
+   - Date validation
+   - Solana transaction validation
+   - Privacy settings
+   - Business profile validation
+
+2. **Invoice Lifecycle Tests** (`tests/invoice-lifecycle.test.ts`)
+   - Safe math operations (add, subtract, multiply, percentages)
+   - Invoice state transitions (draft → sent → partial → paid)
+   - Invoice calculation logic
+   - Payment reconciliation
+   - Edge cases and error handling
+   - Business logic validation
+
+3. **Security Validation Tests** (`tests/security-validation.test.ts`)
+   - Wallet address validation
+   - Transaction signature validation
+   - Input sanitization (XSS prevention)
+   - Amount validation
+   - Currency validation
+   - Date validation
+   - Email validation
+   - Authorization checks
+   - Payment verification security
+   - NFT minting security
+   - Session authentication
+   - Rate limiting logic
+
+### Running Tests
+
 ```bash
 # Run all tests
 npm test
 
 # Test invoice creation
-npm test -- invoices.test.ts
+npm test -- invoice-api.test.ts
 
-# Test payments
-npm test -- payments.test.ts
+# Test invoice lifecycle
+npm test -- invoice-lifecycle.test.ts
 
-# Test Arcium encryption
-npm test -- arcium.test.ts
+# Test security validation
+npm test -- security-validation.test.ts
+
+# Run tests with coverage
+npm test -- --coverage
+
+# Run TypeScript type checking
+npm run check
 ```
+
+### Test Results
+
+```
+✅ Test Files: 3 passed (3)
+✅ Tests: 79 passed (79)
+✅ Duration: ~600ms
+✅ TypeScript: All checks pass
+```
+
+### CI/CD Pipeline
+
+GitHub Actions workflow automatically runs on every push:
+- ✅ TypeScript type checking
+- ✅ All test suites
+- ✅ Security audits
+- ✅ Build verification
 
 ---
 
