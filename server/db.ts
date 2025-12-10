@@ -64,7 +64,13 @@ if (useSQLite) {
     ssl: sslConfig,
     max: 20, // Limit pool size
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000, // Increased from 2s to 10s to prevent flaky connections
+  });
+
+  // Global pool error handler to prevent crashing on "Connection terminated unexpectedly"
+  pool.on('error', (err, client) => {
+    console.error('Unexpected error on idle client', err);
+    // Don't exit, just log. The pool will reconnect.
   });
 
   db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
