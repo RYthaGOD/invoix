@@ -3,6 +3,8 @@ import { drizzle as drizzleSQLite, type BetterSQLite3Database } from 'drizzle-or
 import { drizzle as drizzlePg, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 const { Pool } = pg;
+// Export Pool type for usage in other files
+export type { Pool } from 'pg';
 import Database from 'better-sqlite3';
 import * as schemaPg from "@shared/invoice-schema";
 import * as schemaSqlite from "@shared/invoice-schema-sqlite";
@@ -19,6 +21,9 @@ export type AppDatabase = NodePgDatabase<typeof schemaPg>;
 
 // Explicitly type db for strict TypeScript validation across the app
 export let db: AppDatabase;
+
+// Declare pool at top level for export (will be undefined in SQLite mode)
+export let pool: Pool | undefined;
 
 if (useSQLite) {
   // SQLite setup for local development
@@ -46,13 +51,21 @@ if (useSQLite) {
 
   console.log('✅ Using PostgreSQL database (pg driver)');
 
-  const pool = new Pool({
+  // Create a reusable pool configuration with smart SSL default
+  // Allow manual override via DB_SSL_MODE
+  const isInternal = process.env.DATABASE_URL?.includes('railway.internal');
+  const sslMode = process.env.DB_SSL_MODE || (isInternal ? 'disable' : 'require');
+
+  const sslConfig = sslMode === 'disable' ? false : { rejectUnauthorized: false };
+
+  console.log(`🔌 DB SSL Mode: ${sslMode} (Internal network: ${isInternal})`);
+
+  pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    // Disable SSL for Railway internal network (private networking)
-    // Enable SSL for public connections (required for most cloud providers)
-    ssl: process.env.DATABASE_URL?.includes('railway.internal')
-      ? false
-      : { rejectUnauthorized: false },
+    ssl: sslConfig,
+    max: 20, // Limit pool size
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
   });
 
   db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;

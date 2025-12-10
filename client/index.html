@@ -12,12 +12,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
     rel="stylesheet">
-  <script type="module">
-    // Polyfill Buffer for Solana wallet adapter and web3.js
-    import { Buffer } from 'buffer';
-    window.Buffer = Buffer;
-    globalThis.Buffer = Buffer;
-  </script>
+
   <script>
     // Suppress Vite HMR WebSocket errors (localhost:undefined) - Replit/Vite development quirk
     window.addEventListener("unhandledrejection", function (event) {

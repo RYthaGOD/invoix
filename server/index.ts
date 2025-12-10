@@ -3,7 +3,8 @@ import 'dotenv/config';
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import { db, pool } from "./db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -28,8 +29,8 @@ checkSecurityEnvVars();
 
 const app = express();
 
-// Session store setup - Using MemoryStore temporarily (TODO: fix Postgres SSL)
-const MemoryStore = createMemoryStore(session);
+// Session store setup
+const PgSession = connectPgSimple(session);
 const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
 
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
@@ -37,7 +38,6 @@ if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
 }
 
 // Trust proxy - MUST be set before rate limiting middleware
-// This is required when the app is behind a reverse proxy (production)
 app.set('trust proxy', true);
 
 // Security middleware - FIRST (headers and CORS before body parsing)
@@ -45,10 +45,20 @@ app.use(securityHeaders());
 app.use(corsPolicy());
 
 // Session middleware - BEFORE body parsing so it's available in all routes
+// Use Postgres store if pool is available (Production), otherwise MemoryStore (Dev/SQLite)
+const sessionStore = pool
+  ? new PgSession({
+    pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+    ttl: 7 * 24 * 60 * 60 // 7 days
+  })
+  : new (createMemoryStore(session))({
+    checkPeriod: 86400000 // 24h
+  });
+
 app.use(session({
-  store: new MemoryStore({
-    checkPeriod: 86400000,
-  }),
+  store: sessionStore,
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
