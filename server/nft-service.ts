@@ -126,17 +126,36 @@ export class InvoiceNFTService {
         this.umi.use({ install: (umi) => { umi.payer = umiKeypair as unknown as Signer; } });
       }
 
-      // Create or use existing merkle tree
+      // 1. Check .env first (override)
       if (this.config.merkleTreeAddress) {
         this.merkleTree = this.config.merkleTreeAddress;
       } else {
-        await this.createMerkleTree();
+        // 2. Check Database for persisted tree
+        const { systemSettings } = await import("@shared/invoice-schema");
+        const { db } = await import("./db");
+        const { eq } = await import("drizzle-orm");
+
+        const storedTree = await db.select().from(systemSettings).where(eq(systemSettings.key, "merkle_tree_address")).limit(1);
+
+        if (storedTree.length > 0) {
+          this.merkleTree = storedTree[0].value;
+          console.log(`✅ Loaded Merkle Tree from DB: ${this.merkleTree}`);
+        } else {
+          // 3. Create new tree if none exists
+          await this.createMerkleTree();
+
+          // Persist to DB
+          await db.insert(systemSettings).values({
+            key: "merkle_tree_address",
+            value: this.merkleTree!,
+            description: "Compressed NFT Merkle Tree Address",
+          });
+          console.log(`💾 Persisted Merkle Tree to DB`);
+        }
       }
 
       this.initialized = true;
       console.log("✅ Invoice NFT service initialized");
-      console.log(`   Merkle Tree: ${this.merkleTree}`);
-      console.log(`   Auto-mint: ${this.config.autoMint}`);
 
       return true;
     } catch (error) {
