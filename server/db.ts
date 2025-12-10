@@ -75,7 +75,33 @@ if (useSQLite) {
     // Don't exit, just log. The pool will reconnect.
   });
 
+
   db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
 }
+
+export async function runMigrations() {
+  if (useSQLite) {
+    console.log('Skipping Postgres migrations (using SQLite)');
+    return;
+  }
+
+  try {
+    console.log('⏳ Running database migrations...');
+    // Dynamic import to avoid bundling issues if possible, or just standard import
+    const { migrate } = await import("drizzle-orm/node-postgres/migrator");
+
+    // "migrations" folder is copied to "dist/migrations" or similar in build?
+    // We need to resolve the path correctly relative to the build output.
+    // In dev (tsx), it's relative to project root. In prod (node dist/index.js), it might be different.
+    // Usually drizzle-kit generate outputs to ./migrations.
+    // We should pass absolute path or ensure CWD is correct.
+    await migrate(db, { migrationsFolder: "migrations" });
+    console.log('✅ Migrations completed successfully');
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+    throw error;
+  }
+}
+
 
 

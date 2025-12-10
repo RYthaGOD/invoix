@@ -5,7 +5,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
-import { db, pool } from "./db";
+import { db, pool, runMigrations } from "./db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -159,6 +159,9 @@ export async function triggerGracefulShutdown() {
     console.log("🚀 Starting Invoix B2B Platform...");
     console.log("Environment:", process.env.NODE_ENV || "development");
     console.log("Port:", process.env.PORT || "5000");
+
+    // Run database migrations (Postgres only)
+    await runMigrations();
 
     // Initialize NFT Service
     if (process.env.PAYER_PRIVATE_KEY) {
