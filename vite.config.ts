@@ -59,8 +59,6 @@ export default defineConfig({
       define: {
         global: 'globalThis',
       },
-      // Plugins to polyfill node modules in development
-      plugins: [],
     },
   },
 });

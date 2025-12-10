@@ -15,9 +15,10 @@
   <script>
     window.global = window;
     window.process = {
-      env: { DEBUG: undefined, NODE_ENV: 'production' },
+      env: { DEBUG: '', NODE_ENV: 'production' },
       version: '',
-      nextTick: function (cb) { setTimeout(cb, 0); }
+      nextTick: function (cb) { setTimeout(cb, 0); },
+      browser: true
     };
     // Initialize log
     console.log("🚀 HTML Loaded - Polyfills injected");
