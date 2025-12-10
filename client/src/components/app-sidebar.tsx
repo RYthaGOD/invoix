@@ -1,4 +1,5 @@
-import { Home, Plus, History, Settings, Flame, TrendingUp, DollarSign, Brain, Shield, Zap } from "lucide-react";
+import React from "react";
+import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,43 +15,33 @@ import { Link, useLocation } from "wouter";
 const menuItems = [
   {
     title: "Overview",
-    url: "/dashboard",
+    url: "/invoices", // Changed from /dashboard to /invoices to match actual route
     icon: Home,
   },
   {
-    title: "New Project",
-    url: "/dashboard/new",
+    title: "Create Invoice",
+    url: "/invoices/create",
     icon: Plus,
   },
   {
-    title: "Volume Bot",
-    url: "/dashboard/volume-bot",
-    icon: TrendingUp,
+    title: "Customers",
+    url: "/customers",
+    icon: Users,
   },
   {
-    title: "Trading Bot",
-    url: "/dashboard/trading-bot",
-    icon: DollarSign,
+    title: "Templates",
+    url: "/templates",
+    icon: LayoutTemplate,
   },
   {
-    title: "AI Bot",
-    url: "/dashboard/ai-bot",
-    icon: Brain,
-  },
-  {
-    title: "Agentic Burn",
-    url: "/dashboard/agentic-burn",
+    title: "Stats",
+    url: "/stats",
     icon: Zap,
   },
   {
     title: "Blacklist",
-    url: "/dashboard/blacklist",
+    url: "/dashboard/blacklist", // Keeping if relevant, or remove if not implemented
     icon: Shield,
-  },
-  {
-    title: "Transactions",
-    url: "/dashboard/transactions",
-    icon: History,
   },
   {
     title: "Settings",
@@ -67,8 +58,8 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2 py-4">
-            <Flame className="h-5 w-5 text-primary" />
-            <span className="text-lg font-bold">SolanaInvoice</span>
+            <img src="/invoix-logo.jpg" alt="Invoix Logo" className="w-8 h-8 object-contain" />
+            <span className="text-lg font-bold">Invoix</span>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -80,7 +71,7 @@ export function AppSidebar() {
                     data-testid={`sidebar-${item.title.toLowerCase().replace(' ', '-')}`}
                   >
                     <Link href={item.url}>
-                      <item.icon />
+                      <item.icon className="w-5 h-5" {...({} as any)} />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
