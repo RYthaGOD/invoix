@@ -532,7 +532,7 @@ export default function InvoiceCreate() {
             <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
               <div className="grid grid-cols-2 gap-4 max-w-md ml-auto">
                 <div className="text-right text-gray-400">Subtotal:</div>
-                <div className="text-right text-white font-medium">${subtotal.toFixed(2)}</div>
+                <div className="text-right text-white font-medium">${parseFloat(subtotal).toFixed(2)}</div>
 
                 <div className="text-right text-gray-400">
                   <input
@@ -546,7 +546,7 @@ export default function InvoiceCreate() {
                   />
                   % Tax:
                 </div>
-                <div className="text-right text-white">${taxAmount.toFixed(2)}</div>
+                <div className="text-right text-white">${parseFloat(taxAmount).toFixed(2)}</div>
 
                 <div className="text-right text-gray-400">
                   Discount: $
@@ -565,7 +565,7 @@ export default function InvoiceCreate() {
                   Total:
                 </div>
                 <div className="text-right text-purple-400 font-bold text-xl pt-3 border-t border-white/10">
-                  ${total.toFixed(2)}
+                  ${parseFloat(total).toFixed(2)}
                 </div>
               </div>
             </div>

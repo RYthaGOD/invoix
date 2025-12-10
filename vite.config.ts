@@ -6,12 +6,15 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
   plugins: [
     react(),
+    nodePolyfills(),
     ...(process.env.NODE_ENV !== "production"
       ? [
         runtimeErrorOverlay(),
@@ -33,8 +36,6 @@ export default defineConfig({
       "@": path.resolve(__dirname, "client", "src"),
       "@shared": path.resolve(__dirname, "shared"),
       "@assets": path.resolve(__dirname, "attached_assets"),
-      // Polyfill Buffer for browser
-      buffer: 'buffer',
     },
   },
   root: path.resolve(__dirname, "client"),
