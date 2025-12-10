@@ -13,7 +13,9 @@ import {
   Sparkles,
   Receipt,
   Building2,
-  ChevronRight
+  ChevronRight,
+  Globe,
+  Monitor
 } from "lucide-react";
 
 export default function InvoiceLanding() {
@@ -25,10 +27,10 @@ export default function InvoiceLanding() {
   };
 
   const fadeInUp = {
-    initial: { opacity: 0, y: 20 },
+    initial: { opacity: 0, y: 30 },
     whileInView: { opacity: 1, y: 0 },
     viewport: { once: true },
-    transition: { duration: 0.5 }
+    transition: { duration: 0.6, ease: "easeOut" }
   };
 
   const staggerContainer = {
@@ -41,119 +43,49 @@ export default function InvoiceLanding() {
     }
   };
 
-  const features = [
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: "Instant Payments",
-      description: "Get paid in seconds, not days. Solana's speed means your cash flow never waits."
-    },
-    {
-      icon: <Lock className="w-6 h-6" />,
-      title: "End-to-End Encryption",
-      description: "Your financial data stays private. Only you and your client can see invoice details."
-    },
-    {
-      icon: <CreditCard className="w-6 h-6" />,
-      title: "Multi-Currency",
-      description: "Accept USDC, USDT, EURC, or SOL. Stablecoins for predictable payments."
-    },
-    {
-      icon: <Receipt className="w-6 h-6" />,
-      title: "NFT Receipts",
-      description: "Every payment generates an on-chain receipt. Perfect for taxes and audits."
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: "Customer CRM",
-      description: "Track payment history, set custom terms, and manage all your clients."
-    },
-    {
-      icon: <BarChart3 className="w-6 h-6" />,
-      title: "Smart Analytics",
-      description: "Real-time insights on cash flow, payment trends, and overdue invoices."
-    }
-  ];
-
-  const stats = [
-    { value: "<1s", label: "Payment Speed" },
-    { value: "$0.00025", label: "Transaction Cost" },
-    { value: "0.5%", label: "Platform Fee" },
-    { value: "24/7", label: "Availability" }
-  ];
-
-  const steps = [
-    {
-      step: "01",
-      title: "Connect Wallet",
-      description: "Sign in with your Solana wallet. No email, no password, no hassle."
-    },
-    {
-      step: "02",
-      title: "Create Invoice",
-      description: "Fill in the details or use a template. Takes less than a minute."
-    },
-    {
-      step: "03",
-      title: "Share & Get Paid",
-      description: "Send the link to your client. They pay, you receive instantly."
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden selection:bg-primary/30 selection:text-white">
       {/* Navbar */}
-      <nav className="glass border-b border-border/50 sticky top-0 z-50 transition-all duration-300">
+      <nav className="fixed w-full top-0 z-50 transition-all duration-300 glass border-b border-white/5">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/">
-              <a className="flex items-center space-x-2.5 group">
-                <img src="/invoix-logo.jpg" alt="Invoix Logo" className="w-9 h-9 object-contain rounded-xl glow-sm transition-transform group-hover:scale-105" />
-                <span className="text-2xl font-bold tracking-tight">
+              <a className="flex items-center space-x-3 group">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full group-hover:bg-primary/40 transition-colors" />
+                  <img src="/invoix-logo.jpg" alt="Invoix Logo" className="relative w-10 h-10 object-contain rounded-xl shadow-lg border border-white/10" />
+                </div>
+                <span className="text-2xl font-bold font-heading tracking-tight">
                   <span className="text-foreground">Inv</span>
                   <span className="gradient-text">oix</span>
                 </span>
               </a>
             </Link>
 
-            {/* Nav Links */}
-            <div className="hidden md:flex items-center space-x-8">
+            {/* Nav Links - Desktop */}
+            <div className="hidden md:flex items-center space-x-1 bg-white/5 backdrop-blur-md px-2 py-1.5 rounded-full border border-white/5">
+              {[
+                { label: "Features", id: "features" },
+                { label: "Rewards", id: "rewards" },
+                { label: "Pricing", id: "pricing" }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className="px-5 py-2 text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/5 rounded-full transition-all"
+                >
+                  {item.label}
+                </button>
+              ))}
               <Link href="/invoices">
-                <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hover-elevate px-3 py-2 rounded-md">
+                <a className="px-5 py-2 text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/5 rounded-full transition-all">
                   Dashboard
                 </a>
               </Link>
-              <button
-                onClick={() => scrollToSection("features")}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hover-elevate px-3 py-2 rounded-md"
-              >
-                Features
-              </button>
-              <button
-                onClick={() => scrollToSection("pricing")}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hover-elevate px-3 py-2 rounded-md"
-              >
-                Pricing
-              </button>
-              <button
-                onClick={() => scrollToSection("how-it-works")}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hover-elevate px-3 py-2 rounded-md"
-              >
-                How it Works
-              </button>
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Token Address */}
-              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg glass-card hover:bg-muted/50 transition-colors cursor-pointer group"
-                onClick={() => {
-                  navigator.clipboard.writeText('AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump');
-                }}>
-                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs group-hover:bg-primary/20 transition-colors">🔷</div>
-                <code className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">AMFB...pump</code>
-                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground group-hover:text-primary transition-colors">Copy</span>
-              </div>
-
               <WalletButton />
             </div>
           </div>
@@ -161,410 +93,318 @@ export default function InvoiceLanding() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative container mx-auto px-6 pt-20 pb-24 md:pt-32 md:pb-36">
-        {/* Background Gradients */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <section className="relative pt-32 pb-32 md:pt-48 md:pb-40 overflow-hidden">
+        {/* Animated Mesh Gradient Background */}
+        <div className="absolute inset-0 gradient-hero opacity-80 pointer-events-none" />
+        <div className="absolute top-20 right-0 w-[800px] h-[800px] bg-primary/20 blur-[150px] rounded-full pointer-events-none -z-10 translate-x-1/3 -translate-y-1/4" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/10 blur-[120px] rounded-full pointer-events-none -z-10 -translate-x-1/4 translate-y-1/4" />
 
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="container mx-auto px-6 relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center px-4 py-2 rounded-full glass-card mb-8 border border-primary/20 bg-primary/5 shadow-[0_0_20px_rgba(79,70,229,0.2)]"
           >
-            <div className="inline-flex items-center px-4 py-2 rounded-full glass-card mb-8 border-primary/20 bg-primary/5">
-              <Sparkles className="w-4 h-4 mr-2 text-primary animate-pulse" {...({} as any)} />
-              <span className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">B2B Invoicing, Reinvented</span>
-            </div>
+            <Sparkles className="w-4 h-4 mr-2 text-primary animate-pulse" {...({} as any)} />
+            <span className="text-sm font-semibold font-heading bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent tracking-wide">
+              THE FUTURE OF B2B PAYMENTS
+            </span>
           </motion.div>
 
           <motion.h1
-            className="heading-xl mb-6 bg-clip-text text-transparent bg-gradient-to-br from-foreground to-muted-foreground"
-            initial={{ opacity: 0, y: 20 }}
+            className="font-heading font-bold text-5xl md:text-7xl lg:text-8xl leading-[1.1] mb-8 tracking-tight"
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
           >
-            Create invoices.{" "}
-            <span className="gradient-text">Get paid instantly.</span>
+            Invoice with <br className="hidden md:block" />
+            <span className="gradient-text pb-2 inline-block">Cosmic Speed.</span>
           </motion.h1>
 
           <motion.p
-            className="body-lg mb-10 max-w-2xl mx-auto text-balance"
-            initial={{ opacity: 0, y: 20 }}
+            className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed text-balance"
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
-            The simplest way to invoice on Solana. Free to use—we only earn when you do.
-            Create unlimited invoices and pay just 0.5% when you get paid.
+            Instant crypto payments, automated NFT receipts, and zero subscription fees.
+            Experience the new standard for on-chain commerce.
           </motion.p>
 
           <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-            initial={{ opacity: 0, y: 20 }}
+            className="flex flex-col sm:flex-row gap-5 justify-center"
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
           >
             <Link href="/invoices/create">
-              <button className="btn-primary flex items-center justify-center group h-12 px-8 text-lg">
-                Create Your First Invoice
+              <button className="btn-primary h-14 px-10 text-lg flex items-center justify-center group">
+                Start Invoicing Free
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" {...({} as any)} />
               </button>
             </Link>
 
             <Link href="/invoices">
-              <button className="btn-secondary h-12 px-8 text-lg hover:bg-muted/50">
-                View Dashboard
+              <button className="btn-secondary h-14 px-10 text-lg flex items-center justify-center">
+                Launch Dashboard
               </button>
             </Link>
           </motion.div>
 
-          {/* Trust badge */}
-          <motion.p
-            className="text-sm text-muted-foreground mt-8 flex items-center justify-center gap-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <span className="flex items-center"><Check className="w-4 h-4 mr-1.5 text-primary" /> No signup required</span>
-            <span className="hidden sm:inline text-border">•</span>
-            <span className="flex items-center"><Check className="w-4 h-4 mr-1.5 text-primary" /> Free forever</span>
-            <span className="hidden sm:inline text-border">•</span>
-            <span className="flex items-center"><Check className="w-4 h-4 mr-1.5 text-primary" /> 0.5% on payments</span>
-          </motion.p>
-        </div>
-
-        {/* Stats Grid */}
-        <motion.div
-          className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="show"
-        >
-          {stats.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              className="glass-card p-6 rounded-2xl text-center card-hover border-t border-t-white/10"
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 }
-              }}
-            >
-              <div className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-primary to-accent mb-2 font-mono tracking-tight">
-                {stat.value}
-              </div>
-              <div className="text-sm font-medium text-muted-foreground">{stat.label}</div>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="container mx-auto px-6 py-24 border-t border-border/50 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute left-0 top-1/3 w-64 h-64 bg-accent/5 blur-[80px] rounded-full -z-10" />
-
-        <div className="text-center mb-16">
-          <motion.div {...fadeInUp}>
-            <h2 className="heading-lg mb-6">Everything you need</h2>
-            <p className="body-lg max-w-2xl mx-auto text-balance">
-              Professional invoicing tools built for the modern business, powered by the speed of Solana.
-            </p>
-          </motion.div>
-        </div>
-
-        <motion.div
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-        >
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              className="feature-card group"
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 }
-              }}
-            >
-              <div className="icon-wrapper group-hover:scale-110 transition-transform duration-300">
-                <div className="text-primary">{feature.icon}</div>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* Rewards Program Section - Redesigned */}
-      <section className="container mx-auto px-6 py-24 relative overflow-hidden">
-        <div className="max-w-5xl mx-auto">
+          {/* Abstract Stats Graphic */}
           <motion.div
-            className="glass-strong rounded-[2.5rem] p-8 md:p-16 border border-primary/20 relative overflow-hidden"
+            className="mt-24 relative max-w-5xl mx-auto"
             initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
           >
-            {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-b from-primary/10 to-transparent blur-[80px] rounded-full pointer-events-none" />
-
-            <div className="relative z-10">
-              <div className="text-center mb-12">
-                <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6 border border-primary/20">
-                  <Sparkles className="w-4 h-4 mr-2" {...({} as any)} />
-                  REWARDS PROGRAM
-                </div>
-                <h2 className="heading-md mb-6">Earn While You Invoice</h2>
-                <p className="body-lg text-muted-foreground max-w-2xl mx-auto">
-                  50% of all protocol fees are used to buy back $B2B tokens and distribute them to early users.
-                </p>
-              </div>
-
-              {/* Token Address Card - Improved */}
-              <div className="glass-card bg-background/40 backdrop-blur-xl p-8 rounded-2xl mb-12 max-w-2xl mx-auto border-primary/10 shadow-lg shadow-primary/5">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center glow-sm shadow-inner shadow-white/20">
-                      <div className="text-3xl text-white drop-shadow-md">🔷</div>
-                    </div>
-                    <div className="text-left">
-                      <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                        $B2B Token
-                        <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold tracking-wider">OFFICIAL</span>
-                      </h3>
-                      <code className="text-xs md:text-sm font-mono text-muted-foreground break-all bg-background/50 px-2 py-1 rounded border border-white/5">
-                        AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump
-                      </code>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText('AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump');
-                    }}
-                    className="btn-secondary whitespace-nowrap hover:border-primary/50 hover:text-primary active:scale-95"
-                  >
-                    Copy Address
-                  </button>
-                </div>
-              </div>
-
-              {/* Rewards Breakdown Cards */}
-              <div className="grid md:grid-cols-3 gap-6">
-                {[
-                  { val: "50%", label: "Protocol Fees", sub: "Used for buybacks" },
-                  { val: "0.5%", label: "Per Transaction", sub: "Platform fee" },
-                  { val: "100%", label: "Early Users", sub: "Rewards distributed" }
-                ].map((item, i) => (
-                  <div key={i} className="text-center p-6 rounded-2xl bg-background/20 border border-white/5 hover:bg-background/40 transition-colors">
-                    <div className="text-4xl font-bold text-primary mb-2 gradient-text">{item.val}</div>
-                    <div className="font-medium text-foreground">{item.label}</div>
-                    <div className="text-sm text-muted-foreground mt-1">{item.sub}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="container mx-auto px-6 py-24 border-t border-border/50 bg-background/50">
-        <div className="text-center mb-20">
-          <motion.div {...fadeInUp}>
-            <h2 className="heading-lg mb-6">How it works</h2>
-            <p className="body-lg max-w-2xl mx-auto">
-              Get started in under a minute. No account creation needed.
-            </p>
-          </motion.div>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto relative">
-          {/* Connector Line (Desktop) */}
-          <div className="hidden md:block absolute top-[2.5rem] left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-transparent via-border to-transparent -z-10" />
-
-          {steps.map((step, index) => (
-            <motion.div
-              key={index}
-              className="text-center group relative"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.2 }}
-            >
-              <div className="w-20 h-20 mx-auto bg-background border-4 border-background rounded-full flex items-center justify-center mb-6 relative z-10 shadow-xl">
-                <div className="w-full h-full rounded-full bg-muted/30 flex items-center justify-center text-2xl font-bold font-mono text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors border border-border group-hover:border-primary/30">
-                  {step.step}
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold mb-3 group-hover:text-primary transition-colors">{step.title}</h3>
-              <p className="text-muted-foreground leading-relaxed px-4">{step.description}</p>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.div
-          className="mt-20 text-center"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-        >
-          <Link href="/invoices/create">
-            <button className="btn-primary px-10 py-4 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40">
-              Try it now — it's free
-              <ChevronRight className="inline ml-2 w-5 h-5" />
-            </button>
-          </Link>
-        </motion.div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="container mx-auto px-6 py-24 border-t border-border/50">
-        <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="heading-lg mb-6">Simple, fair pricing</h2>
-            <p className="body-lg mb-8 text-balance">
-              We believe in aligning our incentives with yours. We only make money when your business succeeds.
-            </p>
-
-            <div className="space-y-6">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-12">
               {[
-                { title: "No Subscription Fees", desc: "No monthly charges, ever." },
-                { title: "Pay-As-You-Go", desc: "Just 0.5% per successful transaction." },
-                { title: "Free Utilities", desc: "Templates, CRM, and Analytics are completely free." }
-              ].map((item, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Check className="w-5 h-5 text-primary" />
+                { val: "<1s", label: "Settlement", icon: Zap },
+                { val: "$0.0002", label: "Avg Cost", icon: Check },
+                { val: "$10M+", label: "Volume", icon: BarChart3 },
+                { val: "24/7", label: "Uptime", icon: Globe },
+              ].map((stat, i) => (
+                <div key={i} className="text-center p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors">
+                  <div className="flex justify-center mb-3 text-primary/80">
+                    <stat.icon className="w-6 h-6" {...({} as any)} />
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-lg">{item.title}</h4>
-                    <p className="text-muted-foreground">{item.desc}</p>
-                  </div>
+                  <div className="text-3xl font-bold font-heading text-white mb-1">{stat.val}</div>
+                  <div className="text-sm text-muted-foreground">{stat.label}</div>
                 </div>
               ))}
             </div>
           </motion.div>
+        </div>
+      </section>
 
-          {/* Pricing Card */}
+      {/* Features Bento Grid */}
+      <section id="features" className="py-32 container mx-auto px-6">
+        <motion.div
+          className="text-center mb-20"
+          {...fadeInUp}
+        >
+          <h2 className="font-heading font-bold text-4xl md:text-5xl mb-6">Designed for scale</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            A comprehensive suite of tools built to handle everything from freelance gigs to enterprise payroll.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {/* Main Feature - Large */}
           <motion.div
-            className="glass-strong p-10 rounded-[2rem] text-center glow-sm border-t border-t-white/10 relative"
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            className="md:col-span-2 feature-card group"
+            variants={fadeInUp}
+            initial="initial"
+            whileInView="whileInView"
             viewport={{ once: true }}
           >
-            <div className="absolute top-0 right-0 p-8 opacity-20 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
-              <CreditCard className="w-64 h-64 text-primary" {...({} as any)} />
+            <div className="flex flex-col h-full justify-between relative z-10">
+              <div>
+                <div className="icon-wrapper">
+                  <Zap className="w-6 h-6 text-primary" {...({} as any)} />
+                </div>
+                <h3 className="text-2xl font-bold font-heading mb-3">Lightning Fast Settlements</h3>
+                <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
+                  Say goodbye to Net-30. With Solana, funds settle in your wallet in 400ms.
+                  Better cash flow, zero waiting.
+                </p>
+              </div>
+              <div className="mt-8 relative h-32 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                {/* Abstract visualization of speed/blocks */}
+                <div className="absolute inset-0 flex items-center gap-4 px-4">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="h-16 w-24 rounded-lg bg-primary/20 border border-primary/30 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
+                  ))}
+                </div>
+              </div>
             </div>
+          </motion.div>
 
-            <div className="relative z-10">
-              <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold tracking-wider mb-8 uppercase">
-                Pay Per Use
+          {/* Feature 2 - Vertical */}
+          <motion.div
+            className="md:col-span-1 feature-card group bg-gradient-to-b from-white/5 to-transparent"
+            variants={fadeInUp}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true }}
+          >
+            <div className="icon-wrapper">
+              <Receipt className="w-6 h-6 text-accent" {...({} as any)} />
+            </div>
+            <h3 className="text-xl font-bold font-heading mb-3">NFT Receipts</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              Automatically mint compressed NFTs as immutable proof of payment for every invoice.
+            </p>
+          </motion.div>
+
+          {/* Feature 3 */}
+          <motion.div
+            className="md:col-span-1 feature-card group"
+            variants={fadeInUp}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true }}
+          >
+            <div className="icon-wrapper">
+              <Lock className="w-6 h-6 text-emerald-400" {...({} as any)} />
+            </div>
+            <h3 className="text-xl font-bold font-heading mb-3">Encrypted Data</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              AES-256 encryption ensures your business data remains private and secure.
+            </p>
+          </motion.div>
+
+          {/* Feature 4 - Large */}
+          <motion.div
+            className="md:col-span-2 feature-card group overflow-hidden"
+            variants={fadeInUp}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true }}
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 blur-[80px] rounded-full -z-10" />
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div className="icon-wrapper">
+                  <CreditCard className="w-6 h-6 text-white" {...({} as any)} />
+                </div>
+                <h3 className="text-2xl font-bold font-heading mb-3">Multi-Currency Support</h3>
+                <p className="text-muted-foreground text-lg leading-relaxed">
+                  Accept USDC, USDT, EURC, or SOL. Auto-convert or hold stablecoins to avoid volatility.
+                </p>
               </div>
-
-              <div className="mb-8">
-                <span className="text-7xl font-bold gradient-text tracking-tighter">0.5%</span>
-                <span className="text-muted-foreground block mt-2 text-lg">per transaction</span>
+              <div className="relative">
+                <div className="glass-card p-4 rounded-xl border border-white/10 rotate-3 hover:rotate-0 transition-transform duration-500">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-mono text-muted-foreground">Amount Due</span>
+                    <span className="text-sm font-bold text-white">1,250.00 USDC</span>
+                  </div>
+                  <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full w-2/3 bg-gradient-to-r from-primary to-accent" />
+                  </div>
+                </div>
               </div>
-
-              <div className="space-y-4 mb-10 text-left bg-background/30 p-6 rounded-xl border border-white/5">
-                {[
-                  "Unlimited invoices & customers",
-                  "All currency support (USDC, SOL)",
-                  "NFT payment receipts",
-                  "Priority Email Support"
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center text-sm font-medium">
-                    <Check className="w-4 h-4 text-primary mr-3 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </div>
-
-              <Link href="/invoices/create">
-                <button className="btn-primary w-full py-4 text-lg">
-                  Start for Free
-                </button>
-              </Link>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="container mx-auto px-6 py-24 text-center">
-        <motion.div
-          className="max-w-4xl mx-auto glass-strong p-16 rounded-[3rem] glow-md"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <Building2 className="w-16 h-16 text-primary mx-auto mb-8 opacity-80" />
-          <h2 className="heading-md mb-6">Ready to simplify your invoicing?</h2>
-          <p className="body-lg mb-10 max-w-xl mx-auto text-muted-foreground">
-            Join businesses that get paid faster with Invoix.
-            No signup, no commitment—just connect and create.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/invoices/create">
-              <button className="btn-primary w-full sm:w-auto px-10">
-                Create Invoice
-              </button>
-            </Link>
+      {/* Pricing / Rewards CTA (Combined for impact) */}
+      <section id="rewards" className="py-32 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 pointer-events-none" />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="glass-strong rounded-[3rem] p-12 md:p-20 border border-white/10 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
+
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div>
+                <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-accent/10 text-accent text-sm font-bold font-mono mb-8 border border-accent/20">
+                  TOKEN REWARDS LIVE
+                </div>
+                <h2 className="font-heading font-bold text-4xl md:text-6xl mb-6">
+                  Get paid to <br />
+                  <span className="gradient-text">get paid.</span>
+                </h2>
+                <p className="text-lg text-muted-foreground mb-10 leading-relaxed max-w-xl">
+                  Invoix isn't just a tool; it's a protocol. 50% of fees go toward buying back $B2B tokens and rewarding active users.
+                </p>
+
+                <div className="flex flex-col gap-4">
+                  {[
+                    "Earn $B2B for every invoice paid",
+                    "Stake for reduced platform fees",
+                    "Vote on protocol governance"
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-xl glass hover:bg-white/5 transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                        <Check className="w-5 h-5" {...({} as any)} />
+                      </div>
+                      <span className="font-medium text-white">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="glass-card p-8 rounded-3xl border border-white/10 shadow-2xl shadow-primary/10">
+                  <div className="text-center mb-8">
+                    <div className="text-sm text-muted-foreground uppercase tracking-widest font-bold mb-2">Current APY</div>
+                    <div className="text-6xl font-heading font-bold gradient-text">12.5%</div>
+                  </div>
+
+                  <div className="space-y-4 mb-8">
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-black/20">
+                      <span className="text-muted-foreground">My Rewards</span>
+                      <span className="font-mono font-bold text-primary">1,420.69 B2B</span>
+                    </div>
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-black/20">
+                      <span className="text-muted-foreground">Est. Value</span>
+                      <span className="font-mono font-bold text-white">$452.12</span>
+                    </div>
+                  </div>
+
+                  <button className="btn-primary w-full h-12 text-lg">Connect Wallet to Earn</button>
+                </div>
+              </div>
+            </div>
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 glass-strong py-16">
+      <footer className="border-t border-white/10 bg-black/40 py-20 backdrop-blur-lg">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
+          <div className="grid md:grid-cols-4 gap-12 text-sm">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center space-x-2.5 mb-6">
-                <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-2xl font-bold">Invoix</span>
-              </div>
-              <p className="text-muted-foreground max-w-xs leading-relaxed">
-                B2B invoicing, simplified. Built on Solana for instant, secure payments with automated on-chain receipts.
+              <Link href="/">
+                <a className="flex items-center space-x-3 mb-6">
+                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
+                    <FileText className="w-4 h-4 text-primary" {...({} as any)} />
+                  </div>
+                  <span className="text-xl font-bold font-heading">Invoix</span>
+                </a>
+              </Link>
+              <p className="text-muted-foreground max-w-sm leading-relaxed mb-6">
+                The next generation of B2B payments. Fast, secure, and rewarding.
+                Built on the Solana blockchain.
               </p>
+              <div className="flex gap-4">
+                {/* Socials placeholders */}
+                <div className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors">
+                  <Globe className="w-5 h-5 text-muted-foreground" {...({} as any)} />
+                </div>
+                <div className="w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors">
+                  <Monitor className="w-5 h-5 text-muted-foreground" {...({} as any)} />
+                </div>
+              </div>
             </div>
 
             <div>
-              <h4 className="font-bold text-foreground mb-6">Product</h4>
+              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-xs">Product</h4>
               <ul className="space-y-4 text-muted-foreground">
                 <li><Link href="/invoices"><a className="hover:text-primary transition-colors">Dashboard</a></Link></li>
                 <li><Link href="/invoices/create"><a className="hover:text-primary transition-colors">Create Invoice</a></Link></li>
-                <li><Link href="/templates"><a className="hover:text-primary transition-colors">Templates</a></Link></li>
-                <li><Link href="/customers"><a className="hover:text-primary transition-colors">Customers</a></Link></li>
+                <li><Link href="/pricing"><a className="hover:text-primary transition-colors">Pricing</a></Link></li>
+                <li><Link href="/rewards"><a className="hover:text-primary transition-colors">Rewards</a></Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold text-foreground mb-6">Connect</h4>
+              <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-xs">Legal</h4>
               <ul className="space-y-4 text-muted-foreground">
-                <li>
-                  <a href="https://x.com/InvoixSola24238" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-                    Twitter/X
-                  </a>
-                </li>
+                <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-primary transition-colors">Cookie Policy</a></li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-border/50 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-            <p>© 2025 Invoix. All rights reserved.</p>
-            <div className="flex items-center gap-2">
-              <span>Built with ❤️ on</span>
-              <span className="font-bold text-foreground">Solana</span>
-            </div>
+          <div className="border-t border-white/5 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-muted-foreground">
+            <p>&copy; 2025 Invoix Protocol. All rights reserved.</p>
+            <p>Designed with <span className="text-primary">Stellar UI</span> on Solana.</p>
           </div>
         </div>
       </footer>

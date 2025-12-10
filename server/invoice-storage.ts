@@ -48,6 +48,7 @@ export interface IInvoiceStorage {
   getInvoices(invoicerWallet: string, filters?: InvoiceFilters): Promise<Invoice[]>;
   getInvoicesForCustomer(invoiceeWallet: string, filters?: InvoiceFilters): Promise<Invoice[]>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  createInvoiceWithItems(invoice: InsertInvoice, lineItems?: Omit<InsertLineItem, 'invoiceId'>[]): Promise<Invoice>;
   updateInvoice(id: string, updates: Partial<InsertInvoice>): Promise<Invoice | undefined>;
   deleteInvoice(id: string): Promise<boolean>;
 
@@ -201,6 +202,30 @@ class InvoiceStorage implements IInvoiceStorage {
     }
     const [newInvoice] = await db.insert(invoices).values(insertData).returning();
     return newInvoice as Invoice;
+  }
+
+  async createInvoiceWithItems(invoice: InsertInvoice, lineItems?: Omit<InsertLineItem, 'invoiceId'>[]): Promise<Invoice> {
+    return await db.transaction(async (tx) => {
+      // 1. Create Invoice
+      const insertData: any = { ...invoice };
+      if (typeof insertData.dueDate === 'string') {
+        insertData.dueDate = new Date(insertData.dueDate);
+      }
+
+      const [newInvoice] = await tx.insert(invoices).values(insertData).returning();
+
+      // 2. Create Line Items if present
+      if (lineItems && lineItems.length > 0) {
+        const itemsToInsert = lineItems.map(item => ({
+          ...item,
+          invoiceId: newInvoice.id,
+        }));
+
+        await tx.insert(invoiceLineItems).values(itemsToInsert as any[]);
+      }
+
+      return newInvoice as Invoice;
+    });
   }
 
   async updateInvoice(id: string, updates: Partial<InsertInvoice>): Promise<Invoice | undefined> {

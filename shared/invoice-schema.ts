@@ -451,6 +451,10 @@ export const insertLineItemSchema = createInsertSchema(invoiceLineItems).omit({
   unitPrice: z.string().refine(val => parseFloat(val) >= 0, "Unit price cannot be negative"),
 });
 
+export const insertInvoiceWithItemsSchema = insertInvoiceSchema.extend({
+  lineItems: z.array(insertLineItemSchema.omit({ invoiceId: true })).optional(),
+});
+
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,

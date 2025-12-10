@@ -57,9 +57,15 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2 py-4">
-            <img src="/invoix-logo.jpg" alt="Invoix Logo" className="w-8 h-8 object-contain" />
-            <span className="text-lg font-bold">Invoix</span>
+          <SidebarGroupLabel className="flex items-center gap-3 py-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-md rounded-full" />
+              <img src="/invoix-logo.jpg" alt="Invoix Logo" className="relative w-8 h-8 object-contain rounded-lg border border-white/10" />
+            </div>
+            <span className="text-xl font-bold font-heading tracking-tight">
+              <span className="text-foreground">Inv</span>
+              <span className="text-primary">oix</span>
+            </span>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

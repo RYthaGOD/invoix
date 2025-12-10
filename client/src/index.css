@@ -3,156 +3,117 @@
 @tailwind utilities;
 
 /* ============================================
-   INVOIX - Clean, Modern SaaS Design System
-   Color Palette: Emerald + Slate + Sky Blue
+   INVOIX - "Midnight Prism" Design System
+   theme: Cosmic Depth (Deep Slate + Neon Cyan/Violet)
    ============================================ */
 
-/* LIGHT MODE */
+/* LIGHT MODE - Clean, High Contrast */
 :root {
-  --button-outline: rgba(16, 185, 129, .12);
-  --badge-outline: rgba(16, 185, 129, .06);
-  --opaque-button-border-intensity: -8;
-
-  /* Hover/active elevation with emerald tint */
-  --elevate-1: rgba(16, 185, 129, .04);
-  --elevate-2: rgba(16, 185, 129, .10);
-
-  --background: 215 25% 97%;
-  --foreground: 215 25% 10%;
-  --border: 215 20% 82%;
+  /* Core Colors */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 10%;
 
   --card: 0 0% 100%;
-  --card-foreground: 215 25% 10%;
-  --card-border: 215 20% 88%;
-
-  --sidebar: 215 25% 95%;
-  --sidebar-foreground: 215 25% 10%;
-  --sidebar-border: 215 20% 85%;
-  --sidebar-primary: 160 84% 39%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 215 20% 92%;
-  --sidebar-accent-foreground: 215 25% 15%;
-  --sidebar-ring: 160 84% 39%;
+  --card-foreground: 222 47% 10%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 215 25% 10%;
-  --popover-border: 215 20% 88%;
+  --popover-foreground: 222 47% 10%;
 
-  /* Emerald Primary */
-  --primary: 160 84% 39%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 250 100% 65%;
+  /* Electric Indigo */
+  --primary-foreground: 210 40% 98%;
 
-  --secondary: 215 20% 88%;
-  --secondary-foreground: 215 25% 20%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222 47% 10%;
 
-  --muted: 215 20% 94%;
-  --muted-foreground: 215 15% 45%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 16% 47%;
 
-  /* Sky Blue Accent */
-  --accent: 199 89% 48%;
-  --accent-foreground: 0 0% 100%;
+  --accent: 190 100% 50%;
+  /* Cyan */
+  --accent-foreground: 222 47% 10%;
 
-  --destructive: 0 72% 55%;
-  --destructive-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
 
-  --input: 215 20% 80%;
-  --ring: 160 84% 39%;
-
-  /* Charts - Emerald/Teal palette */
-  --chart-1: 160 84% 39%;
-  --chart-2: 172 66% 50%;
-  --chart-3: 199 89% 48%;
-  --chart-4: 162 63% 41%;
-  --chart-5: 158 64% 52%;
-
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  --radius: 0.625rem;
-
-  /* Refined shadows for light mode */
-  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.08), 0 3px 6px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.06);
-  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.08);
-  --shadow-2xl: 0 32px 64px rgba(0, 0, 0, 0.14);
-
-  --tracking-normal: -0.011em;
-  --spacing: 0.25rem;
-
-  /* Computed borders */
-  --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --primary-border: hsl(var(--primary));
-  --secondary-border: hsl(var(--secondary));
-  --accent-border: hsl(var(--accent));
-  --destructive-border: hsl(var(--destructive));
-}
-
-/* DARK MODE - Slate with Emerald accents */
-.dark {
-  --button-outline: rgba(16, 185, 129, .18);
-  --badge-outline: rgba(16, 185, 129, .10);
-  --opaque-button-border-intensity: 9;
-
-  --elevate-1: rgba(16, 185, 129, .06);
-  --elevate-2: rgba(16, 185, 129, .14);
-
-  /* Deep slate background */
-  --background: 222 47% 6%;
-  --foreground: 210 40% 96%;
-  --border: 217 33% 17%;
-
-  /* Card - slightly elevated slate */
-  --card: 222 47% 9%;
-  --card-foreground: 210 40% 96%;
-  --card-border: 217 33% 15%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 250 100% 65%;
 
   /* Sidebar */
-  --sidebar: 222 47% 7%;
-  --sidebar-foreground: 210 40% 96%;
-  --sidebar-border: 217 33% 14%;
-  --sidebar-primary: 160 84% 39%;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 222 47% 10%;
+  --sidebar-border: 214 32% 91%;
+  --sidebar-primary: 250 100% 65%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 47% 12%;
-  --sidebar-accent-foreground: 210 40% 96%;
-  --sidebar-ring: 160 84% 39%;
+  --sidebar-accent: 210 40% 96.1%;
+  --sidebar-accent-foreground: 222 47% 10%;
+  --sidebar-ring: 250 100% 65%;
 
-  --popover: 222 47% 10%;
-  --popover-foreground: 210 40% 96%;
-  --popover-border: 217 33% 18%;
+  /* Radius */
+  --radius: 0.75rem;
 
-  /* Emerald Primary - slightly brighter for dark mode */
-  --primary: 160 84% 45%;
-  --primary-foreground: 222 47% 6%;
+  /* Fonts */
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 160 84% 55%;
+  /* Effects */
+  --elevate-1: rgba(99, 102, 241, 0.05);
+  --elevate-2: rgba(99, 102, 241, 0.1);
+}
 
-  --muted: 217 33% 14%;
-  --muted-foreground: 215 20% 60%;
+/* DARK MODE - The "Midnight Prism" Experience */
+.dark {
+  /* Deep Cosmic Background #030712 */
+  --background: 224 71% 4%;
+  --foreground: 210 40% 98%;
 
-  /* Sky Blue Accent */
-  --accent: 199 89% 48%;
-  --accent-foreground: 0 0% 100%;
+  /* Glass Surfaces */
+  --card: 224 71% 6%;
+  --card-foreground: 210 40% 98%;
 
-  --destructive: 0 72% 55%;
-  --destructive-foreground: 0 0% 100%;
+  --popover: 224 71% 5%;
+  --popover-foreground: 210 40% 98%;
 
-  --input: 217 33% 17%;
-  --ring: 160 84% 45%;
+  /* Vibrant Gradients Base */
+  --primary: 250 100% 65%;
+  /* Electric Indigo */
+  --primary-foreground: 210 40% 98%;
 
-  /* Dark mode shadows with subtle emerald glow */
-  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 1px rgba(16, 185, 129, 0.1);
-  --shadow: 0 4px 8px rgba(0, 0, 0, 0.7), 0 0 2px rgba(16, 185, 129, 0.1);
-  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.8), 0 0 4px rgba(16, 185, 129, 0.1);
-  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.85), 0 0 8px rgba(16, 185, 129, 0.1);
-  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.9), 0 0 12px rgba(16, 185, 129, 0.1);
-  --shadow-2xl: 0 32px 64px rgba(0, 0, 0, 0.95);
+  --secondary: 215 28% 17%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted: 215 28% 17%;
+  --muted-foreground: 215 20% 65%;
+
+  /* Neon Accents */
+  --accent: 190 100% 50%;
+  /* Electric Cyan */
+  --accent-foreground: 222 47% 10%;
+
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 215 28% 17%;
+  --input: 215 28% 17%;
+  --ring: 250 100% 65%;
+
+  /* Components */
+  --sidebar: 224 71% 5%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-border: 215 28% 17%;
+  --sidebar-primary: 250 100% 65%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 215 28% 17%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-ring: 250 100% 65%;
+
+  /* Effects */
+  --elevate-1: rgba(6, 182, 212, 0.1);
+  /* Cyan glow */
+  --elevate-2: rgba(139, 92, 246, 0.15);
+  /* Violet glow */
 }
 
 @layer base {
@@ -174,477 +135,193 @@
 @layer utilities {
 
   /* ============================================
-     Form Input Styles - Better Contrast
+     Form Input Styles - Midnight Prism
      ============================================ */
 
-  /* Input, select, textarea base styling */
+  /* Input, select, textarea */
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    background: rgba(255, 255, 255, 0.12) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     color: white !important;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem !important;
+    /* Larger radius */
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
   }
 
   input:not([type="checkbox"]):not([type="radio"])::placeholder,
   textarea::placeholder {
-    color: rgba(255, 255, 255, 0.5) !important;
+    color: rgba(255, 255, 255, 0.4) !important;
   }
 
   input:not([type="checkbox"]):not([type="radio"]):focus,
   select:focus,
   textarea:focus {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border-color: hsl(160 84% 45%) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(6, 182, 212, 0.5) !important;
+    /* Cyan border */
     outline: none !important;
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
-  }
-
-  /* Select dropdown styling */
-  select option {
-    background: hsl(222 47% 12%) !important;
-    color: white !important;
-    padding: 0.5rem !important;
-  }
-
-  /* Labels */
-  label {
-    color: rgba(255, 255, 255, 0.9) !important;
-  }
-
-  /* Date input calendar icon */
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 0.7;
-    cursor: pointer;
-  }
-
-  input[type="date"]::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
-  }
-
-  /* Number input arrows */
-  input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button {
-    opacity: 0.7;
-  }
-
-  /* Hide search cancel button */
-  input[type="search"]::-webkit-search-cancel-button {
-    @apply hidden;
-  }
-
-  /* Contenteditable placeholder */
-  [contenteditable][data-placeholder]:empty::before {
-    content: attr(data-placeholder);
-    color: hsl(var(--muted-foreground));
-    pointer-events: none;
+    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.15) !important;
   }
 
   /* ============================================
-     INVOIX Glass Morphism System
-     Clean, minimal glass with emerald tints
+     Midnight Prism - Glass System 2.0
      ============================================ */
 
   .glass {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(3, 7, 18, 0.6);
+    /* Darker base */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
   }
 
   .glass-card {
-    background: rgba(255, 255, 255, 0.02);
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .glass-card:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(16, 185, 129, 0.15);
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.7));
+    border-color: rgba(6, 182, 212, 0.3);
+    box-shadow: 0 0 40px -10px rgba(6, 182, 212, 0.15);
+    /* Cyan Glow */
+    transform: translateY(-4px);
   }
 
   .glass-strong {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(30, 41, 59, 0.8);
     backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  /* Light mode glass adjustments */
-  :root .glass {
-    background: rgba(255, 255, 255, 0.7);
-    border-color: rgba(0, 0, 0, 0.05);
-  }
-
-  :root .glass-card {
-    background: rgba(255, 255, 255, 0.8);
-    border-color: rgba(0, 0, 0, 0.06);
-  }
-
-  :root .glass-strong {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   /* ============================================
-     INVOIX Gradient System
-     Emerald-based gradients
+     Midnight Prism - Gradients
      ============================================ */
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(172 66% 45%));
-  }
-
-  .gradient-accent {
-    background: linear-gradient(135deg, hsl(199 89% 48%), hsl(172 66% 50%));
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
   }
 
   .gradient-hero {
-    background: linear-gradient(135deg,
-        hsl(222 47% 6%) 0%,
-        hsl(222 47% 8%) 50%,
-        hsl(222 47% 6%) 100%);
+    background:
+      radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.15), transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.1), transparent 30%);
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, hsl(160 84% 45%), hsl(199 89% 48%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .gradient-text-light {
-    background: linear-gradient(135deg, hsl(160 84% 55%), hsl(172 66% 60%));
+    background: linear-gradient(to right, #22d3ee, #818cf8, #c084fc);
+    /* Cyan -> Indigo -> Violet */
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   /* ============================================
-     INVOIX Glow Effects
-     Subtle emerald glows
+     Midnight Prism - Glow Effects
      ============================================ */
 
   .glow-sm {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.15);
   }
 
   .glow-md {
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 40px rgba(79, 70, 229, 0.2);
   }
 
   .glow-lg {
-    box-shadow: 0 0 50px rgba(16, 185, 129, 0.25);
-  }
-
-  .glow-hover:hover {
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 60px rgba(124, 58, 237, 0.25);
   }
 
   /* ============================================
-     INVOIX Button Styles
-     Clean, minimal buttons with subtle animations
+     Midnight Prism - Buttons
      ============================================ */
 
   .btn-primary {
-    @apply px-6 py-3 rounded-xl font-medium transition-all duration-200;
-    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 35%));
+    @apply px-6 py-3 rounded-lg font-heading font-bold tracking-wide transition-all duration-300;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
     color: white;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
-  }
-
-  .btn-primary:active {
-    transform: translateY(0);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(79, 70, 229, 0.6), 0 0 15px rgba(236, 72, 153, 0.4);
+    border-color: rgba(255, 255, 255, 0.3);
   }
 
   .btn-secondary {
-    @apply px-6 py-3 rounded-xl font-medium transition-all duration-200;
-    background: rgba(255, 255, 255, 0.05);
+    @apply px-6 py-3 rounded-lg font-heading font-semibold transition-all duration-300;
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    backdrop-filter: blur(10px);
   }
 
   .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
   }
 
   /* ============================================
-     INVOIX Card Animations
-     Smooth, professional hover effects
+     Feature Card
      ============================================ */
 
-  .card-hover {
-    @apply transition-all duration-300 ease-out;
-  }
-
-  .card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 0 20px rgba(16, 185, 129, 0.1);
-  }
-
-  /* Feature card specific */
   .feature-card {
-    @apply glass-card p-8 rounded-2xl card-hover;
+    @apply glass-card p-8 rounded-2xl relative overflow-hidden;
+  }
+
+  .feature-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.5), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover::before {
+    opacity: 1;
   }
 
   .feature-card .icon-wrapper {
-    @apply w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors duration-200;
-    background: rgba(16, 185, 129, 0.1);
+    @apply w-12 h-12 rounded-xl flex items-center justify-center mb-6 transition-all duration-300;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .feature-card:hover .icon-wrapper {
-    background: rgba(16, 185, 129, 0.2);
+    background: rgba(6, 182, 212, 0.1);
+    border-color: rgba(6, 182, 212, 0.2);
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+    transform: scale(1.1);
   }
 
-  /* ============================================
-     INVOIX Elevation System
-     ============================================ */
-
-  .toggle-elevate::before,
-  .toggle-elevate-2::before {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0px;
-    border-radius: inherit;
-    z-index: -1;
-  }
-
-  .toggle-elevate.toggle-elevated::before {
-    background-color: var(--elevate-2);
-  }
-
-  .border.toggle-elevate::before {
-    inset: -1px;
-  }
-
-  .hover-elevate:not(.no-default-hover-elevate),
-  .active-elevate:not(.no-default-active-elevate) {
-    position: relative;
-    z-index: 0;
-  }
-
-  .hover-elevate:not(.no-default-hover-elevate)::after,
-  .active-elevate:not(.no-default-active-elevate)::after {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0px;
-    border-radius: inherit;
-    z-index: 999;
-  }
-
-  .hover-elevate:hover:not(.no-default-hover-elevate)::after {
-    background-color: var(--elevate-1);
-  }
-
-  .active-elevate:active:not(.no-default-active-elevate)::after {
-    background-color: var(--elevate-2);
-  }
-
-  /* ============================================
-     Solana Wallet Adapter Overrides
-     Emerald theme
-     ============================================ */
-
-  /* ============================================
-     Solana Wallet Adapter Overrides
-     Ensure proper visibility and z-index
-     ============================================ */
-
+  /* Wallet Adapter Overrides - Dark Theme */
   .wallet-adapter-button {
-    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 35%)) !important;
-    color: white !important;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
     border-radius: 0.75rem !important;
-    font-weight: 500 !important;
-    transition: all 0.2s ease !important;
-    height: auto !important;
-    padding: 0.5rem 1rem !important;
   }
 
-  .wallet-adapter-button:not([disabled]):hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35) !important;
-  }
-
-  .wallet-adapter-button-trigger {
-    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(160 84% 35%)) !important;
-    color: white !important;
-  }
-
-  /* Modal wrapper - ensure high z-index */
   .wallet-adapter-modal-wrapper {
-    background: rgba(0, 0, 0, 0.75) !important;
-    z-index: 9999 !important;
-    position: fixed !important;
-    inset: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    background: rgba(3, 7, 18, 0.8) !important;
+    backdrop-filter: blur(8px) !important;
   }
 
-  /* Modal container */
   .wallet-adapter-modal-container {
-    background: hsl(222 47% 10%) !important;
+    background: #0f172a !important;
+    /* Slate 900 */
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 1rem !important;
-    max-width: 400px !important;
-    width: 90% !important;
-    z-index: 10000 !important;
-    position: relative !important;
-  }
-
-  .wallet-adapter-modal-title {
-    color: white !important;
-    font-weight: 600 !important;
-  }
-
-  .wallet-adapter-modal-list {
-    margin: 0 !important;
-  }
-
-  .wallet-adapter-modal-list li {
-    margin: 0.5rem 0 !important;
-  }
-
-  .wallet-adapter-modal-list-more {
-    color: hsl(160 84% 45%) !important;
-  }
-
-  /* Wallet list items */
-  .wallet-adapter-modal-list .wallet-adapter-button {
-    background: rgba(255, 255, 255, 0.05) !important;
-    width: 100% !important;
-    justify-content: flex-start !important;
-  }
-
-  .wallet-adapter-modal-list .wallet-adapter-button:hover {
-    background: rgba(16, 185, 129, 0.15) !important;
-    transform: none !important;
-  }
-
-  /* Close button */
-  .wallet-adapter-modal-button-close {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: white !important;
-  }
-
-  .wallet-adapter-modal-button-close:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
-  }
-
-  /* Collapse button */
-  .wallet-adapter-collapse-button {
-    color: hsl(160 84% 45%) !important;
-  }
-
-  /* Dropdown menu */
-  .wallet-adapter-dropdown {
-    z-index: 9998 !important;
-  }
-
-  .wallet-adapter-dropdown-list {
-    background: hsl(222 47% 10%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 0.75rem !important;
-    z-index: 9999 !important;
-  }
-
-  .wallet-adapter-dropdown-list-item {
-    color: white !important;
-  }
-
-  .wallet-adapter-dropdown-list-item:hover {
-    background: rgba(16, 185, 129, 0.15) !important;
-  }
-
-  /* ============================================
-     Status Indicators
-     ============================================ */
-
-  .status-dot {
-    @apply w-2 h-2 rounded-full;
-  }
-
-  .status-success {
-    @apply bg-emerald-500;
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-  }
-
-  .status-warning {
-    @apply bg-amber-500;
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
-  }
-
-  .status-error {
-    @apply bg-red-500;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-  }
-
-  /* ============================================
-     Typography Enhancements
-     ============================================ */
-
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .heading-xl {
-    @apply text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight;
-    line-height: 1.1;
-  }
-
-  .heading-lg {
-    @apply text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
-    line-height: 1.2;
-  }
-
-  .heading-md {
-    @apply text-2xl md:text-3xl font-semibold tracking-tight;
-    line-height: 1.3;
-  }
-
-  .body-lg {
-    @apply text-lg md:text-xl text-muted-foreground;
-    line-height: 1.7;
-  }
-
-  /* ============================================
-     Scrollbar Styling
-     ============================================ */
-
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
-
-  .dark ::-webkit-scrollbar-thumb {
-    background: hsl(217 33% 20%);
-  }
-
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background: hsl(217 33% 28%);
   }
 }

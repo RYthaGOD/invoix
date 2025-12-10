@@ -56,7 +56,7 @@ export default function InvoiceCreate() {
     }
   }, [connected, isAuthenticated, authLoading]);
 
-  const { register, control, handleSubmit, watch, formState: { errors } } = useForm<InvoiceFormData>({
+  const { register, control, handleSubmit, watch, reset, formState: { errors } } = useForm<InvoiceFormData>({
     defaultValues: {
       currency: "USDC",
       paymentTerms: "Net 30",
@@ -118,19 +118,8 @@ export default function InvoiceCreate() {
     formData.dueDate = dueDate.toISOString().split('T')[0];
 
     // Update form
-    Object.keys(formData).forEach(key => {
-      if (key === 'lineItems') {
-        // Clear existing items and add new ones
-        while (fields.length > 0) {
-          remove(0);
-        }
-        formData.lineItems.forEach((item: any) => {
-          append(item);
-        });
-      } else {
-        (control as any)._formValues[key] = formData[key];
-      }
-    });
+    // Use reset to update all fields at once properly including lineItems
+    reset(formData);
   };
 
   const lineItems = watch("lineItems");
@@ -192,11 +181,16 @@ export default function InvoiceCreate() {
       };
 
       // Create invoice (session cookie sent automatically)
+      // Create invoice (session cookie sent automatically)
+      // Now sends line items as part of the initial request (Atomic Transaction)
       const response = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // Important: send session cookie
-        body: JSON.stringify(invoiceData),
+        body: JSON.stringify({
+          ...invoiceData,
+          lineItems: data.lineItems.filter(item => item.description && parseFloat(item.quantity) > 0),
+        }),
       });
 
       if (!response.ok) {
@@ -213,26 +207,6 @@ export default function InvoiceCreate() {
       }
 
       const result = await response.json();
-
-      // Add line items
-      for (const item of data.lineItems) {
-        if (item.description && parseFloat(item.quantity) > 0) {
-          const lineTotal = parseFloat(item.quantity) * parseFloat(item.unitPrice);
-
-          await fetch(`/api/invoices/${result.invoice.id}/line-items`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              lineTotal: lineTotal.toString(),
-              lineNumber: data.lineItems.indexOf(item) + 1,
-            }),
-          });
-        }
-      }
 
       // Success! Navigate to invoice detail
       navigate(`/invoices/${result.invoice.id}`);

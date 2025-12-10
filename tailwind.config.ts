@@ -83,9 +83,10 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
-        mono: ["var(--font-mono)"],
+        sans: ["Manrope", "var(--font-sans)", "sans-serif"],
+        heading: ["Outfit", "var(--font-sans)", "sans-serif"],
+        serif: ["var(--font-serif)", "serif"],
+        mono: ["JetBrains Mono", "var(--font-mono)", "monospace"],
       },
       keyframes: {
         "accordion-down": {

@@ -86,6 +86,7 @@ interface NFTMintConfig {
  */
 const DEFAULT_CONFIG: NFTMintConfig = {
   autoMint: true,
+  merkleTreeAddress: process.env.MERKLE_TREE_ADDRESS || undefined,
   maxDepth: 14, // Supports 16,384 NFTs
   maxBufferSize: 64,
   canopyDepth: 11, // Cheaper transfers
@@ -170,6 +171,7 @@ export class InvoiceNFTService {
 
       this.merkleTree = merkleTreeSigner.publicKey.toString();
       console.log(`✅ Created merkle tree: ${this.merkleTree}`);
+      console.warn(`⚠️  IMPORTANT: Add MERKLE_TREE_ADDRESS=${this.merkleTree} to your .env file to persist this tree!`);
 
       return this.merkleTree;
     } catch (error) {

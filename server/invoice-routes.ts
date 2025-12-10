@@ -8,6 +8,7 @@ import type { Express } from "express";
 import { invoiceStorage } from "./invoice-storage";
 import {
   insertInvoiceSchema,
+  insertInvoiceWithItemsSchema,
   insertLineItemSchema,
   insertPaymentSchema,
   insertBusinessProfileSchema,
@@ -43,49 +44,68 @@ export function registerInvoiceRoutes(app: Express): void {
    */
   app.post("/api/invoices", requireWalletOwnership, strictRateLimit, async (req, res) => {
     try {
-      // Get authenticated wallet from session (set by requireWalletOwnership middleware)
+      // Get authenticated wallet from session
       const authenticatedWallet = (req as any).authenticatedWallet;
 
-      const validatedData = insertInvoiceSchema.parse(req.body);
+      const validatedData = insertInvoiceWithItemsSchema.parse(req.body);
+      const { lineItems, ...invoiceData } = validatedData;
+
+      // Safe financial math helper
+      const safeSubtract = (a: string, b: string): string => {
+        const PRECISION = 1000000000; // 9 decimals
+        const valA = Math.round(parseFloat(a) * PRECISION);
+        const valB = Math.round(parseFloat(b) * PRECISION);
+        return ((valA - valB) / PRECISION).toString();
+      };
 
       // Auto-calculate remaining amount
-      const totalAmount = parseFloat(validatedData.totalAmount);
-      const paidAmount = parseFloat(validatedData.paidAmount || "0");
-      const remainingAmount = totalAmount - paidAmount;
+      const remainingAmount = safeSubtract(invoiceData.totalAmount, invoiceData.paidAmount || "0");
 
-      // Create invoice with authenticated wallet as invoicer
-      const invoice = await invoiceStorage.createInvoice({
-        ...validatedData,
-        dueDate: new Date(validatedData.dueDate),
-        invoicerWalletAddress: authenticatedWallet, // Use session wallet, not request body
-        remainingAmount: remainingAmount.toString(),
-      });
+      // Create invoice with line items atomically
+      const invoice = await invoiceStorage.createInvoiceWithItems(
+        {
+          ...invoiceData,
+          dueDate: new Date(invoiceData.dueDate),
+          invoicerWalletAddress: authenticatedWallet,
+          remainingAmount: remainingAmount,
+        },
+        lineItems
+      );
 
       // If Arcium encryption is requested, encrypt sensitive data
       if (req.body.encryptWithArcium && req.body.allowedParties) {
-        const arciumService = getArciumService();
-        if (arciumService.isAvailable()) {
-          const encryptedResult = await arciumService.encryptTransaction(
-            {
-              amount: invoice.totalAmount,
-              tokenAmount: invoice.totalAmount,
-              fromAddress: invoice.invoicerWalletAddress,
-              toAddress: invoice.invoiceeWalletAddress,
-              txSignature: invoice.invoiceNumber,
-              timestamp: Date.now(),
-            },
-            req.body.allowedParties
-          );
+        try {
+          const arciumService = getArciumService();
+          if (arciumService.isAvailable()) {
+            const encryptedResult = await arciumService.encryptTransaction(
+              {
+                amount: invoice.totalAmount,
+                tokenAmount: invoice.totalAmount,
+                fromAddress: invoice.invoicerWalletAddress,
+                toAddress: invoice.invoiceeWalletAddress,
+                txSignature: invoice.invoiceNumber,
+                timestamp: Date.now(),
+              },
+              req.body.allowedParties
+            );
 
-          if (encryptedResult.success) {
-            await invoiceStorage.updateInvoice(invoice.id, {
-              isArciumEncrypted: true,
-              arciumEncryptedData: encryptedResult.encryptedData,
-              arciumEncryptionKey: encryptedResult.encryptionKey,
-              arciumComputationId: encryptedResult.mxeComputationId,
-              arciumAllowedParties: req.body.allowedParties,
-            });
+            if (encryptedResult.success) {
+              await invoiceStorage.updateInvoice(invoice.id, {
+                isArciumEncrypted: true,
+                arciumEncryptedData: encryptedResult.encryptedData,
+                arciumEncryptionKey: encryptedResult.encryptionKey,
+                arciumComputationId: encryptedResult.mxeComputationId,
+                arciumAllowedParties: req.body.allowedParties,
+              });
+              // Update local invoice object for response
+              invoice.isArciumEncrypted = true;
+            } else {
+              console.warn("Arcium encryption failed, processing as standard invoice:", encryptedResult.error);
+            }
           }
+        } catch (arciumError: any) {
+          console.error("Arcium service error:", arciumError);
+          // Fail gracefully - continue as standard invoice
         }
       }
 
@@ -124,9 +144,11 @@ export function registerInvoiceRoutes(app: Express): void {
       res.status(201).json({
         success: true,
         invoice,
+        lineItems: lineItems || [], // Return line items in response
         nftMinted: !!invoice.nftMint,
         message: "Invoice created successfully" + (invoice.nftMint ? " with NFT" : ""),
       });
+      return; // Ensure void return
     } catch (error: any) {
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
