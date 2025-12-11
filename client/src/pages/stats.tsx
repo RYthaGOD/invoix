@@ -3,9 +3,20 @@ import { ArrowLeft, BarChart3, Activity, Users, Shield, Zap, Globe } from "lucid
 import { WalletButton } from "@/components/wallet-button";
 
 import { useTokenStats } from "@/hooks/use-token-stats";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Stats() {
     const { data: tokenStats, isLoading: isStatsLoading } = useTokenStats();
+
+    const { data: globalStats, isLoading: isGlobalLoading } = useQuery({
+        queryKey: ["global-stats"],
+        queryFn: async () => {
+            const res = await fetch("/api/public-stats");
+            if (!res.ok) throw new Error("Failed to fetch stats");
+            return res.json();
+        },
+        refetchInterval: 5000 // Refresh every 5s
+    });
 
     const stats = [
         {
@@ -17,31 +28,31 @@ export default function Stats() {
         {
             label: "Average Transaction Time",
             value: "< 0.8s",
-            change: "-5%",
+            change: "Optimal",
             icon: <Zap className="w-5 h-5 text-primary" />
         },
         {
-            label: "Active Invoices",
-            value: "14,502",
-            change: "+8%",
+            label: "Total Invoices Sent",
+            value: isGlobalLoading ? "..." : (globalStats?.totalInvoices?.toLocaleString() || "0"),
+            change: "Real-time",
             icon: <Activity className="w-5 h-5 text-primary" />
         },
         {
             label: "Total Users",
-            value: "8,930",
-            change: "+15%",
+            value: isGlobalLoading ? "..." : (globalStats?.totalUsers?.toLocaleString() || "0"),
+            change: "Real-time",
             icon: <Users className="w-5 h-5 text-primary" />
         },
         {
             label: "Network Uptime",
-            value: "99.99%",
+            value: "100%",
             change: "Stable",
             icon: <Globe className="w-5 h-5 text-primary" />
         },
         {
-            label: "Encrypted Data Points",
-            value: "1.5M+",
-            change: "+22%",
+            label: "Encrypted Transactions",
+            value: isGlobalLoading ? "..." : (globalStats?.encryptedInvoices?.toLocaleString() || "0"),
+            change: "Real-time",
             icon: <Shield className="w-5 h-5 text-primary" />
         }
     ];

@@ -667,6 +667,24 @@ export function registerInvoiceRoutes(app: Express): void {
   });
 
   // ============================================
+  // PUBLIC STATS ROUTES
+  // ============================================
+
+  /**
+   * Get global system statistics
+   * GET /api/public-stats
+   */
+  app.get("/api/public-stats", async (req, res) => {
+    try {
+      const stats = await invoiceStorage.getGlobalStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching global stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // ============================================
   // BUSINESS PROFILE ROUTES
   // ============================================
 

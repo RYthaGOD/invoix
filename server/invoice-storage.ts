@@ -90,6 +90,13 @@ export interface IInvoiceStorage {
   // Stats and analytics
   getInvoiceStats(walletAddress: string): Promise<InvoiceStats>;
   getCustomerStats(businessWallet: string, customerWallet: string): Promise<CustomerStats>;
+
+  // System-wide stats
+  getGlobalStats(): Promise<{
+    totalInvoices: number;
+    totalUsers: number;
+    encryptedInvoices: number;
+  }>;
 }
 
 export interface InvoiceFilters {
@@ -730,6 +737,28 @@ class InvoiceStorage implements IInvoiceStorage {
       receiptNFTs,
       identityNFTs,
       total: invoiceNFTs.length + receiptNFTs.length + identityNFTs.length,
+    };
+  }
+
+  /**
+   * Get global system statistics (Public)
+   */
+  async getGlobalStats() {
+    // 1. Total Invoices
+    const [invCount] = await db.select({ count: sql<number>`count(*)` }).from(invoices);
+
+    // 2. Total Business Users
+    const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(businessProfiles);
+
+    // 3. Encrypted Transactions
+    const [encCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(invoices)
+      .where(eq(invoices.isArciumEncrypted, true));
+
+    return {
+      totalInvoices: Number(invCount.count),
+      totalUsers: Number(userCount.count),
+      encryptedInvoices: Number(encCount.count)
     };
   }
 }
