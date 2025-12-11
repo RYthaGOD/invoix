@@ -19,6 +19,18 @@ import { registerAuthRoutes } from "./auth-routes";
 // Import export routes
 import exportRouter from "./export-routes";
 
+// Import NFT routes
+import { registerNftRoutes } from "./nft-routes";
+
+// Import Customer routes
+import { registerCustomerRoutes } from "./customer-routes";
+
+// Import Template routes
+import { registerTemplateRoutes } from "./template-routes";
+
+// Import Upload routes
+import { registerUploadRoutes } from "./upload-routes";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
   app.get("/api/health", (_req, res) => {
@@ -40,6 +52,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // EXPORT ROUTES (Accounting)
   // ================================================
   app.use("/api/exports", exportRouter);
+
+  // ================================================
+  // NFT MINTING ROUTES (User-Paid)
+  // ================================================
+  registerNftRoutes(app);
+
+  // ================================================
+  // CUSTOMER ROUTES
+  // ================================================
+  registerCustomerRoutes(app);
+
+  // ================================================
+  // TEMPLATE ROUTES
+  // ================================================
+  registerTemplateRoutes(app);
+
+  // ================================================
+  // UPLOAD ROUTES (Logos)
+  // ================================================
+  registerUploadRoutes(app);
 
   const server = createServer(app);
   return server;

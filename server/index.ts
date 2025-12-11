@@ -9,6 +9,9 @@ import compression from "compression";
 import { db, pool, runMigrations, checkDatabaseConnection } from "./db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import path from "path";
+import fs from "fs";
+import { WebSocketServer } from "ws";
 
 import {
   securityHeaders,
@@ -46,6 +49,13 @@ app.set('trust proxy', true);
 app.use(securityHeaders());
 app.use(corsPolicy());
 app.use(compression());
+
+// Serve uploaded files statically
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+app.use("/uploads", express.static(uploadsDir));
 
 // Session middleware - BEFORE body parsing so it's available in all routes
 // Use Postgres store if pool is available (Production), otherwise MemoryStore (Dev/SQLite)
@@ -195,6 +205,59 @@ export async function triggerGracefulShutdown() {
     server = await registerRoutes(app);
 
     console.log("✅ Routes registered");
+
+    // ============================================
+    // REALTIME WEBSOCKET SERVER
+    // ============================================
+    const wss = new WebSocketServer({ server, path: "/ws" });
+
+    wss.on("connection", (ws) => {
+      console.log("[WS] Client connected");
+
+      // Mock Data Emitter (Simulate Activity)
+      const interval = setInterval(() => {
+        if (ws.readyState === ws.OPEN) {
+
+          // 1. Simulate Price Update (B2B Token)
+          const priceUpdate = {
+            type: "price_update",
+            timestamp: Date.now(),
+            data: {
+              tokenMintAddress: process.env.VITE_B2B_TOKEN_MINT || "B2B_TOKEN_MINT_ADDRESS",
+              priceSOL: 0.045 + (Math.random() * 0.005), // Random vibration around 0.045
+              timestamp: Date.now(),
+            }
+          };
+          ws.send(JSON.stringify(priceUpdate));
+
+          // 2. Simulate Bot Event (Occasional)
+          if (Math.random() > 0.7) {
+            const botEvent = {
+              type: "bot_event",
+              timestamp: Date.now(),
+              data: {
+                projectId: "PROJ_1",
+                botType: Math.random() > 0.5 ? "volume" : "buy",
+                status: "success",
+                message: "Executed automated trade",
+                volume: Math.floor(Math.random() * 100)
+              }
+            };
+            ws.send(JSON.stringify(botEvent));
+          }
+
+        }
+      }, 3000); // Send updates every 3 seconds
+
+      ws.on("close", () => {
+        clearInterval(interval);
+        console.log("[WS] Client disconnected");
+      });
+
+      ws.on("error", (err) => {
+        console.error("[WS] Error:", err);
+      });
+    });
 
     // STARTUP STRATEGY:
     // 1. Start HTTP Server immediately (so Railway sees us as healthy/live)

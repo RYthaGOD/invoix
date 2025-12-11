@@ -247,6 +247,20 @@ class InvoiceStorage implements IInvoiceStorage {
   }
 
   async deleteInvoice(id: string): Promise<boolean> {
+    // 1. Check status first - Immutable Accounting Limit
+    // We cannot delete invoices that are part of the financial history (Paid/Processing)
+    const existing = await db.query.invoices.findFirst({
+      where: eq(invoices.id, id),
+    });
+
+    if (!existing) return false;
+
+    if (existing.status === 'paid' || existing.status === 'processing') {
+      // For accounting purposes, these should be "voided" instead of deleted, 
+      // but for now we basically prevent destruction of financial records.
+      throw new Error("Cannot delete an invoice that has been paid or is processing.");
+    }
+
     const result = await db.delete(invoices).where(eq(invoices.id, id)).returning();
     return result.length > 0;
   }

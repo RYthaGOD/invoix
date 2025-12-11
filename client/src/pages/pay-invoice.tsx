@@ -44,6 +44,10 @@ export default function PayInvoice() {
     const [txSignature, setTxSignature] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
 
+    // Accounting & Notes State
+    const [paymentNotes, setPaymentNotes] = useState("");
+    const [isBusinessExpense, setIsBusinessExpense] = useState(false);
+
     // Fetch invoice details
     useEffect(() => {
         if (!invoiceId) return;
@@ -192,6 +196,9 @@ export default function PayInvoice() {
                 toAddress: invoice.invoicerWalletAddress,
                 paymentMethod: "solana_transfer",
                 status: "completed",
+                // Pass optional accounting fields
+                paymentNotes: paymentNotes || undefined,
+                isBusinessExpense: isBusinessExpense,
             };
 
             const response = await fetch("/api/payments", {
@@ -340,6 +347,35 @@ export default function PayInvoice() {
                             })}
                         </p>
                     </div>
+
+                    {/* Payment Options (Notes & Accounting) */}
+                    {!isPaid && (
+                        <div className="border-t border-white/10 pt-6 mb-6 space-y-4">
+                            <div>
+                                <label className="block text-gray-400 text-sm mb-2">Payment Note (Optional)</label>
+                                <textarea
+                                    value={paymentNotes}
+                                    onChange={(e) => setPaymentNotes(e.target.value)}
+                                    placeholder="Add a reference number or note..."
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-purple-500/50 focus:outline-none transition-colors resize-none h-20"
+                                />
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${isBusinessExpense ? 'bg-purple-500 border-purple-500' : 'border-white/20 group-hover:border-white/40'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isBusinessExpense}
+                                            onChange={(e) => setIsBusinessExpense(e.target.checked)}
+                                            className="hidden"
+                                        />
+                                        {isBusinessExpense && <Check className="w-3.5 h-3.5 text-white" />}
+                                    </div>
+                                    <span className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors">Mark as Business Expense</span>
+                                </label>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Payment Button */}
                     {!isPaid && (

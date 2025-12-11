@@ -106,37 +106,7 @@ export function registerInvoiceRoutes(app: Express): void {
         }
       }
 
-      // AUTO-MINT Invoice NFT (unless explicitly disabled)
-      if (req.body.mintNFT !== false) {
-        try {
-          const nftService = getInvoiceNFTService();
-          if (nftService.isReady()) {
-            const nftResult = await nftService.mintInvoiceNFT(
-              invoice,
-              invoice.invoicerWalletAddress
-            );
-
-            // Update invoice with NFT details
-            await invoiceStorage.updateInvoice(invoice.id, {
-              nftMint: nftResult.mint,
-              nftMerkleTree: nftResult.merkleTree,
-              nftLeafIndex: nftResult.leafIndex,
-              nftMintedAt: new Date(),
-            });
-
-            // Update invoice object for response
-            invoice.nftMint = nftResult.mint;
-            invoice.nftMerkleTree = nftResult.merkleTree;
-            invoice.nftLeafIndex = nftResult.leafIndex;
-            invoice.nftMintedAt = new Date();
-
-            console.log(`✅ Auto-minted Invoice NFT: ${nftResult.mint}`);
-          }
-        } catch (nftError: any) {
-          // Non-blocking: log error but continue
-          console.error("Failed to auto-mint invoice NFT:", nftError.message);
-        }
-      }
+      // AUTO-MINT Invoice NFT (Removed: Now Client-Side & User-Paid)
 
       res.status(201).json({
         success: true,
@@ -622,54 +592,11 @@ export function registerInvoiceRoutes(app: Express): void {
       // Get updated invoice
       const updatedInvoice = await invoiceStorage.getInvoice(validatedData.invoiceId);
 
-      // AUTO-MINT Payment Receipt NFT (unless explicitly disabled)
-      let receiptNFT = null;
-      if (req.body.mintReceiptNFT !== false) {
-        try {
-          const nftService = getInvoiceNFTService();
-          if (nftService.isReady()) {
-            const receiptResult = await nftService.mintPaymentReceiptNFT(
-              payment,
-              invoice,
-              payment.toAddress  // Recipient gets the receipt NFT
-            );
-
-            receiptNFT = {
-              mint: receiptResult.mint,
-              signature: receiptResult.signature,
-              owner: payment.toAddress,
-            };
-
-            console.log(`✅ Auto-minted Payment Receipt NFT: ${receiptResult.mint}`);
-
-            // Store receipt NFT in database
-            await invoiceStorage.createPaymentReceiptNFT({
-              paymentId: payment.id,
-              invoiceId: invoice.id,
-              nftMint: receiptResult.mint,
-              nftMetadataUri: `${process.env.API_URL}/nft-metadata/payment-${payment.id}`,
-              nftOwner: payment.toAddress,
-              receiptNumber: `RCPT-${payment.id.slice(0, 8)}`,
-              amount: payment.amount,
-              currency: payment.currency,
-              paymentDate: payment.createdAt,
-              taxYear: payment.createdAt.getFullYear(),
-              txSignature: payment.txSignature,
-              nftMintSignature: receiptResult.signature,
-            });
-          }
-        } catch (nftError: any) {
-          // Non-blocking: log error but continue
-          console.error("Failed to auto-mint payment receipt NFT:", nftError.message);
-        }
-      }
-
       res.status(201).json({
         success: true,
         payment,
         invoice: updatedInvoice,
-        receiptNFT,
-        message: "Payment recorded successfully" + (receiptNFT ? " with receipt NFT" : ""),
+        message: "Payment recorded successfully",
       });
     } catch (error: any) {
       if (error.name === "ZodError") {
