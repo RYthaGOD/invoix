@@ -193,33 +193,57 @@ export function registerInvoiceRoutes(app: Express): void {
    * Get single invoice by ID
    * GET /api/invoices/:id?wallet=xxx
    */
-  app.get("/api/invoices/:id", requireWalletOwnership, async (req, res) => {
+  /**
+   * Get single invoice by ID
+   * GET /api/invoices/:id?wallet=xxx
+   * 
+   * Updated Access Control:
+   * 1. Authenticated Owner/Customer -> Always Allow
+   * 2. Public Link -> Allow IF (Status != Draft AND !isPrivate)
+   */
+  app.get("/api/invoices/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const walletAddress = req.query.wallet as string;
+      // walletAddress query param is for client-side matching, but for security we look at session
+      const sessionWallet = (req as any).session?.walletAddress;
 
       const invoice = await invoiceStorage.getInvoice(id);
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
-      // Verify wallet has access (either invoicer or invoicee)
-      if (walletAddress) {
-        const hasAccess =
-          invoice.invoicerWalletAddress === walletAddress ||
-          invoice.invoiceeWalletAddress === walletAddress;
+      // Check 1: Is user authenticated and involved?
+      let isAuthorized = false;
+      if (sessionWallet) {
+        if (
+          invoice.invoicerWalletAddress === sessionWallet ||
+          invoice.invoiceeWalletAddress === sessionWallet
+        ) {
+          isAuthorized = true;
+        }
+      }
 
-        if (!hasAccess) {
-          return res.status(403).json({
-            message: "Unauthorized: You don't have access to this invoice"
+      // Check 2: Is this a public, sent invoice?
+      const isPublicAccessible = !invoice.isPrivate && invoice.status !== "draft";
+
+      // Final Decision
+      if (!isAuthorized && !isPublicAccessible) {
+        // If it's private/draft and they aren't authorized -> Block
+        if (!sessionWallet) {
+          return res.status(401).json({
+            message: "Authentication required to view this invoice",
+            code: "AUTH_REQUIRED"
           });
         }
-      } else if (invoice.isPrivate) {
-        // If private and no wallet provided, hide sensitive data
         return res.status(403).json({
-          message: "Authentication required: This invoice is private"
+          message: "Unauthorized: You don't have access to this private invoice",
+          code: "ACCESS_DENIED"
         });
       }
+
+      // If viewing publicly (not authorized but accessible), we might want to hide sensitive data?
+      // For now, per plan, we return the invoice. 
+      // Note: isPrivate=false explicitly implies we are okay sharing the text.
 
       // Get line items
       const lineItems = await invoiceStorage.getLineItems(id);
@@ -235,6 +259,8 @@ export function registerInvoiceRoutes(app: Express): void {
       res.status(500).json({ message: error.message });
     }
   });
+
+
 
   /**
    * Get invoice by invoice number

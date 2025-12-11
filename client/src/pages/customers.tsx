@@ -10,12 +10,11 @@ import { useAuth } from "@/hooks/use-auth";
 
 interface Customer {
     id: string;
-    walletAddress: string;
-    name?: string;
-    email?: string;
-    phone?: string;
-    company?: string;
-    notes?: string;
+    customerWalletAddress: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    customerNotes?: string;
     createdAt: string;
 }
 
@@ -86,10 +85,9 @@ export default function Customers() {
     const filteredCustomers = customers.filter((customer) => {
         const query = searchQuery.toLowerCase();
         return (
-            customer.name?.toLowerCase().includes(query) ||
-            customer.email?.toLowerCase().includes(query) ||
-            customer.company?.toLowerCase().includes(query) ||
-            customer.walletAddress.toLowerCase().includes(query)
+            customer.customerName?.toLowerCase().includes(query) ||
+            customer.customerEmail?.toLowerCase().includes(query) ||
+            customer.customerWalletAddress.toLowerCase().includes(query)
         );
     });
 
@@ -116,7 +114,7 @@ export default function Customers() {
                             type="text"
                             value={searchQuery}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                            placeholder="Search customers by name, email, company, or wallet..."
+                            placeholder="Search customers by name, email, or wallet..."
                             className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                     </div>
@@ -159,11 +157,8 @@ export default function Customers() {
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-semibold text-white">
-                                                {customer.name || "Unnamed Customer"}
+                                                {customer.customerName || "Unnamed Customer"}
                                             </h3>
-                                            {customer.company && (
-                                                <p className="text-sm text-gray-400">{customer.company}</p>
-                                            )}
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -183,34 +178,34 @@ export default function Customers() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    {customer.email && (
+                                    {customer.customerEmail && (
                                         <div className="flex items-center gap-2 text-sm text-gray-300">
                                             <Mail className="w-4 h-4 text-gray-500" />
-                                            {customer.email}
+                                            {customer.customerEmail}
                                         </div>
                                     )}
-                                    {customer.phone && (
+                                    {customer.customerPhone && (
                                         <div className="flex items-center gap-2 text-sm text-gray-300">
                                             <Phone className="w-4 h-4 text-gray-500" />
-                                            {customer.phone}
+                                            {customer.customerPhone}
                                         </div>
                                     )}
                                     <div className="flex items-center gap-2 text-sm text-gray-300">
                                         <Building className="w-4 h-4 text-gray-500" />
                                         <code className="text-xs bg-white/5 px-2 py-1 rounded">
-                                            {customer.walletAddress.slice(0, 8)}...{customer.walletAddress.slice(-6)}
+                                            {customer.customerWalletAddress.slice(0, 8)}...{customer.customerWalletAddress.slice(-6)}
                                         </code>
                                     </div>
                                 </div>
 
-                                {customer.notes && (
+                                {customer.customerNotes && (
                                     <div className="mt-4 pt-4 border-t border-white/10">
-                                        <p className="text-sm text-gray-400 line-clamp-2">{customer.notes}</p>
+                                        <p className="text-sm text-gray-400 line-clamp-2">{customer.customerNotes}</p>
                                     </div>
                                 )}
 
                                 <button
-                                    onClick={() => navigate(`/invoices/create?customer=${customer.walletAddress}`)}
+                                    onClick={() => navigate(`/invoices/create?customer=${customer.customerWalletAddress}`)}
                                     className="mt-4 w-full px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-all text-sm font-medium"
                                 >
                                     Create Invoice
@@ -242,12 +237,12 @@ function CustomerForm({
 }) {
     const { walletAddress } = useAuth();
     const [formData, setFormData] = useState({
-        walletAddress: customer?.walletAddress || "",
-        name: customer?.name || "",
-        email: customer?.email || "",
-        phone: customer?.phone || "",
-        company: customer?.company || "",
-        notes: customer?.notes || "",
+        walletAddress: customer?.customerWalletAddress || "",
+        name: customer?.customerName || "",
+        email: customer?.customerEmail || "",
+        phone: customer?.customerPhone || "",
+        company: "", // Not stored separately but kept in form for UI convenience, added to notes on submit
+        notes: customer?.customerNotes || "",
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);

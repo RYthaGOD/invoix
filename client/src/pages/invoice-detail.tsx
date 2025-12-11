@@ -101,6 +101,7 @@ export default function InvoiceDetail() {
   const [paymentTxSignature, setPaymentTxSignature] = useState("");
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (params?.id && walletAddress) {
@@ -142,6 +143,37 @@ export default function InvoiceDetail() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!invoice || !walletAddress) return;
+
+    if (!confirm("Are you sure you want to send this invoice? This will make it viewable by anyone with the link (unless marked private).")) {
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const response = await fetch(`/api/invoices/${invoice.id}?wallet=${walletAddress}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "sent" }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to send invoice");
+      }
+
+      const data = await response.json();
+      setInvoice(data.invoice);
+      alert("Invoice sent successfully!");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -287,9 +319,13 @@ export default function InvoiceDetail() {
             Download
           </button>
           {isInvoicer && invoice.status === "draft" && (
-            <button className="smoke-shadow px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-all flex items-center gap-2">
+            <button
+              onClick={handleSend}
+              disabled={sending}
+              className="smoke-shadow px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Send className="w-4 h-4" />
-              Send
+              {sending ? "Sending..." : "Send"}
             </button>
           )}
         </div>
