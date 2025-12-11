@@ -95,29 +95,44 @@ export async function runMigrations() {
     // However, if we start from dist, we need to be careful.
     // The build script now copies migrations to dist/migrations.
 
-    // Determine the correct path
-    // If running in tsx (dev), it's "migrations" in root.
-    // If running in production (node dist/index.js), we expect "migrations" relative to the script OR "dist/migrations" if relative to root?
-    // Let's try to resolve it relative to the current working directory first.
-
-    // Try to find the migrations folder
+    // Determine the correct path - ALWAYS use absolute paths to avoid ambiguity
     const fs = await import("fs");
     const path = await import("path");
 
-    let migrationsFolder = "migrations";
+    // Default to resolving "migrations" relative to CWD (root)
+    let migrationsFolder = path.resolve(process.cwd(), "migrations");
 
     if (process.env.NODE_ENV === "production") {
-      // In production, we might be running "node dist/index.js" from root
-      // So "dist/migrations" would be the path if copied there
-      if (fs.existsSync(path.resolve("dist/migrations"))) {
-        migrationsFolder = "dist/migrations";
-      } else if (fs.existsSync(path.resolve("migrations"))) {
-        // Fallback to root migrations if verified
-        migrationsFolder = "migrations";
+      // In production, prefer the "dist/migrations" folder if it exists
+      const distMigrations = path.resolve(process.cwd(), "dist", "migrations");
+
+      if (fs.existsSync(distMigrations)) {
+        migrationsFolder = distMigrations;
       }
     }
 
     console.log(`Using migrations folder: ${migrationsFolder}`);
+
+    // Diagnostic check for meta/_journal.json
+    const journalPath = path.join(migrationsFolder, "meta", "_journal.json");
+    if (!fs.existsSync(journalPath)) {
+      console.error(`❌ CRITICAL: Migration journal not found at ${journalPath}`);
+      // List contents of the migrations folder for debugging
+      if (fs.existsSync(migrationsFolder)) {
+        console.log(`Contents of ${migrationsFolder}:`, fs.readdirSync(migrationsFolder));
+        const metaDir = path.join(migrationsFolder, "meta");
+        if (fs.existsSync(metaDir)) {
+          console.log(`Contents of ${metaDir}:`, fs.readdirSync(metaDir));
+        } else {
+          console.log(`Meta directory does not exist at ${metaDir}`);
+        }
+      } else {
+        console.log(`Migrations folder does not exist at ${migrationsFolder}`);
+      }
+    } else {
+      console.log(`✅ Found migration journal at ${journalPath}`);
+    }
+
     await migrate(db, { migrationsFolder });
     console.log('✅ Migrations completed successfully');
   } catch (error) {

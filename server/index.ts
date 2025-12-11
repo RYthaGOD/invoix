@@ -170,15 +170,20 @@ export async function triggerGracefulShutdown() {
 
 
 
-    // Service Readiness Flag
+    // Service Readiness Flag & Debug Info
     let isServiceReady = false;
+    let lastStartupError: string | null = null;
+    let startupPhase = "initializing"; // initializing, db_check, migrations, ready
 
     // Maintenance Mode Middleware - Must come before routes!
     app.use((req, res, next) => {
       if (!isServiceReady && req.path !== '/health') {
         return res.status(503).json({
           message: 'Service starting up - Waiting for database...',
-          status: 'maintenance'
+          status: 'maintenance',
+          phase: startupPhase,
+          lastError: lastStartupError,
+          timestamp: new Date().toISOString()
         });
       }
       next();
@@ -216,34 +221,48 @@ export async function triggerGracefulShutdown() {
       // Background DB Initialization
       (async () => {
         let connected = false;
+        startupPhase = "connecting_to_db";
 
         while (!connected) {
           try {
             connected = await checkDatabaseConnection(5, 2000); // Check in small bursts
             if (connected) {
-              await runMigrations();
+              startupPhase = "running_migrations";
+              lastStartupError = null; // Clear error on connection success
 
-              // Initialize NFT Service (After DB is ready)
-              if (process.env.PAYER_PRIVATE_KEY) {
-                try {
+              try {
+                await runMigrations();
+
+                // Initialize NFT Service (After DB is ready)
+                if (process.env.PAYER_PRIVATE_KEY) {
                   const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
                   await initializeNFTService(payerKeypair);
                   console.log("✅ NFT Service initialized with payer wallet");
-                } catch (error) {
-                  console.warn("⚠️ Failed to initialize NFT service:", error);
                 }
-              } else {
-                console.log("ℹ️ PAYER_PRIVATE_KEY not set - Server-side NFT minting disabled (Client-side minting enabled)");
-              }
 
-              isServiceReady = true;
-              console.log("✅ Database connected. Service is now READY.");
+                isServiceReady = true;
+                startupPhase = "ready";
+                console.log("✅ Database connected. Service is now READY.");
+              } catch (migrationError: any) {
+                const msg = migrationError instanceof Error ? migrationError.message : String(migrationError);
+                console.error("❌ Migration failed:", msg);
+                lastStartupError = `Migration failed: ${msg}`;
+                // If migrations fail, we might want to stay in loop or just fail?
+                // For now, let's wait and retry? Or is it fatal?
+                // Usually fatal, but valid to retry if it was a transient DB issue.
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                connected = false; // Force retry loop
+              }
             } else {
-              console.log("⏳ Database not yet ready. Retrying in 5 seconds...");
+              const msg = "Database connection check returned false (timeout)";
+              console.log(`⏳ ${msg}. Retrying in 5 seconds...`);
+              lastStartupError = msg;
               await new Promise(resolve => setTimeout(resolve, 5000));
             }
-          } catch (e) {
-            console.error("❌ Critical error in background initialization (Retrying in 5s):", e);
+          } catch (e: any) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.error("❌ Critical error in background initialization (Retrying in 5s):", msg);
+            lastStartupError = `Connection error: ${msg}`;
             await new Promise(resolve => setTimeout(resolve, 5000));
           }
         }
