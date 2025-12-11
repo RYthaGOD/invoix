@@ -612,7 +612,12 @@ export function registerInvoiceRoutes(app: Express): void {
       }
 
       // Create payment (this auto-updates invoice status)
-      const payment = await invoiceStorage.createPayment(validatedData);
+      // Pass the new accounting fields
+      const payment = await invoiceStorage.createPayment({
+        ...validatedData,
+        usdValueAtPayment: validatedData.usdValueAtPayment || undefined, // explicit pass
+        isBusinessExpense: validatedData.isBusinessExpense || false,
+      });
 
       // Get updated invoice
       const updatedInvoice = await invoiceStorage.getInvoice(validatedData.invoiceId);

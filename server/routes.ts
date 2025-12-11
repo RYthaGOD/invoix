@@ -16,6 +16,9 @@ import { registerInvoiceRoutes } from "./invoice-routes";
 // Import auth routes
 import { registerAuthRoutes } from "./auth-routes";
 
+// Import export routes
+import exportRouter from "./export-routes";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
   app.get("/api/health", (_req, res) => {
@@ -33,6 +36,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerInvoiceRoutes(app);
 
 
+  // ================================================
+  // EXPORT ROUTES (Accounting)
+  // ================================================
+  app.use("/api/exports", exportRouter);
 
   const server = createServer(app);
   return server;

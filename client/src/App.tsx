@@ -20,6 +20,7 @@ import NotFound from "@/pages/not-found";
 import ComingSoon from "@/pages/coming-soon";
 
 import Stats from "@/pages/stats";
+import SettingsPage from "@/pages/settings";
 
 function Router() {
   return (
@@ -68,7 +69,13 @@ function Router() {
       {/* Placeholders for Future Features */}
       <Route path="/pricing" component={ComingSoon} />
       <Route path="/rewards" component={ComingSoon} />
-      <Route path="/dashboard/settings" component={ComingSoon} />
+      <Route path="/dashboard/settings">
+        {() => (
+          <DashboardLayout>
+            <SettingsPage />
+          </DashboardLayout>
+        )}
+      </Route>
       <Route path="/dashboard/blacklist" component={ComingSoon} />
 
       <Route component={NotFound} />

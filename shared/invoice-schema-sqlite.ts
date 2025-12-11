@@ -132,6 +132,10 @@ export const payments = sqliteTable("payments", {
     status: text("status").notNull().default("pending"),
     confirmations: integer("confirmations").notNull().default(0),
 
+    // Accounting & Compliance
+    usdValueAtPayment: text("usd_value_at_payment"), // USD value at time of payment
+    isBusinessExpense: integer("is_business_expense", { mode: "boolean" }).notNull().default(false), // User-flagged business expense
+
     isArciumEncrypted: integer("is_arcium_encrypted", { mode: "boolean" }).notNull().default(false),
     arciumEncryptedData: text("arcium_encrypted_data"),
     arciumEncryptionKey: text("arcium_encryption_key"),
@@ -413,6 +417,8 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
     invoiceId: z.string().uuid(),
     txSignature: z.string().min(88, "Invalid Solana transaction signature"),
     amount: z.string().refine(val => parseFloat(val) > 0, "Payment amount must be positive"),
+    usdValueAtPayment: z.string().optional(), // Optional: can be passed from client or fetched
+    isBusinessExpense: z.boolean().optional(),
 });
 
 export const insertBusinessProfileSchema = createInsertSchema(businessProfiles).omit({

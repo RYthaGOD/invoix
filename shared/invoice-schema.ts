@@ -140,6 +140,10 @@ export const payments = pgTable("payments", {
   status: text("status").notNull().default("pending"), // pending, confirmed, failed
   confirmations: integer("confirmations").notNull().default(0),
 
+  // Accounting & Compliance
+  usdValueAtPayment: decimal("usd_value_at_payment", { precision: 18, scale: 6 }), // USD value at time of payment
+  isBusinessExpense: boolean("is_business_expense").notNull().default(false), // User-flagged business expense
+
   // Arcium Encryption (optional - for sensitive payment notes)
   isArciumEncrypted: boolean("is_arcium_encrypted").notNull().default(false),
   arciumEncryptedData: text("arcium_encrypted_data"),
@@ -462,6 +466,8 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   invoiceId: z.string().uuid(),
   txSignature: z.string().min(88, "Invalid Solana transaction signature"), // Fixed: Solana signatures are 88 chars
   amount: z.string().refine(val => parseFloat(val) > 0, "Payment amount must be positive"),
+  usdValueAtPayment: z.string().optional(), // Optional: can be passed from client or fetched
+  isBusinessExpense: z.boolean().optional(),
 });
 
 export const insertBusinessProfileSchema = createInsertSchema(businessProfiles).omit({
