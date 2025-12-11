@@ -69,25 +69,49 @@ export function registerNftRoutes(app: Express): void {
     app.post("/api/nft/confirm-mint/:id", requireWalletOwnership, async (req, res) => {
         try {
             const { id } = req.params;
-            const { signature, mint, leafIndex, merkleTree } = req.body;
+            const { signature } = req.body;
 
-            if (!signature || !mint) {
-                return res.status(400).json({ message: "Missing confirmation details" });
+            if (!signature) {
+                return res.status(400).json({ message: "Missing transaction signature" });
             }
 
-            // Update Invoice
+            const nftService = getInvoiceNFTService();
+            if (!nftService.isReady()) {
+                return res.status(503).json({ message: "NFT Service not ready" });
+            }
+
+            // 1. Get Authoritative Merkle Tree
+            const merkleTreeAddress = nftService.getMerkleTree();
+
+            // 2. Extract Leaf Index from Chain (Verify Transaction)
+            // This is authoritative - it proves the mint actually happened on chain
+            const leafIndex = await nftService.extractLeafIndexFromTransaction(signature);
+
+            // 3. Derive Asset ID (Mint Address / Asset ID)
+            // This is the correct way to get the Compressed NFT address
+            const assetId = await nftService.deriveAssetId(leafIndex);
+
+            // Update Invoice with validated data
             await invoiceStorage.updateInvoice(id, {
-                nftMint: mint,
+                nftMint: assetId,
                 nftMintedAt: new Date(),
-                nftMerkleTree: merkleTree,
+                nftMerkleTree: merkleTreeAddress,
                 nftLeafIndex: leafIndex,
-                // Store signature/tx hash? Maybe in logs or a new column if needed.
             });
 
-            res.json({ success: true, message: "Invoice NFT status updated" });
+            res.json({
+                success: true,
+                message: "Invoice NFT status updated",
+                data: {
+                    mint: assetId,
+                    merkleTree: merkleTreeAddress,
+                    leafIndex
+                }
+            });
 
         } catch (error: any) {
-            res.status(500).json({ message: error.message });
+            console.error("Confirm Mint Error:", error);
+            res.status(500).json({ message: error.message || "Failed to confirm mint" });
         }
     });
 }

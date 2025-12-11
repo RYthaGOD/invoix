@@ -21,6 +21,7 @@ import {
   MintV1InstructionAccounts,
   TransferInstructionAccounts,
   BurnInstructionAccounts,
+  findLeafAssetIdPda,
 } from "@metaplex-foundation/mpl-bubblegum";
 import {
   createNft,
@@ -38,6 +39,7 @@ import {
   keypairIdentity,
   transactionBuilder,
   signerIdentity,
+  PublicKey as UmiPublicKey,
 } from "@metaplex-foundation/umi";
 import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
@@ -712,13 +714,30 @@ export class InvoiceNFTService {
   }
 
   /**
-   * Extract leaf index from transaction logs
-   * Parses Bubblegum program logs to find the leaf index
+   * Helper: Extract Leaf Index from Transaction (Public)
    */
-  private async extractLeafIndexFromTransaction(signature: string): Promise<number> {
+  public async extractLeafIndexFromTransaction(signature: string): Promise<number> {
+    if (!this.umi) {
+      throw new Error("Umi not initialized.");
+    }
     try {
+      // Wait for confirmation
+      const latestBlockhash = await this.umi.rpc.getLatestBlockhash();
+      const bs58 = require('bs58');
+      const sigBytes = bs58.decode(signature);
+
+      await this.umi.rpc.confirmTransaction(
+        sigBytes, {
+        strategy: {
+          type: "blockhash",
+          ...latestBlockhash
+        }
+      }
+      );
+
       // Get connection from UMI
-      const rpcEndpoint = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+      const rpcEndpoint =
+        process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
       const connection = new Connection(rpcEndpoint, "confirmed");
 
       // Fetch transaction with logs

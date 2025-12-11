@@ -30,7 +30,11 @@ import {
   Check,
   Share,
   Link,
+  Loader2,
 } from "lucide-react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { clusterApiUrl, Connection, VersionedTransaction } from "@solana/web3.js";
+import { Buffer } from "buffer";
 
 interface LineItem {
   id: string;
@@ -91,6 +95,7 @@ export default function InvoiceDetail() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/invoices/:id");
   const { walletAddress } = useAuth();
+  const wallet = useWallet(); // Wallet adapter for signing
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -102,6 +107,8 @@ export default function InvoiceDetail() {
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [mintingStatus, setMintingStatus] = useState<string>("");
+  const [mintError, setMintError] = useState<string | null>(null);
 
   useEffect(() => {
     if (params?.id && walletAddress) {
@@ -215,6 +222,73 @@ export default function InvoiceDetail() {
       alert(err.message);
     } finally {
       setSubmittingPayment(false);
+    }
+  };
+
+  const handleMintNFT = async () => {
+    if (!invoice || !wallet.publicKey || !wallet.signTransaction) return;
+
+    setMintingStatus("Preparing Mint Transaction...");
+    setMintError(null);
+
+    try {
+      // 1. Request Transaction from Server
+      const mintRes = await fetch(`/api/nft/mint-invoice/${invoice.id}?wallet=${wallet.publicKey.toBase58()}`, {
+        method: "POST",
+      });
+
+      if (!mintRes.ok) {
+        const err = await mintRes.json();
+        throw new Error(err.message || "Failed to prepare mint transaction");
+      }
+
+      const { transaction: base64Tx } = await mintRes.json();
+
+      setMintingStatus("Please Sign Transaction (User Pays Mint Fee) ✍️");
+
+      // 2. Deserialize Transaction
+      const txBuffer = Buffer.from(base64Tx, "base64");
+      const transaction = VersionedTransaction.deserialize(txBuffer);
+
+      // 3. Sign with User Wallet
+      const signedTx = await wallet.signTransaction(transaction);
+
+      // 4. Send Transaction
+      setMintingStatus("Sending Transaction... 🚀");
+      const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
+
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+
+      setMintingStatus("Confirming Transaction... ⏳");
+      const confirmation = await connection.confirmTransaction(signature, "confirmed");
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${confirmation.value.err}`);
+      }
+
+      setMintingStatus("Success! Updating Invoice... ✨");
+
+      // 5. Confirm with Server (Sends signature, server derives Asset Id)
+      await fetch(`/api/nft/confirm-mint/${invoice.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          signature,
+          // Placeholder details - server will ignore/derive
+          mint: signature,
+          leafIndex: 0,
+          merkleTree: "See Server Config",
+        }),
+      });
+
+      // Reload invoice to show new NFT status
+      await loadInvoice(invoice.id);
+      setMintingStatus("");
+
+    } catch (err: any) {
+      console.error("Minting failed:", err);
+      setMintError(err.message);
+      setMintingStatus("");
     }
   };
 
@@ -431,6 +505,56 @@ export default function InvoiceDetail() {
                   <span className="text-sm">Arcium Encrypted</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Minting Status Overlay */}
+          {mintingStatus && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+              <div className="glass-card p-8 rounded-xl flex flex-col items-center gap-4 max-w-md text-center">
+                <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
+                <h3 className="text-xl font-bold text-white">Minting NFT...</h3>
+                <p className="text-gray-300">{mintingStatus}</p>
+                <p className="text-xs text-gray-500 mt-2">Please examine the transaction in your wallet popup.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Mint Error */}
+          {mintError && (
+            <div className="glass-card border border-red-500/30 bg-red-500/10 p-4 rounded-lg flex justify-between items-center gap-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+                <p className="text-red-400 text-sm">Mint Failed: {mintError}</p>
+              </div>
+              <button
+                onClick={() => setMintError(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Mint Button for Invoicer */}
+          {isInvoicer && !invoice.nftMint && (
+            <div className="glass-card p-6 border-l-4 border-purple-500">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Mint Invoice NFT</h3>
+                  <p className="text-sm text-gray-400 max-w-lg mt-1">
+                    This invoices has not been minted yet. Minting creates a verifiable on-chain record and allows for factoring/trading.
+                    You will pay the network fee (~0.002 SOL).
+                  </p>
+                </div>
+                <button
+                  onClick={handleMintNFT}
+                  disabled={!!mintingStatus}
+                  className="smoke-shadow px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all"
+                >
+                  Mint NFT 🎨
+                </button>
+              </div>
             </div>
           )}
         </div>

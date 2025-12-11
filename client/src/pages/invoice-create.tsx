@@ -152,6 +152,8 @@ export default function InvoiceCreate() {
   const totalWithTax = safeAdd(subtotal, taxAmount);
   const total = safeSubtract(totalWithTax, discountVal);
 
+  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
+
   const onSubmit = async (data: InvoiceFormData) => {
     if (!isAuthenticated || !walletAddress) {
       setError("Please login with your wallet first");
@@ -164,69 +166,74 @@ export default function InvoiceCreate() {
     setError(null);
 
     try {
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      let invoiceId = createdInvoiceId;
 
-      const invoiceData = {
-        invoiceNumber,
-        invoiceeWalletAddress: data.invoiceeWalletAddress,
-        description: data.description,
-        notes: data.notes,
-        dueDate: new Date(data.dueDate).toISOString(),
-        currency: data.currency,
-        tokenMint: getStablecoinConfig(data.currency)?.mint || data.currency,
-        tokenDecimals: 6,
-        subtotal: subtotal.toString(),
-        taxAmount: taxAmount.toString(),
-        discountAmount: data.discountAmount,
-        totalAmount: total.toString(),
-        remainingAmount: total.toString(),
-        paidAmount: "0",
-        status: "draft",
-        paymentTerms: data.paymentTerms,
-        isPrivate: data.isPrivate,
-        hideAmounts: data.isPrivate,
-        hideParties: data.isPrivate,
-        mintNFT: false, // Disable server-side minting effectively, we do it client-side
-        encryptWithArcium: data.encryptWithArcium,
-        allowedParties: data.encryptWithArcium
-          ? [walletAddress, data.invoiceeWalletAddress]
-          : undefined,
-      };
+      if (!invoiceId) {
+        const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
 
-      // 1. Create Invoice via API
-      const response = await fetch("/api/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          ...invoiceData,
-          invoicerWalletAddress: walletAddress,
-          tokenMintAddress: invoiceData.tokenMint,
-          lineItems: data.lineItems
-            .filter(item => item.description && parseFloat(item.quantity) > 0)
-            .map((item, index) => ({
-              ...item,
-              lineNumber: index + 1,
-              lineTotal: safeMultiply(item.quantity, item.unitPrice),
-            })),
-        }),
-      });
+        const invoiceData = {
+          invoiceNumber,
+          invoiceeWalletAddress: data.invoiceeWalletAddress,
+          description: data.description,
+          notes: data.notes,
+          dueDate: new Date(data.dueDate).toISOString(),
+          currency: data.currency,
+          tokenMint: getStablecoinConfig(data.currency)?.mint || data.currency,
+          tokenDecimals: 6,
+          subtotal: subtotal.toString(),
+          taxAmount: taxAmount.toString(),
+          discountAmount: data.discountAmount,
+          totalAmount: total.toString(),
+          remainingAmount: total.toString(),
+          paidAmount: "0",
+          status: "draft",
+          paymentTerms: data.paymentTerms,
+          isPrivate: data.isPrivate,
+          hideAmounts: data.isPrivate,
+          hideParties: data.isPrivate,
+          mintNFT: false, // Disable server-side minting effectively, we do it client-side
+          encryptWithArcium: data.encryptWithArcium,
+          allowedParties: data.encryptWithArcium
+            ? [walletAddress, data.invoiceeWalletAddress]
+            : undefined,
+        };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.code === "NOT_AUTHENTICATED") {
-          setError("Session expired. Please login again");
-          await login();
-          return;
+        // 1. Create Invoice via API
+        const response = await fetch("/api/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            ...invoiceData,
+            invoicerWalletAddress: walletAddress,
+            tokenMintAddress: invoiceData.tokenMint,
+            lineItems: data.lineItems
+              .filter(item => item.description && parseFloat(item.quantity) > 0)
+              .map((item, index) => ({
+                ...item,
+                lineNumber: index + 1,
+                lineTotal: safeMultiply(item.quantity, item.unitPrice),
+              })),
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData.code === "NOT_AUTHENTICATED") {
+            setError("Session expired. Please login again");
+            await login();
+            return;
+          }
+          throw new Error(errorData.message || "Failed to create invoice");
         }
-        throw new Error(errorData.message || "Failed to create invoice");
+
+        const result = await response.json();
+        invoiceId = result.invoice.id;
+        setCreatedInvoiceId(invoiceId);
       }
 
-      const result = await response.json();
-      const invoiceId = result.invoice.id;
-
       // 2. Client-Side NFT Minting (User-Paid)
-      if (data.mintNFT && wallet.publicKey && wallet.signTransaction) {
+      if (data.mintNFT && wallet.publicKey && wallet.signTransaction && invoiceId) {
         try {
           setMintingStatus("Preparing Mint Transaction...");
 
@@ -271,63 +278,32 @@ export default function InvoiceCreate() {
           setMintingStatus("Success! Updating Invoice... ✨");
 
           // E. Confirm with Server
-          // We need the mint address. For Compressed NFTs, the signature IS the identifier for lookup usually,
-          // but we also need the Leaf Index.
-          // Since the client just submitted the tx, we might strictly only have the signature.
-          // The SERVER knows the tree details.
-          // However, the `confirm-mint` endpoint expects specific details.
-          // Let's rely on the Server to re-fetch/verify if possible? 
-          // Or we ask the server to verify the signature.
-
-          // Actually, our current `confirm-mint` route expects { signature, mint, leafIndex, merkleTree }.
-          // Extracting these client-side from the signature requires parsing logs.
-          // This matches the logic usually done in `nft-service`.
-          // For simplicity in this User-Paid flow, checking the signature is enough for "Success".
-          // BUT we want the DB to store the Mint ID.
-          // For Compressed NFTs (Bubblegum), the Asset ID (Mint) is derived from the Tree + LeafIndex.
-          // We can't easily get LeafIndex without parsing logs.
-
-          // Solution: Client sends Signature to Server. Server parses logs to get LeafIndex/AssetId.
-          // I will update the `confirm-mint` route to handle "just signature" if needed, 
-          // OR I can parse logs here. Parsing logs here is cleaner for now to match the existing hook logic.
-
-          // Let's do a quick log parse if possible, or just send signature and let server handle it?
-          // I didn't update server `confirm-mint` to parse logs yet.
-          // I will try to parse logs here using `connection.getTransaction`.
-
-          // Wait, `connection.confirmTransaction` doesn't return logs.
-          const txResponse = await connection.getTransaction(signature, { maxSupportedTransactionVersion: 0 });
-          const logs = txResponse?.meta?.logMessages || [];
-
-          // Extract Leaf Index (Naive check, same as server)
-          let leafIndex = 0;
-          const leafMatch = logs.find(l => l.includes("leaf index:"))?.match(/leaf index:\s*(\d+)/i);
-          if (leafMatch) leafIndex = parseInt(leafMatch[1]);
-
-          // Asset ID derivation (Bubblegum) is complex client-side without SDK.
-          // Let's just send the signature for now and tell the server.
-          // Ideally, we'd update `confirm-mint` to be smarter.
-          // I'll send what I have.
-
           await fetch(`/api/nft/confirm-mint/${invoiceId}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               signature,
-              mint: signature, // For cNFTs, signature is often used as a proxy ID until indexed
-              leafIndex,
-              merkleTree: "See Server Config", // Placeholder
+              mint: signature, // Placeholder, server ignores
+              leafIndex: 0, // Placeholder, server ignores
+              merkleTree: "See Server Config", // Placeholder, server ignores
             }),
           });
+
+          // Navigate only on SUCCESS
+          navigate(`/invoices/${invoiceId}`);
 
         } catch (mintError: any) {
           console.error("Client-side minting failed:", mintError);
           setError(`Invoice created, but NFT minting failed: ${mintError.message}`);
-          // Don't throw, allow navigation
+          setIsSubmitting(false); // Stop loading so user can read error
+          setMintingStatus(""); // Clear mint status
+          // DO NOT navigate. Let user see error and decide.
         }
+      } else {
+        // No minting requested, just navigate
+        navigate(`/invoices/${invoiceId}`);
       }
 
-      navigate(`/invoices/${invoiceId}`);
     } catch (err: any) {
       setError(err.message);
       setIsSubmitting(false);
@@ -385,8 +361,17 @@ export default function InvoiceCreate() {
 
           {/* Error Message */}
           {error && (
-            <div className="glass-card border border-red-500/30 bg-red-500/10 p-4 rounded-lg">
+            <div className="glass-card border border-red-500/30 bg-red-500/10 p-4 rounded-lg flex justify-between items-center gap-4">
               <p className="text-red-400 text-sm">{error}</p>
+              {createdInvoiceId && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/invoices/${createdInvoiceId}`)}
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-100 text-xs rounded transition-colors whitespace-nowrap"
+                >
+                  Skip & Go to Invoice →
+                </button>
+              )}
             </div>
           )}
 

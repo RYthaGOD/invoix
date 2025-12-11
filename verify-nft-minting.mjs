@@ -51,17 +51,17 @@ async function verifyNftMinting() {
         console.log(`   ID: ${invoice.id}`);
 
         if (invoice.nftMint) {
-            console.log(`\n🎉 SUCCESS! NFT Minted successfully.`);
+            console.log(`\n🎉 SUCCESS! NFT Minted (Unexpected: this should now be client-side only).`);
             console.log(`   Mint Address: ${invoice.nftMint}`);
-            console.log(`   Merkle Tree: ${invoice.nftMerkleTree}`);
-            console.log(`   Leaf Index: ${invoice.nftLeafIndex}`);
-            console.log(`   Minted At: ${invoice.nftMintedAt}`);
         } else {
-            console.log(`\n⚠️  WARNING: Invoice created but NO NFT was minted.`);
-            console.log(`   Possible reasons:`);
-            console.log(`   - NFT service not initialized (check .env MERKLE_TREE_ADDRESS)`);
-            console.log(`   - Server logs might show errors.`);
-            console.log(`   - 'mintNFT' flag ignored.`);
+            console.log(`\n✅ Invoice created successfully.`);
+            console.log(`   NOTE: NFT minting is now a CLIENT-SIDE action.`);
+            console.log(`\n👉 NEXT STEPS FOR VERIFICATION:`);
+            console.log(`   1. Open the UI: http://localhost:5000/invoices/${invoice.id}`);
+            console.log(`   2. Login as ${TEST_WALLET}`);
+            console.log(`   3. Click "Mint NFT" button (or it might prompt automatically if you just created it in UI)`);
+            console.log(`   4. Sign the transaction.`);
+            console.log(`   5. Verify the UI updates with the NFT badge.`);
         }
 
     } catch (error) {

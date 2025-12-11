@@ -14,7 +14,14 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   plugins: [
     react(),
-    nodePolyfills(),
+    nodePolyfills({
+      include: ["buffer", "process", "util", "stream", "events"],
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true,
+      },
+    }),
     ...(process.env.NODE_ENV !== "production"
       ? [
         runtimeErrorOverlay(),
