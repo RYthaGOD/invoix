@@ -7,6 +7,7 @@ import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
 import compression from "compression";
 import { db, pool, runMigrations, checkDatabaseConnection } from "./db";
+import { invoiceStorage } from "./invoice-storage";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
@@ -214,40 +215,41 @@ export async function triggerGracefulShutdown() {
     wss.on("connection", (ws) => {
       console.log("[WS] Client connected");
 
-      // Mock Data Emitter (Simulate Activity)
-      const interval = setInterval(() => {
+      // Real-time Global Stats Emitter
+      const interval = setInterval(async () => {
         if (ws.readyState === ws.OPEN) {
+          try {
+            // 1. Fetch real global stats
+            // We import this dynamically (or available via closure if imported at top)
+            // But since invoiceStorage is a singleton imported at top (we need to add the import), we use it.
+            const stats = await invoiceStorage.getGlobalStats();
 
-          // 1. Simulate Price Update (B2B Token)
-          const priceUpdate = {
-            type: "price_update",
-            timestamp: Date.now(),
-            data: {
-              tokenMintAddress: process.env.VITE_B2B_TOKEN_MINT || "B2B_TOKEN_MINT_ADDRESS",
-              priceSOL: 0.045 + (Math.random() * 0.005), // Random vibration around 0.045
+            const statsUpdate = {
+              type: "global_stats_update",
               timestamp: Date.now(),
-            }
-          };
-          ws.send(JSON.stringify(priceUpdate));
+              data: stats
+            };
+            ws.send(JSON.stringify(statsUpdate));
 
-          // 2. Simulate Bot Event (Occasional)
-          if (Math.random() > 0.7) {
-            const botEvent = {
-              type: "bot_event",
+            // 2. Simulate Price Update (B2B Token) - Keeping this for visual liveliness if desired, 
+            // but user asked for "tracking global platform metrics", so we prioritize that.
+            // We can keep the price update as it provides the "Token Volume" part of the stats page.
+            const priceUpdate = {
+              type: "price_update",
               timestamp: Date.now(),
               data: {
-                projectId: "PROJ_1",
-                botType: Math.random() > 0.5 ? "volume" : "buy",
-                status: "success",
-                message: "Executed automated trade",
-                volume: Math.floor(Math.random() * 100)
+                tokenMintAddress: process.env.VITE_B2B_TOKEN_MINT || "B2B_TOKEN_MINT_ADDRESS",
+                priceSOL: 0.045 + (Math.random() * 0.005),
+                timestamp: Date.now(),
               }
             };
-            ws.send(JSON.stringify(botEvent));
-          }
+            ws.send(JSON.stringify(priceUpdate));
 
+          } catch (error) {
+            console.error("Error broadcasting stats:", error);
+          }
         }
-      }, 3000); // Send updates every 3 seconds
+      }, 5000); // Update every 5 seconds
 
       ws.on("close", () => {
         clearInterval(interval);

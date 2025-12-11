@@ -3,20 +3,17 @@ import { ArrowLeft, BarChart3, Activity, Users, Shield, Zap, Globe } from "lucid
 import { WalletButton } from "@/components/wallet-button";
 
 import { useTokenStats } from "@/hooks/use-token-stats";
+import { useWebSocketStats } from "@/hooks/use-websocket-stats";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Stats() {
     const { data: tokenStats, isLoading: isStatsLoading } = useTokenStats();
 
-    const { data: globalStats, isLoading: isGlobalLoading } = useQuery({
-        queryKey: ["global-stats"],
-        queryFn: async () => {
-            const res = await fetch("/api/public-stats");
-            if (!res.ok) throw new Error("Failed to fetch stats");
-            return res.json();
-        },
-        refetchInterval: 5000 // Refresh every 5s
-    });
+    // Use WebSocket for real-time global platform stats
+    const { globalStats, isConnected } = useWebSocketStats();
+
+    // Fallback: If WS is not connected (initial load), we might want to fetch once? 
+    // Or just let the WS connect. For now, since we want "tracking", we rely on WS.
 
     const stats = [
         {
@@ -33,14 +30,14 @@ export default function Stats() {
         },
         {
             label: "Total Invoices Sent",
-            value: isGlobalLoading ? "..." : (globalStats?.totalInvoices?.toLocaleString() || "0"),
-            change: "Real-time",
-            icon: <Activity className="w-5 h-5 text-primary" />
+            value: (globalStats?.totalInvoices || 0).toLocaleString(),
+            change: isConnected ? "Live" : "Connecting...",
+            icon: <Activity className={`w-5 h-5 ${isConnected ? "text-green-500 animate-pulse" : "text-primary"}`} />
         },
         {
             label: "Total Users",
-            value: isGlobalLoading ? "..." : (globalStats?.totalUsers?.toLocaleString() || "0"),
-            change: "Real-time",
+            value: (globalStats?.totalUsers || 0).toLocaleString(),
+            change: isConnected ? "Live" : "Connecting...",
             icon: <Users className="w-5 h-5 text-primary" />
         },
         {
@@ -51,8 +48,8 @@ export default function Stats() {
         },
         {
             label: "Encrypted Transactions",
-            value: isGlobalLoading ? "..." : (globalStats?.encryptedInvoices?.toLocaleString() || "0"),
-            change: "Real-time",
+            value: (globalStats?.encryptedInvoices || 0).toLocaleString(),
+            change: isConnected ? "Live" : "Connecting...",
             icon: <Shield className="w-5 h-5 text-primary" />
         }
     ];
@@ -76,6 +73,12 @@ export default function Stats() {
                             <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
                                 System Statistics
                             </span>
+                            {isConnected && (
+                                <span className="flex h-2 w-2 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                            )}
                         </div>
 
                         <WalletButton />
@@ -120,9 +123,10 @@ export default function Stats() {
                                 <div className="p-3 bg-primary/10 rounded-lg">
                                     {stat.icon}
                                 </div>
-                                <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.change.startsWith("+") ? "bg-green-500/10 text-green-500" :
-                                    stat.change.startsWith("-") ? "bg-blue-500/10 text-blue-500" :
-                                        "bg-muted text-muted-foreground"
+                                <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.change === "Live" ? "bg-green-500/10 text-green-500" :
+                                    stat.change.startsWith("+") ? "bg-green-500/10 text-green-500" :
+                                        stat.change.startsWith("-") ? "bg-blue-500/10 text-blue-500" :
+                                            "bg-muted text-muted-foreground"
                                     }`}>
                                     {stat.change}
                                 </span>
