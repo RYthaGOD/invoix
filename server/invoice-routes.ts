@@ -1570,35 +1570,7 @@ export function registerInvoiceRoutes(app: Express): void {
       res.status(500).json({ message: error.message });
     }
   });
-  /**
-   * DEBUG ROUTE: Check Database State
-   * GET /api/debug/db-check
-   */
-  app.get("/api/debug/db-check", async (req, res) => {
-    try {
-      const tables = await db.execute(sql`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public'
-      `);
 
-      const paymentsColumns = await db.execute(sql`
-        SELECT column_name, data_type 
-        FROM information_schema.columns 
-        WHERE table_name = 'payments'
-      `);
-
-      const rowCount = await db.execute(sql`SELECT count(*) as count FROM payments`);
-
-      res.json({
-        tables: (tables as any).rows || tables,
-        columns: (paymentsColumns as any).rows || paymentsColumns,
-        count: (rowCount as any).rows || rowCount
-      });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message, stack: e.stack });
-    }
-  });
 
 }
 

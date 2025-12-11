@@ -44,6 +44,7 @@ import {
 import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { PublicKey, Keypair, Connection } from "@solana/web3.js";
+import bs58 from "bs58";
 import type {
   SelectInvoice,
   SelectPayment,
@@ -723,7 +724,8 @@ export class InvoiceNFTService {
     try {
       // Wait for confirmation
       const latestBlockhash = await this.umi.rpc.getLatestBlockhash();
-      const bs58 = require('bs58');
+      // bs58 is imported at the top level
+      // const bs58 = require('bs58'); // Removed to prevent runtime crash in ESM
       const sigBytes = bs58.decode(signature);
 
       await this.umi.rpc.confirmTransaction(
