@@ -468,9 +468,24 @@ export const insertInvoiceMarketplaceSchema = createInsertSchema(invoiceMarketpl
     askingPrice: z.string().refine(val => parseFloat(val) > 0, "Asking price must be positive"),
 });
 
+// ... existing code ...
+
+/**
+ * Auth Nonces (Replay Prevention)
+ */
+export const authNonces = sqliteTable("auth_nonces", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    walletAddress: text("wallet_address").notNull(),
+    signature: text("signature").notNull().unique(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
 // ============================================
 // TYPE EXPORTS
 // ============================================
+
+export type AuthNonce = typeof authNonces.$inferSelect;
 
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
@@ -503,3 +518,4 @@ export type SelectInvoice = Invoice;
 export type SelectPayment = Payment;
 export type SelectBusinessProfile = BusinessProfile;
 export type X402Micropayment = typeof x402Micropayments.$inferSelect;
+

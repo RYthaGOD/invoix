@@ -10,6 +10,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { CheckCircle, Clock, AlertCircle, ExternalLink, Copy, Check } from "lucide-react";
+import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 
 interface Invoice {
     id: string;
@@ -75,10 +76,18 @@ export default function PayInvoice() {
 
         try {
             const amountToPay = parseFloat(invoice.remainingAmount);
-            const amountLamports = Math.floor(amountToPay * Math.pow(10, invoice.tokenDecimals));
+
+            // Platform Fee Calculation (1%)
+            const feeRate = 0.01;
+            const feeAmount = amountToPay * feeRate;
+            const recipientAmount = amountToPay - feeAmount;
+
+            const feeLamports = Math.floor(feeAmount * Math.pow(10, invoice.tokenDecimals));
+            const recipientLamports = Math.floor(recipientAmount * Math.pow(10, invoice.tokenDecimals));
 
             // Get token accounts
             const recipientPubkey = new PublicKey(invoice.invoicerWalletAddress);
+            const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
             const mintPubkey = new PublicKey(invoice.tokenMint);
 
             const senderTokenAccount = await getAssociatedTokenAddress(
@@ -91,36 +100,71 @@ export default function PayInvoice() {
                 recipientPubkey
             );
 
-            // Check if recipient's token account exists, create if needed
-            const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
-            const transaction = new Transaction();
-
-            if (!recipientAccountInfo) {
-                // Import createAssociatedTokenAccountInstruction
-                const { createAssociatedTokenAccountInstruction } = await import('@solana/spl-token');
-
-                // Add instruction to create recipient's ATA (payer pays ~0.002 SOL)
-                const createAtaIx = createAssociatedTokenAccountInstruction(
-                    publicKey, // payer
-                    recipientTokenAccount, // ata address
-                    recipientPubkey, // owner
-                    mintPubkey // mint
-                );
-                transaction.add(createAtaIx);
-            }
-
-            // Create transfer instruction
-            const transferInstruction = createTransferInstruction(
-                senderTokenAccount,
-                recipientTokenAccount,
-                publicKey,
-                amountLamports,
-                [],
-                TOKEN_PROGRAM_ID
+            const treasuryTokenAccount = await getAssociatedTokenAddress(
+                mintPubkey,
+                treasuryPubkey
             );
 
-            // Add transfer to transaction and send
-            transaction.add(transferInstruction);
+            const transaction = new Transaction();
+
+            // Import createAssociatedTokenAccountInstruction
+            const { createAssociatedTokenAccountInstruction } = await import('@solana/spl-token');
+
+            // 1. Check/Create Recipient ATA
+            const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
+            if (!recipientAccountInfo) {
+                transaction.add(
+                    createAssociatedTokenAccountInstruction(
+                        publicKey,
+                        recipientTokenAccount,
+                        recipientPubkey,
+                        mintPubkey
+                    )
+                );
+            }
+
+            // 2. Check/Create Treasury ATA
+            const treasuryAccountInfo = await connection.getAccountInfo(treasuryTokenAccount);
+            if (!treasuryAccountInfo) {
+                transaction.add(
+                    createAssociatedTokenAccountInstruction(
+                        publicKey,
+                        treasuryTokenAccount,
+                        treasuryPubkey,
+                        mintPubkey
+                    )
+                );
+            }
+
+            // 3. Transfer to Recipient (99%)
+            if (recipientLamports > 0) {
+                transaction.add(
+                    createTransferInstruction(
+                        senderTokenAccount,
+                        recipientTokenAccount,
+                        publicKey,
+                        recipientLamports,
+                        [],
+                        TOKEN_PROGRAM_ID
+                    )
+                );
+            }
+
+            // 4. Transfer Fee to Treasury (1%)
+            if (feeLamports > 0) {
+                transaction.add(
+                    createTransferInstruction(
+                        senderTokenAccount,
+                        treasuryTokenAccount,
+                        publicKey,
+                        feeLamports,
+                        [],
+                        TOKEN_PROGRAM_ID
+                    )
+                );
+            }
+
+            // Send transaction
             const signature = await sendTransaction(transaction, connection);
 
             // Wait for confirmation with retry logic
@@ -132,7 +176,6 @@ export default function PayInvoice() {
                     break;
                 } catch (confirmError) {
                     if (attempt === 2) throw confirmError;
-                    // Wait before retry (exponential backoff)
                     await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
                 }
             }

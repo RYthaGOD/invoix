@@ -3,6 +3,8 @@
  * Supported stablecoins for B2B invoicing
  */
 
+
+
 export interface StablecoinConfig {
     symbol: string;
     name: string;

@@ -30,6 +30,7 @@ import { eq, desc } from "drizzle-orm";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
 import { Connection, clusterApiUrl } from "@solana/web3.js";
+import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 
 /**
  * Register invoice-related API routes
@@ -40,11 +41,6 @@ export function registerInvoiceRoutes(app: Express): void {
   // INVOICE ROUTES
   // ============================================
 
-  /**
-   * Create a new invoice
-   * POST /api/invoices
-   * Requires authentication
-   */
   /**
    * Create a new invoice
    * POST /api/invoices
@@ -546,12 +542,21 @@ export function registerInvoiceRoutes(app: Express): void {
 
         console.log(`Verifying payment tx: ${validatedData.txSignature} for ${validatedData.amount} ${validatedData.currency}`);
 
+        // Platform Fee Enforcement (1%)
+        // We verify that the transaction split funds: 99% to Seller, 1% to Platform
+        const totalAmount = parseFloat(validatedData.amount);
+        const feeRate = 0.01;
+        const feeAmount = totalAmount * feeRate;
+        const recipientAmount = totalAmount - feeAmount;
+
         const verification = await verifyStablecoinPayment(
           connection,
           validatedData.txSignature,
-          parseFloat(validatedData.amount),
+          recipientAmount, // Seller receives 99%
           validatedData.toAddress,
-          validatedData.currency
+          validatedData.currency,
+          feeAmount, // Treasury receives 1%
+          TREASURY_WALLET_ADDRESS
         );
 
         if (!verification.verified) {

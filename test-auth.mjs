@@ -12,7 +12,7 @@ import fetch from "node-fetch";
 
 // Use the private key from get-pubkey.mjs
 const PRIVATE_KEY = "2kVgx6xbijWa1yVXD16A4iVb4CqM1XWCqX5dw5AjvYGvTqLkgGLmEhcRRF346vhHHUjFhnu1cakCyYLLN5U3jTiz";
-const API_URL = "http://127.0.0.1:5000";
+const API_URL = "https://invoix-web-production.up.railway.app";
 
 async function testAuthentication() {
     console.log("🧪 Testing Authentication System\n");

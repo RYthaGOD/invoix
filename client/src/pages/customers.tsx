@@ -264,10 +264,23 @@ function CustomerForm({
                 ? `/api/customers/${customer.id}?wallet=${walletAddress}`
                 : `/api/customers?wallet=${walletAddress}`;
 
+            // Map form data to schema expected by backend
+            const payload = {
+                businessWalletAddress: walletAddress,
+                customerWalletAddress: formData.walletAddress,
+                customerName: formData.name,
+                customerEmail: formData.email,
+                customerPhone: formData.phone,
+                customerNotes: formData.company
+                    ? `${formData.notes}\nCompany: ${formData.company}`.trim()
+                    : formData.notes,
+                customerAddress: "", // Optional but defined in schema
+            };
+
             const response = await fetch(url, {
                 method: customer ? "PATCH" : "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {

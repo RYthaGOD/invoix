@@ -5,6 +5,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
+import compression from "compression";
 import { db, pool, runMigrations, checkDatabaseConnection } from "./db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -44,6 +45,7 @@ app.set('trust proxy', true);
 // Security middleware - FIRST (headers and CORS before body parsing)
 app.use(securityHeaders());
 app.use(corsPolicy());
+app.use(compression());
 
 // Session middleware - BEFORE body parsing so it's available in all routes
 // Use Postgres store if pool is available (Production), otherwise MemoryStore (Dev/SQLite)

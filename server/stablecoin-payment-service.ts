@@ -21,12 +21,22 @@ export interface PaymentVerificationResult {
 /**
  * Verify a stablecoin payment transaction on Solana
  */
+/**
+ * Verify a stablecoin payment transaction on Solana
+ * Checks:
+ * 1. Correct Recipient (Invoicee)
+ * 2. Correct Amount
+ * 3. Correct Currency (Token Mint)
+ * 4. OPTIONAL: Correct Platform Fee (if expected)
+ */
 export async function verifyStablecoinPayment(
     connection: Connection,
     txSignature: string,
     expectedAmount: number,
     expectedRecipient: string,
-    expectedCurrency: string
+    expectedCurrency: string,
+    expectedFeeAmount?: number, // Optional: Check for fee split
+    treasuryWallet?: string     // Optional: Treasury wallet address
 ): Promise<PaymentVerificationResult> {
     try {
         // Get stablecoin configuration
@@ -62,7 +72,6 @@ export async function verifyStablecoinPayment(
             };
         }
 
-        // Check if transaction was successful
         if (tx.meta?.err) {
             return {
                 verified: false,
@@ -76,10 +85,9 @@ export async function verifyStablecoinPayment(
             };
         }
 
-        // Parse token transfer from transaction
-        const tokenTransfer = parseTokenTransfer(tx, stablecoinConfig.mint);
-
-        if (!tokenTransfer) {
+        // Parse token transfers
+        const transfers = parseAllTokenTransfers(tx, stablecoinConfig.mint);
+        if (transfers.length === 0) {
             return {
                 verified: false,
                 amount: 0,
@@ -88,31 +96,85 @@ export async function verifyStablecoinPayment(
                 toAddress: "",
                 txSignature,
                 timestamp: new Date(),
-                error: "No token transfer found in transaction",
+                error: "No token transfers found for this currency",
             };
         }
 
-        // Convert amount from token decimals
-        const actualAmount = tokenTransfer.amount / Math.pow(10, stablecoinConfig.decimals);
+        // 1. Verify Payment to Recipient
+        const paymentTransfer = transfers.find(t => t.destination.toLowerCase() === expectedRecipient.toLowerCase());
 
-        // Verify recipient
-        const recipientMatch = tokenTransfer.destination.toLowerCase() === expectedRecipient.toLowerCase();
+        if (!paymentTransfer) {
+            return {
+                verified: false,
+                amount: 0,
+                currency: expectedCurrency,
+                fromAddress: transfers[0]?.source || "", // Best guess
+                toAddress: "",
+                txSignature,
+                timestamp: new Date(),
+                error: "Recipient did not receive any funds",
+            };
+        }
 
-        // Verify amount (allow 0.1% tolerance for rounding)
-        const amountMatch = Math.abs(actualAmount - expectedAmount) < expectedAmount * 0.001;
+        // 2. Verify Amount (allow 0.1% tolerance)
+        const amountMatch = Math.abs(paymentTransfer.amount - expectedAmount) < (expectedAmount * 0.001);
+        if (!amountMatch) {
+            return {
+                verified: false,
+                amount: paymentTransfer.amount,
+                currency: expectedCurrency,
+                fromAddress: paymentTransfer.source,
+                toAddress: paymentTransfer.destination,
+                txSignature,
+                timestamp: new Date(),
+                error: `Amount mismatch: expected ${expectedAmount}, got ${paymentTransfer.amount}`,
+            };
+        }
 
-        const verified = recipientMatch && amountMatch;
+        // 3. Verify Fee (if applicable)
+        if (expectedFeeAmount && treasuryWallet) {
+            const feeTransfer = transfers.find(t => t.destination.toLowerCase() === treasuryWallet.toLowerCase());
 
+            if (!feeTransfer) {
+                // Fee missing!
+                return {
+                    verified: false,
+                    amount: paymentTransfer.amount,
+                    currency: expectedCurrency,
+                    fromAddress: paymentTransfer.source,
+                    toAddress: paymentTransfer.destination,
+                    txSignature,
+                    timestamp: new Date(),
+                    error: "Platform fee not paid to treasury",
+                };
+            }
+
+            const feeMatch = Math.abs(feeTransfer.amount - expectedFeeAmount) < (expectedFeeAmount * 0.05); // 5% tolerance on fee?
+            if (!feeMatch) {
+                return {
+                    verified: false,
+                    amount: paymentTransfer.amount,
+                    currency: expectedCurrency,
+                    fromAddress: paymentTransfer.source,
+                    toAddress: paymentTransfer.destination,
+                    txSignature,
+                    timestamp: new Date(),
+                    error: `Fee amount mismatch: expected ${expectedFeeAmount}, got ${feeTransfer.amount}`,
+                };
+            }
+        }
+
+        // Success!
         return {
-            verified,
-            amount: actualAmount,
+            verified: true,
+            amount: paymentTransfer.amount,
             currency: expectedCurrency,
-            fromAddress: tokenTransfer.source,
-            toAddress: tokenTransfer.destination,
+            fromAddress: paymentTransfer.source,
+            toAddress: paymentTransfer.destination,
             txSignature,
             timestamp: tx.blockTime ? new Date(tx.blockTime * 1000) : new Date(),
-            error: verified ? undefined : `Verification failed: ${!recipientMatch ? 'recipient mismatch' : 'amount mismatch'}`,
         };
+
     } catch (error) {
         console.error("Error verifying payment:", error);
         return {
@@ -129,40 +191,76 @@ export async function verifyStablecoinPayment(
 }
 
 /**
- * Parse token transfer from transaction
+ * Helper: Parse ALL token transfers for a specific mint in a transaction
  */
-function parseTokenTransfer(tx: any, expectedMint: string) {
+function parseAllTokenTransfers(tx: any, expectedMint: string) {
+    const transfers = [];
     try {
-        // Look for SPL token transfer in pre/post token balances
         const preTokenBalances = tx.meta?.preTokenBalances || [];
         const postTokenBalances = tx.meta?.postTokenBalances || [];
 
-        // Find the token transfer for our mint
+        // Map account index to owner for easier lookup
+        const accountOwners = new Map<number, string>();
+
+        // Populate from post balances (usually sufficient)
+        postTokenBalances.forEach((p: any) => {
+            if (p.owner) accountOwners.set(p.accountIndex, p.owner);
+        });
+
+        // Fallback to static account keys if available and not in balance info (rare for token accounts)
+        // implementation detail: relying on balance info is safer for detailed owner lookup
+
         for (let i = 0; i < postTokenBalances.length; i++) {
             const post = postTokenBalances[i];
+
+            // Only care about our stablecoin mint
+            if (post.mint !== expectedMint) continue;
+
             const pre = preTokenBalances.find((p: any) => p.accountIndex === post.accountIndex);
 
-            if (post.mint === expectedMint && pre) {
-                const preAmount = parseInt(pre.uiTokenAmount.amount);
-                const postAmount = parseInt(post.uiTokenAmount.amount);
-                const transferAmount = postAmount - preAmount;
+            // Calculate delta
+            const preAmount = pre ? parseInt(pre.uiTokenAmount.amount) : 0;
+            const postAmount = parseInt(post.uiTokenAmount.amount);
+            const delta = postAmount - preAmount;
 
-                if (transferAmount > 0) {
-                    // This account received tokens
-                    return {
-                        amount: transferAmount,
-                        source: tx.transaction.message.accountKeys[pre.accountIndex].toString(),
-                        destination: post.owner,
-                        mint: post.mint,
-                    };
-                }
+            if (delta > 0) {
+                // Determine decimals from the balance info itself if possible, or assume 6 (risky, but we handle scaling in main function?)
+                // Actually, verifyStablecoinPayment uses stablecoinConfig.decimals.
+                // Here we return raw token units / 10^decimals in the main loop, or raw here?
+                // Let's return Scaled Amounts here to match main function expectations.
+                const decimals = post.uiTokenAmount.decimals;
+
+                transfers.push({
+                    amount: delta / Math.pow(10, decimals),
+                    destination: post.owner, // Recipient
+                    // Source is hard to pin down in multi-party tx without Instruction parsing, 
+                    // but usually the fee payer or the one with negative delta.
+                    // For now we leave source generic or find the negative delta.
+                    mint: post.mint
+                });
             }
         }
 
-        return null;
+        // Find source (account with negative delta)
+        let source = "";
+        for (let i = 0; i < postTokenBalances.length; i++) {
+            const post = postTokenBalances[i];
+            if (post.mint !== expectedMint) continue;
+            const pre = preTokenBalances.find((p: any) => p.accountIndex === post.accountIndex);
+            const preAmount = pre ? parseInt(pre.uiTokenAmount.amount) : 0;
+            const postAmount = parseInt(post.uiTokenAmount.amount);
+            if (postAmount < preAmount) {
+                source = post.owner;
+                break; // Assume single payer for simplicity
+            }
+        }
+
+        // Attach source to all transfers (simplification)
+        return transfers.map(t => ({ ...t, source }));
+
     } catch (error) {
-        console.error("Error parsing token transfer:", error);
-        return null;
+        console.error("Error parsing all token transfers:", error);
+        return [];
     }
 }
 

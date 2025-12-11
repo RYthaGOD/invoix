@@ -21,7 +21,8 @@ const {
   customerProfiles,
   paymentReceiptNFTs,
   businessIdentityNFTs,
-  systemSettings, // Added systemSettings here
+  systemSettings,
+  authNonces, // Added authNonces here
 } = schema;
 
 // Types are exported from the main schema file (assuming compatibility)
@@ -315,7 +316,7 @@ class InvoiceStorage implements IInvoiceStorage {
         .from(payments)
         .where(eq(payments.txSignature, payment.txSignature))
         .limit(1);
-      
+
       if (existingPayment.length > 0) {
         // Payment with this transaction signature already exists
         throw new Error(`Payment already processed: transaction ${payment.txSignature} has already been recorded`);

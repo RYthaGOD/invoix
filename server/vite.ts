@@ -88,7 +88,16 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    maxAge: "1y",
+    immutable: true,
+    setHeaders: (res, path) => {
+      // Index.html and other root files should not be cached or should be revalidated
+      if (path.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    }
+  }));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
@@ -98,6 +107,8 @@ export function serveStatic(app: Express) {
       console.error(`[Static] Index file missing at: ${indexPath}`);
       return res.status(500).send("Application build is missing index.html");
     }
+    // Ensure index.html is not cached so users get the latest version immediately
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(indexPath);
   });
 }

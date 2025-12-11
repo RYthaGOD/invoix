@@ -199,7 +199,15 @@ export default function InvoiceCreate() {
         credentials: "include",
         body: JSON.stringify({
           ...invoiceData,
-          lineItems: data.lineItems.filter(item => item.description && parseFloat(item.quantity) > 0),
+          invoicerWalletAddress: walletAddress,
+          tokenMintAddress: invoiceData.tokenMint,
+          lineItems: data.lineItems
+            .filter(item => item.description && parseFloat(item.quantity) > 0)
+            .map((item, index) => ({
+              ...item,
+              lineNumber: index + 1,
+              lineTotal: safeMultiply(item.quantity, item.unitPrice),
+            })),
         }),
       });
 
