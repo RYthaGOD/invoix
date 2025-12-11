@@ -26,7 +26,7 @@ import { requireWalletOwnership, strictRateLimit } from "./security";
 import { getArciumService, loadKeypairFromPrivateKey } from "./arcium-service";
 import { getInvoiceNFTService } from "./nft-service";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
 import { Connection, clusterApiUrl } from "@solana/web3.js";
@@ -540,10 +540,11 @@ export function registerInvoiceRoutes(app: Express): void {
 
         // Platform Fee Enforcement (1%)
         // We verify that the transaction split funds: 99% to Seller, 1% to Platform
-        const totalAmount = parseFloat(validatedData.amount);
-        const feeRate = 0.01;
-        const feeAmount = totalAmount * feeRate;
-        const recipientAmount = totalAmount - feeAmount;
+        const totalAmount = validatedData.amount; // Keep as string
+        const feeRate = "0.01";
+        // Calculate fee using safe math
+        const feeAmount = parseFloat(safeMultiply(totalAmount, feeRate));
+        const recipientAmount = parseFloat(safeSubtract(totalAmount, feeAmount.toString()));
 
         const verification = await verifyStablecoinPayment(
           connection,
@@ -640,7 +641,8 @@ export function registerInvoiceRoutes(app: Express): void {
         count: payments.length,
       });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error(`Error fetching payments for invoice ${req.params.id}:`, error);
+      res.status(500).json({ message: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
     }
   });
 
@@ -1550,5 +1552,35 @@ export function registerInvoiceRoutes(app: Express): void {
       res.status(500).json({ message: error.message });
     }
   });
+  /**
+   * DEBUG ROUTE: Check Database State
+   * GET /api/debug/db-check
+   */
+  app.get("/api/debug/db-check", async (req, res) => {
+    try {
+      const tables = await db.execute(sql`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+      `);
+
+      const paymentsColumns = await db.execute(sql`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'payments'
+      `);
+
+      const rowCount = await db.execute(sql`SELECT count(*) as count FROM payments`);
+
+      res.json({
+        tables: (tables as any).rows || tables,
+        columns: (paymentsColumns as any).rows || paymentsColumns,
+        count: (rowCount as any).rows || rowCount
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message, stack: e.stack });
+    }
+  });
+
 }
 
