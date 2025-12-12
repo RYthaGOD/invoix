@@ -629,19 +629,19 @@ export function registerInvoiceRoutes(app: Express): void {
 
         // Platform Fee Enforcement (1%)
         // We verify that the transaction split funds: 99% to Seller, 1% to Platform
-        const totalAmount = validatedData.amount; // Keep as string
+        const totalAmount = validatedData.amount; // Keep as string ensures no float loss from DB/Input
         const feeRate = "0.01";
-        // Calculate fee using safe math
-        const feeAmount = parseFloat(safeMultiply(totalAmount, feeRate));
-        const recipientAmount = parseFloat(safeSubtract(totalAmount, feeAmount.toString()));
+        // Calculate fee using safe math which returns strings
+        const feeAmount = safeMultiply(totalAmount, feeRate);
+        const recipientAmount = safeSubtract(totalAmount, feeAmount);
 
         const verification = await verifyStablecoinPayment(
           connection,
           validatedData.txSignature,
-          recipientAmount, // Seller receives 99%
+          recipientAmount, // String
           validatedData.toAddress,
           validatedData.currency,
-          feeAmount, // Treasury receives 1%
+          feeAmount, // String
           TREASURY_WALLET_ADDRESS
         );
 

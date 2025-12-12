@@ -32,26 +32,37 @@ export interface PaymentVerificationResult {
 export async function verifyStablecoinPayment(
     connection: Connection,
     txSignature: string,
-    expectedAmount: number,
+    expectedAmount: string, // Changed to string for precision
     expectedRecipient: string,
     expectedCurrency: string,
-    expectedFeeAmount?: number, // Optional: Check for fee split
+    expectedFeeAmount?: string, // Changed to string
     treasuryWallet?: string     // Optional: Treasury wallet address
 ): Promise<PaymentVerificationResult> {
     try {
-        // Get stablecoin configuration
-        const stablecoinConfig = getStablecoinConfig(expectedCurrency);
-        if (!stablecoinConfig) {
-            return {
-                verified: false,
-                amount: 0,
-                currency: expectedCurrency,
-                fromAddress: "",
-                toAddress: "",
-                txSignature,
-                timestamp: new Date(),
-                error: `Unsupported currency: ${expectedCurrency}`,
-            };
+        let decimals = 6; // Default for most stablecoins
+        let mint = "";
+
+        // Handle specific currencies
+        if (expectedCurrency === "SOL") {
+            decimals = 9;
+            mint = "SOL";
+        } else {
+            // Get stablecoin configuration
+            const stablecoinConfig = getStablecoinConfig(expectedCurrency);
+            if (!stablecoinConfig) {
+                return {
+                    verified: false,
+                    amount: 0,
+                    currency: expectedCurrency,
+                    fromAddress: "",
+                    toAddress: "",
+                    txSignature,
+                    timestamp: new Date(),
+                    error: `Unsupported currency: ${expectedCurrency}`,
+                };
+            }
+            decimals = stablecoinConfig.decimals;
+            mint = stablecoinConfig.mint;
         }
 
         // Fetch transaction from blockchain
@@ -86,7 +97,7 @@ export async function verifyStablecoinPayment(
         }
 
         // Parse token transfers
-        const transfers = parseAllTokenTransfers(tx, stablecoinConfig.mint);
+        const transfers = parseAllTokenTransfers(tx, mint);
         if (transfers.length === 0) {
             return {
                 verified: false,
@@ -116,30 +127,50 @@ export async function verifyStablecoinPayment(
             };
         }
 
-        // 2. Verify Amount (allow 0.1% tolerance)
-        const amountMatch = Math.abs(paymentTransfer.amount - expectedAmount) < (expectedAmount * 0.001);
-        if (!amountMatch) {
+        // Verify Amounts using BigInt for precision
+        // We receive human-readable strings (e.g. "10.50"), need to convert to atomic based on decimals
+        const scaleFactor = BigInt(10) ** BigInt(decimals);
+        // Helper to convert decimal string to BigInt atomic units
+        const toAtomic = (amountStr: string): bigint => {
+            const parts = amountStr.split(".");
+            const whole = BigInt(parts[0]);
+            let fraction = BigInt(0);
+            if (parts.length > 1) {
+                const fractionStr = parts[1].padEnd(decimals, "0").slice(0, decimals);
+                fraction = BigInt(fractionStr);
+            }
+            return whole * scaleFactor + fraction;
+        };
+
+        const receivedAmount = BigInt(paymentTransfer.amount);
+        const expectedAmountBigInt = toAtomic(expectedAmount);
+
+        // Exact match check
+        const diff = receivedAmount > expectedAmountBigInt ? receivedAmount - expectedAmountBigInt : expectedAmountBigInt - receivedAmount;
+
+        // Allow max 100 atomic units difference
+        if (diff > BigInt(100)) {
             return {
                 verified: false,
-                amount: paymentTransfer.amount,
+                amount: Number(receivedAmount) / Math.pow(10, decimals),
                 currency: expectedCurrency,
                 fromAddress: paymentTransfer.source,
                 toAddress: paymentTransfer.destination,
                 txSignature,
                 timestamp: new Date(),
-                error: `Amount mismatch: expected ${expectedAmount}, got ${paymentTransfer.amount}`,
+                error: `Amount mismatch: expected ${expectedAmountBigInt}, got ${receivedAmount} (Atomic Units)`,
             };
         }
 
         // 3. Verify Fee (if applicable)
         if (expectedFeeAmount && treasuryWallet) {
+            const expectedFeeBigInt = toAtomic(expectedFeeAmount);
             const feeTransfer = transfers.find(t => t.destination.toLowerCase() === treasuryWallet.toLowerCase());
 
             if (!feeTransfer) {
-                // Fee missing!
                 return {
                     verified: false,
-                    amount: paymentTransfer.amount,
+                    amount: Number(receivedAmount) / Math.pow(10, decimals),
                     currency: expectedCurrency,
                     fromAddress: paymentTransfer.source,
                     toAddress: paymentTransfer.destination,
@@ -149,17 +180,19 @@ export async function verifyStablecoinPayment(
                 };
             }
 
-            const feeMatch = Math.abs(feeTransfer.amount - expectedFeeAmount) < (expectedFeeAmount * 0.05); // 5% tolerance on fee?
-            if (!feeMatch) {
+            const receivedFee = BigInt(feeTransfer.amount);
+            const feeDiff = receivedFee > expectedFeeBigInt ? receivedFee - expectedFeeBigInt : expectedFeeBigInt - receivedFee;
+
+            if (feeDiff > BigInt(100)) {
                 return {
                     verified: false,
-                    amount: paymentTransfer.amount,
+                    amount: Number(receivedAmount) / Math.pow(10, decimals),
                     currency: expectedCurrency,
                     fromAddress: paymentTransfer.source,
                     toAddress: paymentTransfer.destination,
                     txSignature,
                     timestamp: new Date(),
-                    error: `Fee amount mismatch: expected ${expectedFeeAmount}, got ${feeTransfer.amount}`,
+                    error: `Fee amount mismatch: expected ${expectedFeeBigInt}, got ${receivedFee} (Atomic Units)`,
                 };
             }
         }
@@ -167,7 +200,7 @@ export async function verifyStablecoinPayment(
         // Success!
         return {
             verified: true,
-            amount: paymentTransfer.amount,
+            amount: Number(receivedAmount) / Math.pow(10, decimals),
             currency: expectedCurrency,
             fromAddress: paymentTransfer.source,
             toAddress: paymentTransfer.destination,
@@ -192,24 +225,53 @@ export async function verifyStablecoinPayment(
 
 /**
  * Helper: Parse ALL token transfers for a specific mint in a transaction
+ * Supports SPL Tokens and Native SOL (if mint === "SOL")
  */
-function parseAllTokenTransfers(tx: any, expectedMint: string) {
-    const transfers = [];
+function parseAllTokenTransfers(tx: any, expectedMint: string): Array<{ amount: string, destination: string, source: string, mint: string }> {
+    const transfers: Array<{ amount: string, destination: string, source: string, mint: string }> = [];
+
     try {
+        const preBalances = tx.meta?.preBalances || [];
+        const postBalances = tx.meta?.postBalances || [];
+        const accountKeys = tx.transaction.message.accountKeys.map((k: any) => k.toString ? k.toString() : k);
+
+        // --- NATIVE SOL LOGIC ---
+        if (expectedMint === "SOL") {
+            // Check native lamport changes
+            for (let i = 0; i < accountKeys.length; i++) {
+                const pre = preBalances[i] || 0;
+                const post = postBalances[i] || 0;
+                const delta = post - pre;
+                const address = accountKeys[i];
+
+                if (delta > 0) {
+                    // Credit (Received SOL)
+                    transfers.push({
+                        amount: delta.toString(), // Keep as string for BigInt
+                        destination: address,
+                        source: "unknown", // Hard to determine exact source without instruction parsing
+                        mint: "SOL"
+                    });
+                }
+            }
+            // Attempt to find source (largest negative delta?) - Simplification
+            let source = "";
+            let maxDebit = 0;
+            for (let i = 0; i < accountKeys.length; i++) {
+                const diff = (preBalances[i] || 0) - (postBalances[i] || 0);
+                if (diff > maxDebit) {
+                    maxDebit = diff;
+                    source = accountKeys[i];
+                }
+            }
+            return transfers.map(t => ({ ...t, source }));
+        }
+
+        // --- SPL TOKEN LOGIC ---
         const preTokenBalances = tx.meta?.preTokenBalances || [];
         const postTokenBalances = tx.meta?.postTokenBalances || [];
 
-        // Map account index to owner for easier lookup
-        const accountOwners = new Map<number, string>();
-
-        // Populate from post balances (usually sufficient)
-        postTokenBalances.forEach((p: any) => {
-            if (p.owner) accountOwners.set(p.accountIndex, p.owner);
-        });
-
-        // Fallback to static account keys if available and not in balance info (rare for token accounts)
-        // implementation detail: relying on balance info is safer for detailed owner lookup
-
+        // Populate from post balances
         for (let i = 0; i < postTokenBalances.length; i++) {
             const post = postTokenBalances[i];
 
@@ -218,48 +280,41 @@ function parseAllTokenTransfers(tx: any, expectedMint: string) {
 
             const pre = preTokenBalances.find((p: any) => p.accountIndex === post.accountIndex);
 
-            // Calculate delta
-            const preAmount = pre ? parseInt(pre.uiTokenAmount.amount) : 0;
-            const postAmount = parseInt(post.uiTokenAmount.amount);
+            // Calculate delta in raw atomic units
+            const preAmount = pre ? BigInt(pre.uiTokenAmount.amount) : BigInt(0);
+            const postAmount = BigInt(post.uiTokenAmount.amount);
             const delta = postAmount - preAmount;
 
-            if (delta > 0) {
-                // Determine decimals from the balance info itself if possible, or assume 6 (risky, but we handle scaling in main function?)
-                // Actually, verifyStablecoinPayment uses stablecoinConfig.decimals.
-                // Here we return raw token units / 10^decimals in the main loop, or raw here?
-                // Let's return Scaled Amounts here to match main function expectations.
-                const decimals = post.uiTokenAmount.decimals;
-
+            if (delta > BigInt(0)) {
                 transfers.push({
-                    amount: delta / Math.pow(10, decimals),
-                    destination: post.owner, // Recipient
-                    // Source is hard to pin down in multi-party tx without Instruction parsing, 
-                    // but usually the fee payer or the one with negative delta.
-                    // For now we leave source generic or find the negative delta.
+                    amount: delta.toString(),
+                    destination: post.owner,
+                    source: "unknown",
                     mint: post.mint
                 });
             }
         }
 
-        // Find source (account with negative delta)
+        // Find source for Token Transfers
         let source = "";
         for (let i = 0; i < postTokenBalances.length; i++) {
             const post = postTokenBalances[i];
             if (post.mint !== expectedMint) continue;
+
             const pre = preTokenBalances.find((p: any) => p.accountIndex === post.accountIndex);
-            const preAmount = pre ? parseInt(pre.uiTokenAmount.amount) : 0;
-            const postAmount = parseInt(post.uiTokenAmount.amount);
+            const preAmount = pre ? BigInt(pre.uiTokenAmount.amount) : BigInt(0);
+            const postAmount = BigInt(post.uiTokenAmount.amount);
+
             if (postAmount < preAmount) {
                 source = post.owner;
-                break; // Assume single payer for simplicity
+                break;
             }
         }
 
-        // Attach source to all transfers (simplification)
         return transfers.map(t => ({ ...t, source }));
 
     } catch (error) {
-        console.error("Error parsing all token transfers:", error);
+        console.error("Error parsing transfers:", error);
         return [];
     }
 }

@@ -38,8 +38,11 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { clusterApiUrl, Connection, VersionedTransaction } from "@solana/web3.js";
+import { clusterApiUrl, Connection, VersionedTransaction, Transaction, PublicKey, SystemProgram } from "@solana/web3.js";
 import { Buffer } from "buffer";
+import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TREASURY_WALLET_ADDRESS } from "@shared/config";
+import { useConnection } from "@solana/wallet-adapter-react";
 
 interface LineItem {
   id: string;
@@ -72,6 +75,8 @@ interface Invoice {
   taxAmount: string;
   discountAmount: string;
   currency: string;
+  tokenMint?: string;
+  tokenDecimals: number;
   status: string;
   dueDate: string;
   createdAt: string;
@@ -201,6 +206,158 @@ export default function InvoiceDetail() {
       });
     } finally {
       setSending(false);
+    }
+  };
+
+  const { connection } = useConnection();
+
+  const handlePayWithWallet = async () => {
+    if (!invoice || !wallet.publicKey || !wallet.signTransaction) return;
+
+    setSubmittingPayment(true);
+    setError(null);
+
+    try {
+      const amountToPay = parseFloat(invoice.remainingAmount);
+
+      // Platform Fee Calculation (1%)
+      const feeRate = 0.01;
+      const feeAmount = amountToPay * feeRate;
+      const recipientAmount = amountToPay - feeAmount;
+
+      const feeLamports = Math.floor(feeAmount * Math.pow(10, invoice.tokenDecimals));
+      const recipientLamports = Math.floor(recipientAmount * Math.pow(10, invoice.tokenDecimals));
+
+      // Get token accounts
+      const recipientPubkey = new PublicKey(invoice.invoicerWalletAddress);
+      const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
+      const mintPubkey = new PublicKey(invoice.tokenMint || "So11111111111111111111111111111111111111112"); // Fallback check needed if tokenMint undefined
+
+      if (!invoice.tokenMint) throw new Error("Token Mint not defined on invoice");
+
+      const senderTokenAccount = await getAssociatedTokenAddress(
+        mintPubkey,
+        wallet.publicKey
+      );
+
+      const recipientTokenAccount = await getAssociatedTokenAddress(
+        mintPubkey,
+        recipientPubkey
+      );
+
+      const treasuryTokenAccount = await getAssociatedTokenAddress(
+        mintPubkey,
+        treasuryPubkey
+      );
+
+      const transaction = new Transaction();
+
+      // Import createAssociatedTokenAccountInstruction dynamically if needed, or assume imported
+      // We'll use dynamic import to be safe/consistent with other file
+      const { createAssociatedTokenAccountInstruction } = await import('@solana/spl-token');
+
+      // 1. Check/Create Recipient ATA
+      const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
+      if (!recipientAccountInfo) {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            wallet.publicKey,
+            recipientTokenAccount,
+            recipientPubkey,
+            mintPubkey
+          )
+        );
+      }
+
+      // 2. Check/Create Treasury ATA
+      const treasuryAccountInfo = await connection.getAccountInfo(treasuryTokenAccount);
+      if (!treasuryAccountInfo) {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            wallet.publicKey,
+            treasuryTokenAccount,
+            treasuryPubkey,
+            mintPubkey
+          )
+        );
+      }
+
+      // 3. Transfer to Recipient (99%)
+      if (recipientLamports > 0) {
+        transaction.add(
+          createTransferInstruction(
+            senderTokenAccount,
+            recipientTokenAccount,
+            wallet.publicKey,
+            recipientLamports,
+            [],
+            TOKEN_PROGRAM_ID
+          )
+        );
+      }
+
+      // 4. Transfer Fee to Treasury (1%)
+      if (feeLamports > 0) {
+        transaction.add(
+          createTransferInstruction(
+            senderTokenAccount,
+            treasuryTokenAccount,
+            wallet.publicKey,
+            feeLamports,
+            [],
+            TOKEN_PROGRAM_ID
+          )
+        );
+      }
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = wallet.publicKey;
+
+      const signedTx = await wallet.signTransaction(transaction);
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+
+      await connection.confirmTransaction(signature, "confirmed");
+
+      // Record payment
+      const response = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: invoice.id,
+          amount: invoice.remainingAmount, // Full amount recorded
+          currency: invoice.currency,
+          txSignature: signature,
+          fromAddress: wallet.publicKey.toString(),
+          toAddress: invoice.invoicerWalletAddress,
+          paymentMethod: "solana_transfer",
+          isBusinessExpense: false // Defaults
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to record payment");
+      }
+
+      toast({
+        title: "Payment Successful",
+        description: "Invoice paid and fee collected.",
+        variant: "default",
+      });
+
+      await loadInvoice(invoice.id);
+      setShowPaymentForm(false);
+
+    } catch (err: any) {
+      console.error("Payment error:", err);
+      toast({
+        title: "Payment Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingPayment(false);
     }
   };
 

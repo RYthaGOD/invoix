@@ -150,10 +150,15 @@ export class InvoiceNFTService {
           // 3. Create new tree if none exists
 
           // SAFETY CHECK: Ensure we have funds before creating tree (Cost ~0.005 SOL)
+          const walletAddr = this.umi.identity.publicKey.toString();
           const balance = await this.umi.rpc.getBalance(this.umi.identity.publicKey);
+
+          console.log(`ℹ️  Server Wallet Address: ${walletAddr}`);
+
           // 0.01 SOL = 10,000,000 lamports
           if (balance.basisPoints < BigInt(10000000)) {
             console.warn(`⚠️  NFT Service Warning: Insufficient funds to create Merkle Tree.`);
+            console.warn(`   Address: ${walletAddr}`);
             console.warn(`   Current Balance: ${Number(balance.basisPoints) / 1e9} SOL`);
             console.warn(`   Required: 0.01 SOL. Service will be disabled until funded.`);
             this.initialized = false;
