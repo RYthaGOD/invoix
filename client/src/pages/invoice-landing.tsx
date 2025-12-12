@@ -15,13 +15,30 @@ import {
   Building2,
   ChevronRight,
   Globe,
-  Monitor
+  Monitor,
+  ShieldCheck,
+  Copy
 } from "lucide-react";
-
+import { useState } from "react";
 import { useTokenStats } from "@/hooks/use-token-stats";
+import { useToast } from "@/hooks/use-toast";
+
+const TOKEN_ADDRESS = "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
 
 export default function InvoiceLanding() {
   const { data: tokenStats, isLoading: isStatsLoading } = useTokenStats();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const copyAddress = async () => {
+    await navigator.clipboard.writeText(TOKEN_ADDRESS);
+    setCopied(true);
+    toast({
+      title: "Address Copied",
+      description: "Token address copied to clipboard",
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -35,16 +52,6 @@ export default function InvoiceLanding() {
     whileInView: { opacity: 1, y: 0 },
     viewport: { once: true },
     transition: { duration: 0.6, ease: "easeOut" }
-  };
-
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
   };
 
   return (
@@ -110,7 +117,7 @@ export default function InvoiceLanding() {
             transition={{ duration: 0.6 }}
             className="inline-flex items-center px-4 py-2 rounded-full glass-card mb-8 border border-primary/20 bg-primary/5 shadow-[0_0_20px_rgba(79,70,229,0.2)]"
           >
-            <Sparkles className="w-4 h-4 mr-2 text-primary animate-pulse" {...({} as any)} />
+            <Sparkles className="w-4 h-4 mr-2 text-primary animate-pulse" />
             <span className="text-sm font-semibold font-heading bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent tracking-wide">
               THE FUTURE OF B2B PAYMENTS
             </span>
@@ -127,7 +134,7 @@ export default function InvoiceLanding() {
           </motion.h1>
 
           <motion.p
-            className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed text-balance"
+            className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed text-balance"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -137,15 +144,31 @@ export default function InvoiceLanding() {
           </motion.p>
 
           <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
+            className="flex justify-center mb-10"
+          >
+            <button
+              onClick={copyAddress}
+              className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-xs text-muted-foreground hover:text-white font-mono"
+            >
+              <span className="text-primary/70 group-hover:text-primary">CA:</span>
+              {TOKEN_ADDRESS.slice(0, 6)}...{TOKEN_ADDRESS.slice(-6)}
+              {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+            </button>
+          </motion.div>
+
+          <motion.div
             className="flex flex-col sm:flex-row gap-5 justify-center"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             <Link href="/invoices/create">
-              <button className="btn-primary h-14 px-10 text-lg flex items-center justify-center group">
+              <button className="btn-primary smoke-shadow h-14 px-10 text-lg flex items-center justify-center group">
                 Start Invoicing Free
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" {...({} as any)} />
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </Link>
 
@@ -173,7 +196,7 @@ export default function InvoiceLanding() {
               ].map((stat, i) => (
                 <div key={i} className="text-center p-6 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors">
                   <div className="flex justify-center mb-3 text-primary/80">
-                    <stat.icon className="w-6 h-6" {...({} as any)} />
+                    <stat.icon className="w-6 h-6" />
                   </div>
                   <div className="text-3xl font-bold font-heading text-white mb-1">{stat.val}</div>
                   <div className="text-sm text-muted-foreground">{stat.label}</div>
@@ -208,7 +231,7 @@ export default function InvoiceLanding() {
             <div className="flex flex-col h-full justify-between relative z-10">
               <div>
                 <div className="icon-wrapper">
-                  <Zap className="w-6 h-6 text-primary" {...({} as any)} />
+                  <Zap className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="text-2xl font-bold font-heading mb-3">Lightning Fast Settlements</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
@@ -236,7 +259,7 @@ export default function InvoiceLanding() {
             viewport={{ once: true }}
           >
             <div className="icon-wrapper">
-              <Receipt className="w-6 h-6 text-accent" {...({} as any)} />
+              <Receipt className="w-6 h-6 text-accent" />
             </div>
             <h3 className="text-xl font-bold font-heading mb-3">NFT Receipts</h3>
             <p className="text-muted-foreground leading-relaxed">
@@ -253,11 +276,11 @@ export default function InvoiceLanding() {
             viewport={{ once: true }}
           >
             <div className="icon-wrapper">
-              <Lock className="w-6 h-6 text-emerald-400" {...({} as any)} />
+              <ShieldCheck className="w-6 h-6 text-emerald-400" />
             </div>
-            <h3 className="text-xl font-bold font-heading mb-3">Encrypted Data</h3>
+            <h3 className="text-xl font-bold font-heading mb-3">Revenue Preserved</h3>
             <p className="text-muted-foreground leading-relaxed">
-              AES-256 encryption ensures your business data remains private and secure.
+              Strict on-chain analysis ensures every payment is verified in atomic units. Zero revenue leakage.
             </p>
           </motion.div>
 
@@ -273,18 +296,18 @@ export default function InvoiceLanding() {
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <div className="icon-wrapper">
-                  <CreditCard className="w-6 h-6 text-white" {...({} as any)} />
+                  <CreditCard className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold font-heading mb-3">Multi-Currency Support</h3>
                 <p className="text-muted-foreground text-lg leading-relaxed">
-                  Accept USDC, USDT, EURC, or SOL. Auto-convert or hold stablecoins to avoid volatility.
+                  Accept Native SOL, USDC, USDT, or EURC. Auto-convert or hold stablecoins to avoid volatility.
                 </p>
               </div>
               <div className="relative">
                 <div className="glass-card p-4 rounded-xl border border-white/10 rotate-3 hover:rotate-0 transition-transform duration-500">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-sm font-mono text-muted-foreground">Amount Due</span>
-                    <span className="text-sm font-bold text-white">1,250.00 USDC</span>
+                    <span className="text-sm font-bold text-white">12.50 SOL</span>
                   </div>
                   <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full w-2/3 bg-gradient-to-r from-primary to-accent" />
@@ -324,7 +347,7 @@ export default function InvoiceLanding() {
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-xl glass hover:bg-white/5 transition-colors">
                       <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                        <Check className="w-5 h-5" {...({} as any)} />
+                        <Check className="w-5 h-5" />
                       </div>
                       <span className="font-medium text-white">{item}</span>
                     </div>
@@ -366,7 +389,7 @@ export default function InvoiceLanding() {
               <Link href="/">
                 <a className="flex items-center space-x-3 mb-6">
                   <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
-                    <FileText className="w-4 h-4 text-primary" {...({} as any)} />
+                    <FileText className="w-4 h-4 text-primary" />
                   </div>
                   <span className="text-xl font-bold font-heading">Invoix</span>
                 </a>
