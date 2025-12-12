@@ -744,22 +744,33 @@ class InvoiceStorage implements IInvoiceStorage {
    * Get global system statistics (Public)
    */
   async getGlobalStats() {
-    // 1. Total Invoices
-    const [invCount] = await db.select({ count: sql<number>`count(*)` }).from(invoices);
+    try {
+      // 1. Total Invoices
+      const [invResult] = await db.select({ count: sql<string>`count(*)` }).from(invoices);
+      const totalInvoices = invResult ? Number(invResult.count) : 0;
 
-    // 2. Total Business Users
-    const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(businessProfiles);
+      // 2. Total Business Users
+      const [userResult] = await db.select({ count: sql<string>`count(*)` }).from(businessProfiles);
+      const totalUsers = userResult ? Number(userResult.count) : 0;
 
-    // 3. Encrypted Transactions
-    const [encCount] = await db.select({ count: sql<number>`count(*)` })
-      .from(invoices)
-      .where(eq(invoices.isArciumEncrypted, true));
+      // 3. Encrypted Transactions
+      const [encResult] = await db.select({ count: sql<string>`count(*)` })
+        .from(invoices)
+        .where(eq(invoices.isArciumEncrypted, true));
+      const encryptedInvoices = encResult ? Number(encResult.count) : 0;
 
-    return {
-      totalInvoices: Number(invCount.count),
-      totalUsers: Number(userCount.count),
-      encryptedInvoices: Number(encCount.count)
-    };
+      // log("Global Stats Computed:", { totalInvoices, totalUsers, encryptedInvoices });
+
+      return {
+        totalInvoices,
+        totalUsers,
+        encryptedInvoices
+      };
+    } catch (error) {
+      console.error("Error computing global stats:", error);
+      // Return zeros on error to prevent crash
+      return { totalInvoices: 0, totalUsers: 0, encryptedInvoices: 0 };
+    }
   }
 }
 

@@ -1,0 +1,3 @@
+Γ£à Using PostgreSQL database (pg driver)
+≡ƒöî DB SSL Mode: disable (Internal network: false)
+Checking global stats...
