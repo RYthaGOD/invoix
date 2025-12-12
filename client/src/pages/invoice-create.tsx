@@ -35,6 +35,7 @@ interface LineItem {
 
 interface InvoiceFormData {
   invoiceeWalletAddress: string;
+  customerEmail?: string; // Optional email
   description: string;
   notes: string;
   dueDate: string;
@@ -77,6 +78,7 @@ export default function InvoiceCreate() {
   const { register, control, handleSubmit, watch, reset, formState: { errors } } = useForm<InvoiceFormData>({
     defaultValues: {
       currency: "USDC",
+      customerEmail: "",
       paymentTerms: "Net 30",
       taxRate: "0",
       discountAmount: "0",
@@ -205,6 +207,7 @@ export default function InvoiceCreate() {
           credentials: "include",
           body: JSON.stringify({
             ...invoiceData,
+            customerEmail: data.customerEmail, // Pass email to backend
             invoicerWalletAddress: walletAddress,
             tokenMintAddress: invoiceData.tokenMint,
             lineItems: data.lineItems
@@ -410,7 +413,7 @@ export default function InvoiceCreate() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Customer Wallet Address *
                 </label>
@@ -424,6 +427,26 @@ export default function InvoiceCreate() {
                 />
                 {errors.invoiceeWalletAddress && (
                   <p className="text-red-400 text-xs mt-1">{errors.invoiceeWalletAddress.message}</p>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Customer Email (Optional)
+                </label>
+                <input
+                  {...register("customerEmail", {
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address"
+                    }
+                  })}
+                  type="email"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="customer@example.com (for notifications)"
+                />
+                {errors.customerEmail && (
+                  <p className="text-red-400 text-xs mt-1">{errors.customerEmail.message}</p>
                 )}
               </div>
 

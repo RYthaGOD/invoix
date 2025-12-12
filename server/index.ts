@@ -231,20 +231,6 @@ export async function triggerGracefulShutdown() {
             };
             ws.send(JSON.stringify(statsUpdate));
 
-            // 2. Simulate Price Update (B2B Token) - Keeping this for visual liveliness if desired, 
-            // but user asked for "tracking global platform metrics", so we prioritize that.
-            // We can keep the price update as it provides the "Token Volume" part of the stats page.
-            const priceUpdate = {
-              type: "price_update",
-              timestamp: Date.now(),
-              data: {
-                tokenMintAddress: process.env.VITE_B2B_TOKEN_MINT || "B2B_TOKEN_MINT_ADDRESS",
-                priceSOL: 0.045 + (Math.random() * 0.005),
-                timestamp: Date.now(),
-              }
-            };
-            ws.send(JSON.stringify(priceUpdate));
-
           } catch (error) {
             console.error("Error broadcasting stats:", error);
           }
@@ -301,10 +287,15 @@ export async function triggerGracefulShutdown() {
                 await runMigrations();
 
                 // Initialize NFT Service (After DB is ready)
+                // Initialize NFT Service (After DB is ready)
                 if (process.env.PAYER_PRIVATE_KEY) {
                   const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
-                  await initializeNFTService(payerKeypair);
-                  console.log("✅ NFT Service initialized with payer wallet");
+                  const nftInitSuccess = await initializeNFTService(payerKeypair);
+                  if (nftInitSuccess) {
+                    console.log("✅ NFT Service initialized with payer wallet");
+                  } else {
+                    console.warn("⚠️  NFT Service failed to initialize (See warning above). NFT features will be disabled.");
+                  }
                 }
 
                 isServiceReady = true;

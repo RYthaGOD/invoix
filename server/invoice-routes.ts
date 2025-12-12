@@ -14,6 +14,7 @@ import {
   insertPaymentSchema,
   insertBusinessProfileSchema,
   insertCustomerProfileSchema,
+  customerProfiles, // Import table definition
   payments,
   businessProfiles,
   businessIdentityNFTs,
@@ -25,6 +26,7 @@ import { fromZodError } from "zod-validation-error";
 import { requireWalletOwnership, strictRateLimit } from "./security";
 import { getArciumService, loadKeypairFromPrivateKey } from "./arcium-service";
 import { getInvoiceNFTService } from "./nft-service";
+import { getEmailService } from "./email-service"; // Import Email Service
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
@@ -68,6 +70,36 @@ export function registerInvoiceRoutes(app: Express): void {
         },
         lineItems
       );
+
+      // --- CAPTURE CUSTOMER EMAIL ---
+      if (req.body.customerEmail && invoiceData.invoiceeWalletAddress) {
+        try {
+          // Check if profile exists
+          const existingProfile = await db.query.customerProfiles.findFirst({
+            where: eq(customerProfiles.customerWalletAddress, invoiceData.invoiceeWalletAddress)
+          });
+
+          if (existingProfile) {
+            // Update if email changed and not empty
+            await db.update(customerProfiles)
+              .set({ customerEmail: req.body.customerEmail })
+              .where(eq(customerProfiles.id, existingProfile.id));
+          } else {
+            // Create new profile
+            await db.insert(customerProfiles).values({
+              customerWalletAddress: invoiceData.invoiceeWalletAddress, // The payer
+              businessWalletAddress: authenticatedWallet, // The invoicer (owner of this profile)
+              customerEmail: req.body.customerEmail,
+              customerName: "New Customer",
+              // businessProfileId is not in schema, removed.
+            });
+          }
+        } catch (profileErr) {
+          console.warn("Failed to save customer email:", profileErr);
+          // Non-blocking error
+        }
+      }
+      // -----------------------------
 
       // If Arcium encryption is requested, encrypt sensitive data
       if (req.body.encryptWithArcium && req.body.allowedParties) {
@@ -306,7 +338,57 @@ export function registerInvoiceRoutes(app: Express): void {
         });
       }
 
-      const updated = await invoiceStorage.updateInvoice(id, req.body);
+      // Validate updates using Zod schema
+      const updateSchema = insertInvoiceSchema.partial().omit({
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        invoicerWalletAddress: true, // Prevent transferring ownership
+        invoiceNumber: true, // Immutable
+      });
+
+      const updates = updateSchema.parse(req.body);
+      const updated = await invoiceStorage.updateInvoice(id, updates);
+
+      // --- EMAIL NOTIFICATION LOGIC ---
+      if (req.body.status === "sent") {
+        try {
+          // Fetch full invoice details for email
+          const fullInvoice = await invoiceStorage.getInvoice(id);
+
+          if (fullInvoice && fullInvoice.invoiceeWalletAddress) {
+            // Attempt to find customer email from profile (if exists) or just log it
+            // For now, since we don't have a guaranteed email, we'll assume a placeholder or check customer profile
+
+            // Try to find customer profile details linked to this invoicee wallet
+            // This is a "best effort" look up
+            const customerProfile = await db.query.customerProfiles.findFirst({
+              where: eq(customerProfiles.customerWalletAddress, fullInvoice.invoiceeWalletAddress)
+            });
+
+            // PRIORITY:
+            // 1. Explicit email provided in request (from "Send Invoice" dialog)
+            // 2. Email from Customer Profile
+            // 3. Fallback placeholder
+            const emailTo = req.body.customerEmail || customerProfile?.customerEmail || "customer@example.com";
+
+            const emailService = getEmailService();
+            await emailService.sendInvoiceEmail({
+              to: emailTo,
+              invoiceNumber: fullInvoice.invoiceNumber,
+              amount: fullInvoice.totalAmount.toString(),
+              currency: fullInvoice.currency,
+              dueDate: new Date(fullInvoice.dueDate).toLocaleDateString(),
+              payLink: `${process.env.FRONTEND_URL || "http://localhost:5000"}/pay/${fullInvoice.id}`,
+              businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
+            });
+          }
+        } catch (emailErr) {
+          console.error("Failed to trigger email notification:", emailErr);
+          // Don't fail the request, just log error
+        }
+      }
+      // --------------------------------
 
       res.json({
         success: true,
@@ -454,7 +536,14 @@ export function registerInvoiceRoutes(app: Express): void {
         return res.status(403).json({ message: "Unauthorized: You do not own this invoice" });
       }
 
-      const updated = await invoiceStorage.updateLineItem(id, req.body);
+      const updateLineItemSchema = insertLineItemSchema.partial().omit({
+        id: true,
+        createdAt: true,
+        invoiceId: true // Cannot move line items between invoices
+      });
+
+      const validatedUpdates = updateLineItemSchema.parse(req.body);
+      const updated = await invoiceStorage.updateLineItem(id, validatedUpdates);
       // Wait, updateLineItem returns the updated item, or undefined/null.
       // But we just checked it exists.
 
@@ -592,6 +681,32 @@ export function registerInvoiceRoutes(app: Express): void {
 
       // Get updated invoice
       const updatedInvoice = await invoiceStorage.getInvoice(validatedData.invoiceId);
+
+      // --- EMAIL RECEIPT LOGIC ---
+      if (updatedInvoice && updatedInvoice.invoiceeWalletAddress) {
+        try {
+          // Best effort customer email lookup
+          const customerProfile = await db.query.customerProfiles.findFirst({
+            where: eq(customerProfiles.customerWalletAddress, updatedInvoice.invoiceeWalletAddress)
+          });
+
+          const emailTo = customerProfile?.customerEmail || "customer@example.com";
+          const emailService = getEmailService();
+
+          await emailService.sendPaymentReceiptEmail({
+            to: emailTo,
+            invoiceNumber: updatedInvoice.invoiceNumber,
+            amountPaid: validatedData.amount.toString(), // amount is string or decimal
+            currency: updatedInvoice.currency,
+            paymentDate: new Date().toLocaleDateString(),
+            transactionSignature: validatedData.txSignature,
+            businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
+          });
+        } catch (emailErr) {
+          console.error("Failed to trigger receipt email:", emailErr);
+        }
+      }
+      // ---------------------------
 
       res.status(201).json({
         success: true,

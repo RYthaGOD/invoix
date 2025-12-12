@@ -41,7 +41,7 @@ import type {
   InsertCustomerProfile,
 } from "@shared/invoice-schema";
 import { db } from "./db";
-import { eq, and, or, desc, asc, sql, isNotNull } from "drizzle-orm";
+import { eq, and, or, ne, desc, asc, sql, isNotNull } from "drizzle-orm";
 import { safeAdd, safeSubtract } from "@shared/math";
 
 export interface IInvoiceStorage {
@@ -467,114 +467,151 @@ class InvoiceStorage implements IInvoiceStorage {
   // STATS AND ANALYTICS
   // ===================================
 
-  async getInvoiceStats(walletAddress: string): Promise<InvoiceStats> {
-    const allInvoices = await this.getInvoices(walletAddress);
+  // Optimized Stats using SQL Aggregations
+  const stats = await db
+    .select({
+      count: sql<number>`count(*)`,
+      totalAmount: sql<string>`sum(${invoices.totalAmount})`,
+      paidAmount: sql<string>`sum(${invoices.paidAmount})`,
+    })
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.invoicerWalletAddress, walletAddress),
+        ne(invoices.status, "cancelled") // Exclude cancelled from totals
+      )
+    );
 
-    const totalInvoices = allInvoices.length;
-    const totalAmount = allInvoices.reduce((sum, inv) => safeAdd(sum, inv.totalAmount), "0");
-    const paidAmount = allInvoices.reduce((sum, inv) => safeAdd(sum, inv.paidAmount), "0");
-    const pendingAmount = safeSubtract(totalAmount, paidAmount);
+  const totalInvoices = Number(stats[0]?.count || 0);
+  const totalAmountStr = stats[0]?.totalAmount || "0";
+  const paidAmountStr = stats[0]?.paidAmount || "0";
 
-    // Count overdue invoices (past due date and not fully paid)
-    const now = new Date();
-    const overdueCount = allInvoices.filter(inv =>
-      inv.status !== "paid" &&
-      inv.status !== "cancelled" &&
-      inv.dueDate < now
-    ).length;
+  // Calculate pending using safe math on aggregated strings
+  const pendingAmount = safeSubtract(totalAmountStr, paidAmountStr);
 
-    // Calculate average payment days for paid invoices
-    const paidInvoices = allInvoices.filter(inv => inv.status === "paid" && inv.paidAt);
-    const averagePaymentDays = paidInvoices.length > 0
-      ? paidInvoices.reduce((sum, inv) => {
-        const days = Math.floor((inv.paidAt!.getTime() - inv.invoiceDate.getTime()) / (1000 * 60 * 60 * 24));
-        return sum + days;
-      }, 0) / paidInvoices.length
-      : 0;
+  // Count overdue efficiently
+  const now = new Date();
+  const[overdueResult] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(invoices)
+    .where(and(
+      eq(invoices.invoicerWalletAddress, walletAddress),
+      ne(invoices.status, "paid"),
+      ne(invoices.status, "cancelled"),
+      sql`${invoices.dueDate} < ${now.toISOString()}`
+    ));
 
-    return {
-      totalInvoices,
-      totalAmount: parseFloat(totalAmount).toFixed(2),
-      paidAmount: parseFloat(paidAmount).toFixed(2),
-      pendingAmount: parseFloat(pendingAmount).toFixed(2),
-      overdueCount,
-      averagePaymentDays: Math.round(averagePaymentDays),
-    };
-  }
+  const overdueCount = Number(overdueResult?.count || 0);
 
-  async getCustomerStats(businessWallet: string, customerWallet: string): Promise<CustomerStats> {
-    const customerInvoices = await db.select()
-      .from(invoices)
-      .where(and(
-        eq(invoices.invoicerWalletAddress, businessWallet),
-        eq(invoices.invoiceeWalletAddress, customerWallet)
-      ));
+  // Average Payment Days
+  // This is tricky to do purely in SQL across databases (SQLite vs Postgres date diff syntax varies)
+  // For "deep" scalability, we should use SQL, but for compatibility/complexity balance, 
+  // fetching ONLY the dates of PAID invoices is lighter than fetching everything.
+  // However, let's keep the existing logic for avg payment days but limit the fetch to needed fields.
 
-    const totalInvoices = customerInvoices.length;
-    const totalAmount = customerInvoices.reduce((sum, inv) => safeAdd(sum, inv.totalAmount), "0");
-    const paidAmount = customerInvoices.reduce((sum, inv) => safeAdd(sum, inv.paidAmount), "0");
+  const paidInvoicesDates = await db
+    .select({
+      invoiceDate: invoices.invoiceDate,
+      paidAt: invoices.paidAt
+    })
+    .from(invoices)
+    .where(and(
+      eq(invoices.invoicerWalletAddress, walletAddress),
+      eq(invoices.status, "paid"),
+      isNotNull(invoices.paidAt)
+    ));
 
-    // Calculate average payment days
-    const paidInvoices = customerInvoices.filter(inv => inv.status === "paid" && inv.paidAt);
-    const averagePaymentDays = paidInvoices.length > 0
-      ? paidInvoices.reduce((sum, inv) => {
-        const days = Math.floor((inv.paidAt!.getTime() - inv.invoiceDate.getTime()) / (1000 * 60 * 60 * 24));
-        return sum + days;
-      }, 0) / paidInvoices.length
-      : 0;
-
-    const lastInvoiceDate = customerInvoices.length > 0
-      ? customerInvoices.reduce((latest, inv) => inv.invoiceDate > latest ? inv.invoiceDate : latest, customerInvoices[0].invoiceDate)
-      : null;
-
-    const lastPaymentDate = paidInvoices.length > 0
-      ? paidInvoices.reduce((latest, inv) => inv.paidAt! > latest ? inv.paidAt! : latest, paidInvoices[0].paidAt!)
-      : null;
+  const averagePaymentDays = paidInvoicesDates.length > 0
+    ? paidInvoicesDates.reduce((sum, inv) => {
+      const days = Math.floor((new Date(inv.paidAt!).getTime() - new Date(inv.invoiceDate).getTime()) / (1000 * 60 * 60 * 24));
+      // Clamp to 0 if negative (shouldn't happen but safe)
+      return sum + Math.max(0, days);
+    }, 0) / paidInvoicesDates.length
+    : 0;
 
     return {
-      totalInvoices,
-      totalAmount: parseFloat(totalAmount).toFixed(2),
-      paidAmount: parseFloat(paidAmount).toFixed(2),
-      averagePaymentDays: Math.round(averagePaymentDays),
-      lastInvoiceDate,
-      lastPaymentDate,
-    };
+  totalInvoices,
+  totalAmount: parseFloat(totalAmountStr).toFixed(2),
+  paidAmount: parseFloat(paidAmountStr).toFixed(2),
+  pendingAmount: parseFloat(pendingAmount).toFixed(2),
+  overdueCount,
+  averagePaymentDays: Math.round(averagePaymentDays),
+};
   }
+
+  async getCustomerStats(businessWallet: string, customerWallet: string): Promise < CustomerStats > {
+  const customerInvoices = await db.select()
+    .from(invoices)
+    .where(and(
+      eq(invoices.invoicerWalletAddress, businessWallet),
+      eq(invoices.invoiceeWalletAddress, customerWallet)
+    ));
+
+  const totalInvoices = customerInvoices.length;
+  const totalAmount = customerInvoices.reduce((sum, inv) => safeAdd(sum, inv.totalAmount), "0");
+  const paidAmount = customerInvoices.reduce((sum, inv) => safeAdd(sum, inv.paidAmount), "0");
+
+  // Calculate average payment days
+  const paidInvoices = customerInvoices.filter(inv => inv.status === "paid" && inv.paidAt);
+  const averagePaymentDays = paidInvoices.length > 0
+    ? paidInvoices.reduce((sum, inv) => {
+      const days = Math.floor((inv.paidAt!.getTime() - inv.invoiceDate.getTime()) / (1000 * 60 * 60 * 24));
+      return sum + days;
+    }, 0) / paidInvoices.length
+    : 0;
+
+  const lastInvoiceDate = customerInvoices.length > 0
+    ? customerInvoices.reduce((latest, inv) => inv.invoiceDate > latest ? inv.invoiceDate : latest, customerInvoices[0].invoiceDate)
+    : null;
+
+  const lastPaymentDate = paidInvoices.length > 0
+    ? paidInvoices.reduce((latest, inv) => inv.paidAt! > latest ? inv.paidAt! : latest, paidInvoices[0].paidAt!)
+    : null;
+
+  return {
+    totalInvoices,
+    totalAmount: parseFloat(totalAmount).toFixed(2),
+    paidAmount: parseFloat(paidAmount).toFixed(2),
+    averagePaymentDays: Math.round(averagePaymentDays),
+    lastInvoiceDate,
+    lastPaymentDate,
+  };
+}
 
   // ===================================
   // INVOICE TEMPLATE OPERATIONS
   // ===================================
 
-  async getInvoiceTemplate(id: string): Promise<any | undefined> {
-    const [template] = await db.select().from(invoiceTemplates).where(eq(invoiceTemplates.id, id)).limit(1);
-    return template;
-  }
+  async getInvoiceTemplate(id: string): Promise < any | undefined > {
+  const [template] = await db.select().from(invoiceTemplates).where(eq(invoiceTemplates.id, id)).limit(1);
+  return template;
+}
 
-  async getInvoiceTemplates(ownerWallet: string): Promise<any[]> {
-    return await db.select()
-      .from(invoiceTemplates)
-      .where(eq(invoiceTemplates.ownerWalletAddress, ownerWallet))
-      .orderBy(desc(invoiceTemplates.createdAt));
-  }
+  async getInvoiceTemplates(ownerWallet: string): Promise < any[] > {
+  return await db.select()
+    .from(invoiceTemplates)
+    .where(eq(invoiceTemplates.ownerWalletAddress, ownerWallet))
+    .orderBy(desc(invoiceTemplates.createdAt));
+}
 
-  async createInvoiceTemplate(template: any): Promise<any> {
-    const [newTemplate] = await db.insert(invoiceTemplates).values(template).returning();
-    return newTemplate;
-  }
+  async createInvoiceTemplate(template: any): Promise < any > {
+  const [newTemplate] = await db.insert(invoiceTemplates).values(template).returning();
+  return newTemplate;
+}
 
-  async updateInvoiceTemplate(id: string, updates: any): Promise<any | undefined> {
-    const [updated] = await db
-      .update(invoiceTemplates)
-      .set(updates)
-      .where(eq(invoiceTemplates.id, id))
-      .returning();
-    return updated;
-  }
+  async updateInvoiceTemplate(id: string, updates: any): Promise < any | undefined > {
+  const [updated] = await db
+    .update(invoiceTemplates)
+    .set(updates)
+    .where(eq(invoiceTemplates.id, id))
+    .returning();
+  return updated;
+}
 
-  async deleteInvoiceTemplate(id: string): Promise<boolean> {
-    const result = await db.delete(invoiceTemplates).where(eq(invoiceTemplates.id, id)).returning();
-    return result.length > 0;
-  }
+  async deleteInvoiceTemplate(id: string): Promise < boolean > {
+  const result = await db.delete(invoiceTemplates).where(eq(invoiceTemplates.id, id)).returning();
+  return result.length > 0;
+}
 
   // ============================================
   // NFT STORAGE METHODS
@@ -584,194 +621,194 @@ class InvoiceStorage implements IInvoiceStorage {
    * Store payment receipt NFT
    */
   async createPaymentReceiptNFT(data: {
-    paymentId: string;
-    invoiceId: string;
-    nftMint: string;
-    nftMetadataUri: string;
-    nftOwner: string;
-    receiptNumber: string;
-    amount: string;
-    currency: string;
-    paymentDate: Date;
-    taxYear: number;
-    txSignature: string;
-    nftMintSignature: string;
-  }) {
-    const [nft] = await db
-      .insert(paymentReceiptNFTs)
-      .values(data)
-      .returning();
-    return nft;
-  }
+  paymentId: string;
+  invoiceId: string;
+  nftMint: string;
+  nftMetadataUri: string;
+  nftOwner: string;
+  receiptNumber: string;
+  amount: string;
+  currency: string;
+  paymentDate: Date;
+  taxYear: number;
+  txSignature: string;
+  nftMintSignature: string;
+}) {
+  const [nft] = await db
+    .insert(paymentReceiptNFTs)
+    .values(data)
+    .returning();
+  return nft;
+}
 
   /**
    * Get payment receipt NFTs for a wallet
    */
   async getPaymentReceiptNFTs(walletAddress: string) {
-    return db
-      .select()
-      .from(paymentReceiptNFTs)
-      .where(eq(paymentReceiptNFTs.nftOwner, walletAddress))
-      .orderBy(desc(paymentReceiptNFTs.createdAt));
-  }
+  return db
+    .select()
+    .from(paymentReceiptNFTs)
+    .where(eq(paymentReceiptNFTs.nftOwner, walletAddress))
+    .orderBy(desc(paymentReceiptNFTs.createdAt));
+}
 
   /**
    * Store business identity NFT
    */
   async createBusinessIdentityNFT(data: {
-    businessProfileId: string;
-    nftMint: string;
-    nftMetadataUri: string;
-    nftOwner: string;
-    verificationLevel: string;
-    verifiedBy?: string;
-    verificationDate: Date;
-    expiresAt?: Date;
-    totalInvoicesIssued?: number;
-    totalRevenueProcessed?: string;
-    businessRating?: string;
-    nftMintSignature: string;
-  }) {
-    const [nft] = await db
-      .insert(businessIdentityNFTs)
-      .values(data)
-      .returning();
-    return nft;
-  }
+  businessProfileId: string;
+  nftMint: string;
+  nftMetadataUri: string;
+  nftOwner: string;
+  verificationLevel: string;
+  verifiedBy?: string;
+  verificationDate: Date;
+  expiresAt?: Date;
+  totalInvoicesIssued?: number;
+  totalRevenueProcessed?: string;
+  businessRating?: string;
+  nftMintSignature: string;
+}) {
+  const [nft] = await db
+    .insert(businessIdentityNFTs)
+    .values(data)
+    .returning();
+  return nft;
+}
 
   /**
    * Get business identity NFT for a wallet
    * Returns the most recent one if multiple exist
    */
   async getBusinessIdentityNFT(walletAddress: string) {
-    const nfts = await db
-      .select()
-      .from(businessIdentityNFTs)
-      .where(eq(businessIdentityNFTs.nftOwner, walletAddress))
-      .orderBy(desc(businessIdentityNFTs.createdAt))
-      .limit(1);
+  const nfts = await db
+    .select()
+    .from(businessIdentityNFTs)
+    .where(eq(businessIdentityNFTs.nftOwner, walletAddress))
+    .orderBy(desc(businessIdentityNFTs.createdAt))
+    .limit(1);
 
-    return nfts[0] || null;
-  }
+  return nfts[0] || null;
+}
 
   /**
    * Check if business already has an identity NFT
    */
-  async hasBusinessIdentityNFT(businessProfileId: string): Promise<boolean> {
-    const nfts = await db
-      .select({ id: businessIdentityNFTs.id })
-      .from(businessIdentityNFTs)
-      .where(eq(businessIdentityNFTs.businessProfileId, businessProfileId))
-      .limit(1);
+  async hasBusinessIdentityNFT(businessProfileId: string): Promise < boolean > {
+  const nfts = await db
+    .select({ id: businessIdentityNFTs.id })
+    .from(businessIdentityNFTs)
+    .where(eq(businessIdentityNFTs.businessProfileId, businessProfileId))
+    .limit(1);
 
-    return nfts.length > 0;
-  }
+  return nfts.length > 0;
+}
 
   /**
    * Get all NFTs for a user (invoices, receipts, identity)
    */
   async getAllUserNFTs(walletAddress: string) {
-    // Get invoice NFTs (where user is invoicer or invoicee)
-    const invoiceNFTs = await db
-      .select({
-        type: sql<string>`'invoice'`,
-        nftMint: invoices.nftMint,
-        nftMerkleTree: invoices.nftMerkleTree,
-        nftLeafIndex: invoices.nftLeafIndex,
-        nftMintedAt: invoices.nftMintedAt,
-        metadata: sql<any>`json_build_object(
+  // Get invoice NFTs (where user is invoicer or invoicee)
+  const invoiceNFTs = await db
+    .select({
+      type: sql<string>`'invoice'`,
+      nftMint: invoices.nftMint,
+      nftMerkleTree: invoices.nftMerkleTree,
+      nftLeafIndex: invoices.nftLeafIndex,
+      nftMintedAt: invoices.nftMintedAt,
+      metadata: sql<any>`json_build_object(
           'invoiceNumber', ${invoices.invoiceNumber},
           'totalAmount', ${invoices.totalAmount},
           'currency', ${invoices.currency},
           'status', ${invoices.status}
         )`,
-      })
-      .from(invoices)
-      .where(
-        and(
-          or(
-            eq(invoices.invoicerWalletAddress, walletAddress),
-            eq(invoices.invoiceeWalletAddress, walletAddress)
-          ),
-          isNotNull(invoices.nftMint)
-        )
-      );
+    })
+    .from(invoices)
+    .where(
+      and(
+        or(
+          eq(invoices.invoicerWalletAddress, walletAddress),
+          eq(invoices.invoiceeWalletAddress, walletAddress)
+        ),
+        isNotNull(invoices.nftMint)
+      )
+    );
 
-    // Get payment receipt NFTs
-    const receiptNFTs = await db
-      .select({
-        type: sql<string>`'receipt'`,
-        nftMint: paymentReceiptNFTs.nftMint,
-        nftMerkleTree: sql<string>`NULL`,
-        nftLeafIndex: sql<number>`NULL`,
-        nftMintedAt: paymentReceiptNFTs.createdAt,
-        metadata: sql<any>`json_build_object(
+  // Get payment receipt NFTs
+  const receiptNFTs = await db
+    .select({
+      type: sql<string>`'receipt'`,
+      nftMint: paymentReceiptNFTs.nftMint,
+      nftMerkleTree: sql<string>`NULL`,
+      nftLeafIndex: sql<number>`NULL`,
+      nftMintedAt: paymentReceiptNFTs.createdAt,
+      metadata: sql<any>`json_build_object(
           'receiptNumber', ${paymentReceiptNFTs.receiptNumber},
           'amount', ${paymentReceiptNFTs.amount},
           'currency', ${paymentReceiptNFTs.currency},
           'taxYear', ${paymentReceiptNFTs.taxYear}
         )`,
-      })
-      .from(paymentReceiptNFTs)
-      .where(eq(paymentReceiptNFTs.nftOwner, walletAddress));
+    })
+    .from(paymentReceiptNFTs)
+    .where(eq(paymentReceiptNFTs.nftOwner, walletAddress));
 
-    // Get business identity NFT
-    const identityNFTs = await db
-      .select({
-        type: sql<string>`'identity'`,
-        nftMint: businessIdentityNFTs.nftMint,
-        nftMerkleTree: sql<string>`NULL`,
-        nftLeafIndex: sql<number>`NULL`,
-        nftMintedAt: businessIdentityNFTs.createdAt,
-        metadata: sql<any>`json_build_object(
+  // Get business identity NFT
+  const identityNFTs = await db
+    .select({
+      type: sql<string>`'identity'`,
+      nftMint: businessIdentityNFTs.nftMint,
+      nftMerkleTree: sql<string>`NULL`,
+      nftLeafIndex: sql<number>`NULL`,
+      nftMintedAt: businessIdentityNFTs.createdAt,
+      metadata: sql<any>`json_build_object(
           'verificationLevel', ${businessIdentityNFTs.verificationLevel},
           'verifiedBy', ${businessIdentityNFTs.verifiedBy},
           'businessRating', ${businessIdentityNFTs.businessRating}
         )`,
-      })
-      .from(businessIdentityNFTs)
-      .where(eq(businessIdentityNFTs.nftOwner, walletAddress));
+    })
+    .from(businessIdentityNFTs)
+    .where(eq(businessIdentityNFTs.nftOwner, walletAddress));
 
-    return {
-      invoiceNFTs,
-      receiptNFTs,
-      identityNFTs,
-      total: invoiceNFTs.length + receiptNFTs.length + identityNFTs.length,
-    };
-  }
+  return {
+    invoiceNFTs,
+    receiptNFTs,
+    identityNFTs,
+    total: invoiceNFTs.length + receiptNFTs.length + identityNFTs.length,
+  };
+}
 
   /**
    * Get global system statistics (Public)
    */
   async getGlobalStats() {
-    try {
-      // 1. Total Invoices
-      const [invResult] = await db.select({ count: sql<string>`count(*)` }).from(invoices);
-      const totalInvoices = invResult ? Number(invResult.count) : 0;
+  try {
+    // 1. Total Invoices
+    const [invResult] = await db.select({ count: sql<string>`count(*)` }).from(invoices);
+    const totalInvoices = invResult ? Number(invResult.count) : 0;
 
-      // 2. Total Business Users
-      const [userResult] = await db.select({ count: sql<string>`count(*)` }).from(businessProfiles);
-      const totalUsers = userResult ? Number(userResult.count) : 0;
+    // 2. Total Business Users
+    const [userResult] = await db.select({ count: sql<string>`count(*)` }).from(businessProfiles);
+    const totalUsers = userResult ? Number(userResult.count) : 0;
 
-      // 3. Encrypted Transactions
-      const [encResult] = await db.select({ count: sql<string>`count(*)` })
-        .from(invoices)
-        .where(eq(invoices.isArciumEncrypted, true));
-      const encryptedInvoices = encResult ? Number(encResult.count) : 0;
+    // 3. Encrypted Transactions
+    const [encResult] = await db.select({ count: sql<string>`count(*)` })
+      .from(invoices)
+      .where(eq(invoices.isArciumEncrypted, true));
+    const encryptedInvoices = encResult ? Number(encResult.count) : 0;
 
-      // log("Global Stats Computed:", { totalInvoices, totalUsers, encryptedInvoices });
+    // log("Global Stats Computed:", { totalInvoices, totalUsers, encryptedInvoices });
 
-      return {
-        totalInvoices,
-        totalUsers,
-        encryptedInvoices
-      };
-    } catch (error) {
-      console.error("Error computing global stats:", error);
-      // Return zeros on error to prevent crash
-      return { totalInvoices: 0, totalUsers: 0, encryptedInvoices: 0 };
-    }
+    return {
+      totalInvoices,
+      totalUsers,
+      encryptedInvoices
+    };
+  } catch (error) {
+    console.error("Error computing global stats:", error);
+    // Return zeros on error to prevent crash
+    return { totalInvoices: 0, totalUsers: 0, encryptedInvoices: 0 };
   }
+}
 }
 
 // Singleton instance

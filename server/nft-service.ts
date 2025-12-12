@@ -148,6 +148,18 @@ export class InvoiceNFTService {
           console.log(`✅ Loaded Merkle Tree from DB: ${this.merkleTree}`);
         } else {
           // 3. Create new tree if none exists
+
+          // SAFETY CHECK: Ensure we have funds before creating tree (Cost ~0.005 SOL)
+          const balance = await this.umi.rpc.getBalance(this.umi.identity.publicKey);
+          // 0.01 SOL = 10,000,000 lamports
+          if (balance.basisPoints < BigInt(10000000)) {
+            console.warn(`⚠️  NFT Service Warning: Insufficient funds to create Merkle Tree.`);
+            console.warn(`   Current Balance: ${Number(balance.basisPoints) / 1e9} SOL`);
+            console.warn(`   Required: 0.01 SOL. Service will be disabled until funded.`);
+            this.initialized = false;
+            return false;
+          }
+
           await this.createMerkleTree();
 
           // Persist to DB
@@ -241,6 +253,15 @@ export class InvoiceNFTService {
       // Create Mint Instruction
       // We explicitly set the payer to the user
       // Buider: mintV1(umi, { ... })
+      // 1. Build transaction with Server as identity (Tree Authority)
+      // The builder uses the current identity (Server) as the Tree Authority signer.
+      // We set the fee payer to the User (Leaf Owner).
+
+      // Since we can't sign for the user, logic is:
+      // a. Build transaction with Server as Payer first (to get blockhash/structure)
+      // b. OR better: Use setFeePayer with a dummy signer, then serialize.
+
+      // Let's use the explicit builder approach which is more robust
       const builder = mintV1(this.umi, {
         leafOwner,
         merkleTree: merkleTreePubkey,
@@ -260,65 +281,35 @@ export class InvoiceNFTService {
         },
       });
 
-      // The builder by default uses umi.identity as payer. 
-      // We must change the fee payer to the user.
-      // However, we can't sign for the user. We only sign for the Tree Authority (server).
+      // We need to construct a transaction where:
+      // - Payer = User
+      // - Signer 1 = Server (Tree Authority)
+      // - Signer 2 = User (Payer)
 
-      // 1. Build transaction with Server as identity (Tree Authority)
-      let tx = await builder.buildAndSign(this.umi);
-
-      // 2. Deserialize to inspect/modify? 
-      // Umi's buildAndSign returns a Transaction (with signatures).
-      // We need to verify if we can just reassign fee payer validation?
-
-      // Easier approach: Use `setFeePayer` on builder if available, or just instruct UMI
-      // Not straightforward in UMI 0.8+ without the signer object.
-      // We will create a "Placeholder Signer" for the user.
-
+      // Create a dummy signer for the user just to set the Fee Payer
       const userSigner: Signer = {
         publicKey: toPublicKey(userPublicKey),
-        signMessage: async (msg) => msg, // Mock
-        signTransaction: async (tx) => tx, // Mock
-        signAllTransactions: async (txs) => txs, // Mock
+        signMessage: async (msg) => msg,
+        signTransaction: async (tx) => tx,
+        signAllTransactions: async (txs) => txs,
       };
 
-      // Re-build with user as payer
-      const builderWithPayer = builder.setFeePayer(userSigner);
+      const txWithPayer = builder.setFeePayer(userSigner);
 
-      // Now we need the Server to sign as the Authority (Merkle Tree Delegate/Owner)
-      // The builder should automatically include the Authority signer from umi context if it matches.
+      // Current Identity (Server) is already configured in Umi. 
+      // buildAndSign will sign with the Server keypair because it is the Tree Authority
+      // It will NOT sign with userSigner because it's a dummy.
+      let tx = await txWithPayer.buildAndSign(this.umi);
 
-      // Build but don't sign yet to control checking
-      // Actually, buildAndSign will try to sign with all known signers.
-      // Since userSigner is a mock, it won't actually sign.
-      // But we DO want the Server (umi.identity) to sign as LeafDelegate/TreeCreator.
+      // Serialize the transaction
+      // This includes the Server's signature, but lacks the User's signature (Payer).
+      // The client will add the Payer signature.
 
-      // Let's use `transactionBuilder()` to compose if needed, but mintV1 is fine.
-
-      // IMPORTANT: We need to serialize this to a format the Client can sign.
-      // The Client needs a standard Solana Transaction or VersionedTransaction.
-      // Umi works with its own Transaction type. We need to convert.
-
-      // We will rely on `umi.transactions` to serialize.
-      // But first, we must ensure the Authority (Server) HAS signed.
-
-      // Force Authority signature (Server)
-      // The `mintV1` instruction uses `merkleTree` and `treeAuthority` (derived or explicit).
-      // The `treeAuthority` defaults to umi.identity.
-
-      tx = await builderWithPayer.buildAndSign(this.umi);
-
-      // At this point, `tx` has the Server's signature for the instruction.
-      // It is missing the Payer's (User) signature.
-      // The mock signer just returned the tx as is.
-
-      // Serialize to base64
       const serializedTransaction = this.umi.transactions.serialize(tx);
       const base64Transaction = Buffer.from(serializedTransaction).toString("base64");
 
       console.log(`✅ Created Mint Transaction for User ${userPublicKey}`);
       return base64Transaction;
-
     } catch (error) {
       console.error(`❌ Failed to create mint transaction:`, error);
       throw error;
