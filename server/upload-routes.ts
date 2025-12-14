@@ -45,7 +45,20 @@ export function registerUploadRoutes(app: Express): void {
                 fs.mkdirSync(uploadsDir);
             }
 
-            const ext = fileName ? path.extname(fileName) : `.${type.split('/')[1]}`;
+            // SECURITY: Force extension based on MIME type to prevent masking execs
+            const extMap: Record<string, string> = {
+                'image/png': '.png',
+                'image/jpeg': '.jpg',
+                'image/jpg': '.jpg',
+                'image/gif': '.gif',
+                'image/svg+xml': '.svg',
+                'image/webp': '.webp'
+            };
+
+            const ext = extMap[type] || '.bin'; // Default to bin if unknown image type
+            if (ext === '.bin') {
+                console.warn(`Upload with unknown image type: ${type}`);
+            }
             const uniqueName = `${crypto.randomBytes(16).toString('hex')}${ext}`;
             const filePath = path.join(uploadsDir, uniqueName);
 

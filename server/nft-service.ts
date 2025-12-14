@@ -45,11 +45,14 @@ import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { PublicKey, Keypair, Connection } from "@solana/web3.js";
 import bs58 from "bs58";
+import crypto from "crypto";
+import { db } from "./db";
 import type {
   SelectInvoice,
   SelectPayment,
   SelectBusinessProfile,
 } from "@shared/invoice-schema";
+import { serializeInvoiceForHashing } from "@shared/invoice-schema";
 import { getMetadataStorageService } from "./metadata-storage";
 
 /**
@@ -370,6 +373,26 @@ export class InvoiceNFTService {
 
       console.log(`✅ Minted payment receipt NFT for payment ${payment.id}`);
 
+      // 6. Store in DB (PaymentReceiptNFTs table)
+      const { paymentReceiptNFTs } = await import("@shared/invoice-schema");
+
+      await db.insert(paymentReceiptNFTs).values({
+        paymentId: payment.id,
+        invoiceId: invoice.id,
+        nftMint: mint.publicKey.toString(),
+        nftMetadataUri: metadataUri,
+        nftOwner: payment.fromAddress,
+        receiptNumber: `RCPT-${payment.id.slice(0, 8)}`,
+        amount: payment.amount,
+        currency: payment.currency,
+        paymentDate: new Date(), // Now
+        taxYear: new Date().getFullYear(),
+        txSignature: payment.txSignature,
+        nftMintSignature: result.signature.toString()
+      });
+
+      console.log(`✅ Persisted receipt NFT to DB`);
+
       return {
         mint: mint.publicKey.toString(),
         signature: result.signature.toString(),
@@ -517,12 +540,71 @@ export class InvoiceNFTService {
   public generateInvoiceMetadata(invoice: SelectInvoice): InvoiceNFTMetadata {
     const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
 
+    // Dynamic SVG Image
+    const imageUri = `${apiUrl}/api/images/dynamic-nft/invoice/${invoice.id}.svg`;
+
+    // PRIVACY V2 LOGIC
+    if (invoice.isPrivate) {
+      // 1. Calculate Integrity Hash
+      const preImage = serializeInvoiceForHashing(invoice);
+      const dataHash = crypto.createHash("sha256").update(preImage).digest("hex");
+
+      return {
+        name: `Invoice #${invoice.invoiceNumber} (Private)`, // Obfuscated Name
+        symbol: "INV-P",
+        uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
+        description: `This invoice is private. Data integrity is verified on-chain via SHA256 hash. Verify ownership to decrypt contents.`,
+        image: imageUri, // Returns the "Lock" SVG
+        attributes: [
+          {
+            trait_type: "Invoice Number",
+            value: invoice.invoiceNumber,
+          },
+          {
+            trait_type: "Status",
+            value: invoice.status,
+          },
+          {
+            trait_type: "Currency",
+            value: invoice.currency,
+          },
+          {
+            trait_type: "Privacy",
+            value: "Private",
+          },
+          {
+            trait_type: "Data Hash",
+            value: dataHash, // The Anchor of Trust
+          },
+          {
+            trait_type: "Amount",
+            value: "Confidential", // Hidden
+          },
+          {
+            trait_type: "Due Date",
+            value: "Confidential", // Hidden
+          }
+        ],
+        properties: {
+          category: "invoice",
+          creators: [
+            {
+              address: invoice.invoicerWalletAddress,
+              share: 100,
+              verified: true,
+            },
+          ],
+        },
+      };
+    }
+
+    // PUBLIC LOGIC (Standard)
     return {
       name: `Invoice ${invoice.invoiceNumber}`,
       symbol: "INV",
       uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
       description: `B2B Invoice from ${invoice.invoicerWalletAddress} to ${invoice.invoiceeWalletAddress}`,
-      image: `${apiUrl}/images/invoice-nft.png`,
+      image: imageUri,
       attributes: [
         {
           trait_type: "Invoice Number",
@@ -548,7 +630,7 @@ export class InvoiceNFTService {
         },
         {
           trait_type: "Privacy",
-          value: invoice.isPrivate ? "Private" : "Public",
+          value: "Public",
         },
         {
           trait_type: "Encrypted",
@@ -891,6 +973,28 @@ export class InvoiceNFTService {
       transfer: 0.0005, // ~$0.0005 per transfer
       burn: 0.0001, // ~$0.0001 per burn
     };
+  }
+
+
+  /**
+   * Get configured Merkle Tree Address
+   */
+  public getMerkleTree(): string | undefined {
+    return this.config.merkleTreeAddress;
+  }
+
+  /**
+   * Derive Asset ID from Leaf Index
+   */
+  public async deriveAssetId(leafIndex: number): Promise<string> {
+    if (!this.merkleTree) {
+      throw new Error("Merkle Tree not initialized");
+    }
+    const assetId = await findLeafAssetIdPda(this.umi, {
+      merkleTree: toPublicKey(this.config.merkleTreeAddress!),
+      leafIndex: leafIndex,
+    });
+    return assetId.toString();
   }
 }
 

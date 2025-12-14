@@ -15,11 +15,16 @@ export default function Stats() {
     // Fallback: If WS is not connected (initial load), we might want to fetch once? 
     // Or just let the WS connect. For now, since we want "tracking", we rely on WS.
 
+    const isTokenVolumeValid = tokenStats?.volume24h && Number(tokenStats.volume24h) > 0;
+    const displayVolume = isTokenVolumeValid
+        ? `$${(Number(tokenStats?.volume24h || 0) / 1000).toFixed(1)}K+`
+        : `$${(globalStats?.totalVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
     const stats = [
         {
-            label: "Total Token Volume (24h)",
-            value: isStatsLoading ? "..." : `$${(Number(tokenStats?.volume24h || 0) / 1000).toFixed(1)}K+`,
-            change: isStatsLoading ? "..." : `${Number(tokenStats?.priceChange24h || 0).toFixed(2)}%`,
+            label: isTokenVolumeValid ? "Total Token Volume (24h)" : "Total Platform Volume",
+            value: isStatsLoading ? "..." : displayVolume,
+            change: isTokenVolumeValid ? `${Number(tokenStats?.priceChange24h || 0).toFixed(2)}%` : "Internal",
             icon: <BarChart3 className="w-5 h-5 text-primary" />
         },
         {
@@ -35,7 +40,7 @@ export default function Stats() {
             icon: <Activity className={`w-5 h-5 ${isConnected ? "text-green-500 animate-pulse" : "text-primary"}`} />
         },
         {
-            label: "Total Users",
+            label: "Total Users (Biz + Cust)",
             value: (globalStats?.totalUsers || 0).toLocaleString(),
             change: isConnected ? "Live" : "Connecting...",
             icon: <Users className="w-5 h-5 text-primary" />

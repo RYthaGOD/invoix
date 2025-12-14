@@ -83,13 +83,32 @@ export class MetadataStorageService {
   }
 
   /**
+   * Upload raw file with retry logic
+   */
+  async uploadFile(
+    data: Buffer | string,
+    identifier: string,
+    contentType: string,
+    options: Partial<RetryOptions> = {}
+  ): Promise<MetadataUploadResult> {
+    const retryOptions = { ...DEFAULT_RETRY_OPTIONS, ...options };
+
+    return this.retryWithBackoff(
+      async () => this._uploadMetadataInternal(data, identifier, contentType),
+      retryOptions
+    );
+  }
+
+  /**
    * Internal upload method
    */
   private async _uploadMetadataInternal(
-    metadata: any,
-    identifier: string
+    data: any,
+    identifier: string,
+    contentType: string = "application/json"
   ): Promise<MetadataUploadResult> {
-    // Check cache first
+    // Check cache first (ignore if buffer to ensure we don't return old data for new file)
+    // Actually, identifier usually unique (payment-id), so cache is fine.
     const cachedUri = this.metadataCache.get(identifier);
     if (cachedUri) {
       return {
@@ -98,8 +117,24 @@ export class MetadataStorageService {
       };
     }
 
-    const metadataJson = JSON.stringify(metadata, null, 2);
-    const metadataBuffer = Buffer.from(metadataJson, "utf-8");
+    let uploadData: Buffer | string;
+
+    // Determine if data is binary (Buffer) or JSON (Object)
+    if (Buffer.isBuffer(data)) {
+      uploadData = data;
+    } else {
+      uploadData = JSON.stringify(data, null, 2);
+      // Ensure content type is JSON if identifying as such
+      if (contentType === "application/json") {
+        // Already default
+      }
+    }
+
+    // Fallback if not buffer but no content type specified beyond default
+    if (!Buffer.isBuffer(data) && contentType !== "application/json") {
+      // If passed string but claims to be image/svg, convert to buffer
+      uploadData = Buffer.from(data);
+    }
 
     try {
       // Try Arweave if configured
@@ -107,12 +142,12 @@ export class MetadataStorageService {
         const wallet = JSON.parse(process.env.ARWEAVE_WALLET_JSON);
 
         const tx = await this.arweave.createTransaction({
-          data: metadataBuffer,
+          data: uploadData,
         }, wallet);
 
-        tx.addTag("Content-Type", "application/json");
+        tx.addTag("Content-Type", contentType);
         tx.addTag("App-Name", "Invoix");
-        tx.addTag("Type", "NFT-Metadata");
+        tx.addTag("Type", contentType === "application/json" ? "NFT-Metadata" : "NFT-Asset");
         tx.addTag("Identifier", identifier);
 
         await this.arweave.transactions.sign(tx, wallet);
@@ -121,7 +156,7 @@ export class MetadataStorageService {
         const uri = `https://arweave.net/${tx.id}`;
         this.metadataCache.set(identifier, uri);
 
-        console.log(`✅ Uploaded to Arweave: ${uri}`);
+        console.log(`✅ Uploaded to Arweave (${contentType}): ${uri}`);
         return {
           uri,
           provider: "arweave",
@@ -134,12 +169,21 @@ export class MetadataStorageService {
 
     // Fallback: API storage (centralized but reliable)
     // Metadata will be served by our own API endpoint
+    // Note: We don't really support binary storage fallback in this simple class yet without filesystem writing.
+    // However, for metadata-storage abstraction, we assume if ARWEAVE fails for binary, 
+    // we might need a backup. But for now, let's assume API endpoint handles dynamic generation for invoices anyway.
+    // For receipts, if Arweave fails, we have a problem. 
+    // BUT: The dynamic endpoint can serve the receipt SVG too if we route it!
+
     const apiUrl = process.env.API_URL || "";
-    const uri = apiUrl ? `${apiUrl}/api/nft-metadata/${identifier}` : `/api/nft-metadata/${identifier}`;
+    // If it's an image, point to dynamic endpoint (simplified fallback strategy)
+    const uri = contentType.startsWith("image/")
+      ? `${apiUrl}/api/images/dynamic-nft/${identifier}.svg`
+      : `${apiUrl}/api/nft-metadata/${identifier}`;
 
     this.metadataCache.set(identifier, uri);
 
-    console.log(`📦 Using API storage: ${uri}`);
+    console.log(`📦 Using API storage fallback: ${uri}`);
     return {
       uri,
       provider: "api",

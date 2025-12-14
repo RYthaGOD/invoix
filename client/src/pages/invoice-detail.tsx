@@ -43,6 +43,8 @@ import { Buffer } from "buffer";
 import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import { useConnection } from "@solana/wallet-adapter-react";
+import { serializeInvoiceForHashing } from "@shared/invoice-schema";
+import { ShieldCheck, ShieldAlert } from "lucide-react";
 
 interface LineItem {
   id: string;
@@ -61,6 +63,7 @@ interface Payment {
   paidAt: string;
   fromAddress: string;
   toAddress: string;
+  receiptNftMint?: string | null;
 }
 
 interface Invoice {
@@ -122,6 +125,53 @@ export default function InvoiceDetail() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [mintingStatus, setMintingStatus] = useState<string>("");
   const [mintError, setMintError] = useState<string | null>(null);
+
+  // Integrity Verification
+  const [isVerified, setIsVerified] = useState<boolean>(false);
+  const [integrityError, setIntegrityError] = useState<string | null>(null);
+
+  const { id: invoiceId } = params || {};
+
+  // Auto-Verify Logic
+  useEffect(() => {
+    const verifyIntegrity = async () => {
+      if (!invoice || !invoice.nftMint || !invoice.isPrivate) return;
+
+      try {
+        // 1. Fetch On-Chain Metadata (via Proxy to avoid CORS/RPC complexity)
+        const response = await fetch(`/api/nft-metadata/invoice-${invoice.id}`);
+        if (!response.ok) return; // Silent fail if not minted/found
+
+        const metadata = await response.json();
+        const onChainHashAttr = metadata.attributes?.find((a: any) => a.trait_type === "Data Hash");
+        const onChainHash = onChainHashAttr?.value;
+
+        if (!onChainHash) return; // No hash to verify against
+
+        // 2. Compute Local Hash
+        const preImage = serializeInvoiceForHashing(invoice);
+        const msgBuffer = new TextEncoder().encode(preImage);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const localHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        // 3. Compare
+        if (localHash === onChainHash) {
+          setIsVerified(true);
+          setIntegrityError(null);
+        } else {
+          setIsVerified(false);
+          setIntegrityError("Hash Mismatch! The on-chain data does not match the invoice details.");
+          console.error("Verification Mismatch:", { local: localHash, onChain: onChainHash });
+        }
+
+      } catch (err) {
+        console.error("Verification failed:", err);
+      }
+    };
+
+    verifyIntegrity();
+  }, [invoice]);
 
   useEffect(() => {
     if (params?.id && walletAddress) {
@@ -708,6 +758,22 @@ export default function InvoiceDetail() {
                   <span className="text-sm">Private Invoice</span>
                 </div>
               )}
+
+              {/* Verification Badge */}
+              {isVerified && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400" title="Data integrity verified on-chain">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span className="text-sm">Verified On-Chain</span>
+                </div>
+              )}
+
+              {integrityError && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 font-bold animate-pulse">
+                  <ShieldAlert className="w-4 h-4" />
+                  <span className="text-sm">TAMPER WARNING</span>
+                </div>
+              )}
+
               {invoice.isArciumEncrypted && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-300">
                   <Lock className="w-4 h-4" />
@@ -853,6 +919,17 @@ export default function InvoiceDetail() {
                     View Transaction
                     <ExternalLink className="w-3 h-3" />
                   </a>
+                  {payment.receiptNftMint && (
+                    <a
+                      href={`https://solscan.io/token/${payment.receiptNftMint}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-400 hover:text-green-300 text-sm flex items-center gap-1 ml-4"
+                    >
+                      View Receipt NFT 🧾
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
               ))}
             </div>

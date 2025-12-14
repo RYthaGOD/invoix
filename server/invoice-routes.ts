@@ -33,6 +33,7 @@ import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
 import { Connection, clusterApiUrl } from "@solana/web3.js";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
+import { registerDynamicImageRoutes } from "./endpoints/dynamic-image";
 
 /**
  * Register invoice-related API routes
@@ -42,6 +43,9 @@ export function registerInvoiceRoutes(app: Express): void {
   // ============================================
   // INVOICE ROUTES
   // ============================================
+
+  // Register Dynamic Image Routes (SVGs)
+  registerDynamicImageRoutes(app);
 
   /**
    * Create a new invoice
@@ -340,9 +344,6 @@ export function registerInvoiceRoutes(app: Express): void {
 
       // Validate updates using Zod schema
       const updateSchema = insertInvoiceSchema.partial().omit({
-        id: true,
-        createdAt: true,
-        updatedAt: true,
         invoicerWalletAddress: true, // Prevent transferring ownership
         invoiceNumber: true, // Immutable
       });
@@ -537,8 +538,6 @@ export function registerInvoiceRoutes(app: Express): void {
       }
 
       const updateLineItemSchema = insertLineItemSchema.partial().omit({
-        id: true,
-        createdAt: true,
         invoiceId: true // Cannot move line items between invoices
       });
 

@@ -85,7 +85,45 @@ export const invoices = pgTable("invoices", {
   viewedAt: timestamp("viewed_at"), // When customer first viewed
   paidAt: timestamp("paid_at"), // When fully paid
   cancelledAt: timestamp("cancelled_at"),
+
+  // Privacy v2
+  privacySalt: text("privacy_salt"), // 32-byte hex salt for preventing rainbow table attacks
 });
+
+/**
+ * Serializes invoice data into a canonical string for consistent hashing
+ * Used by both Backend (NFT Minting) and Frontend (Verification)
+ * Format: description|amount|lineItemsString|salt
+ */
+export function serializeInvoiceForHashing(invoice: any): string {
+  // 1. Amount: Strict 2 decimal places
+  const amount = Number(invoice.totalAmount).toFixed(2);
+
+  // 2. Line Items: Sort and Format
+  // We expect invoice.lineItems to be populated
+  let lineItemsString = "";
+  if (invoice.lineItems && Array.isArray(invoice.lineItems)) {
+    // Sort by line number to ensure order
+    const sortedItems = [...invoice.lineItems].sort((a, b) => a.lineNumber - b.lineNumber);
+
+    lineItemsString = sortedItems.map(item => {
+      const qty = Number(item.quantity).toString(); // remove trailing zeros if any? keep simple
+      const price = Number(item.unitPrice).toFixed(2);
+      // Clean description of pipe characters to avoid injection
+      const cleanDesc = (item.description || "").replace(/\|/g, "");
+      return `${cleanDesc}|${qty}|${price}`;
+    }).join("|");
+  }
+
+  // 3. Salt
+  const salt = invoice.privacySalt || "";
+
+  // 4. Description
+  const description = (invoice.description || "").replace(/\|/g, "");
+
+  // Canonical String
+  return `${description}|${amount}|${lineItemsString}|${salt}`;
+}
 
 /**
  * Invoice Line Items - Individual products/services on an invoice
@@ -523,6 +561,15 @@ export const insertInvoiceMarketplaceSchema = createInsertSchema(invoiceMarketpl
   askingPrice: z.string().refine(val => parseFloat(val) > 0, "Asking price must be positive"),
 });
 
+export const insertInvoiceTemplateSchema = createInsertSchema(invoiceTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  ownerWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
+  name: z.string().min(1, "Template name required"),
+});
+
 // ============================================
 // SYSTEM TABLES
 // ============================================
@@ -564,6 +611,7 @@ export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
 export type InvoiceTemplate = typeof invoiceTemplates.$inferSelect;
+export type InsertInvoiceTemplate = z.infer<typeof insertInvoiceTemplateSchema>;
 
 export type BusinessProfile = typeof businessProfiles.$inferSelect;
 export type InsertBusinessProfile = z.infer<typeof insertBusinessProfileSchema>;

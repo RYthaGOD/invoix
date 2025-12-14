@@ -39,6 +39,8 @@ import type {
   InsertBusinessProfile,
   CustomerProfile,
   InsertCustomerProfile,
+  InvoiceTemplate,
+  InsertInvoiceTemplate,
 } from "@shared/invoice-schema";
 import { db } from "./db";
 import { eq, and, or, ne, desc, asc, sql, isNotNull } from "drizzle-orm";
@@ -63,7 +65,7 @@ export interface IInvoiceStorage {
 
   // Payment operations
   getPayment(id: string): Promise<Payment | undefined>;
-  getPaymentsByInvoice(invoiceId: string): Promise<Payment[]>;
+  getPaymentsByInvoice(invoiceId: string): Promise<(Payment & { receiptNftMint?: string | null })[]>;
   getPaymentsByWallet(walletAddress: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: string, updates: Partial<InsertPayment>): Promise<Payment | undefined>;
@@ -81,10 +83,10 @@ export interface IInvoiceStorage {
   deleteCustomerProfile(id: string): Promise<boolean>;
 
   // Template operations
-  getInvoiceTemplate(id: string): Promise<any | undefined>;
-  getInvoiceTemplates(ownerWallet: string): Promise<any[]>;
-  createInvoiceTemplate(template: any): Promise<any>;
-  updateInvoiceTemplate(id: string, updates: any): Promise<any | undefined>;
+  getInvoiceTemplate(id: string): Promise<InvoiceTemplate | undefined>;
+  getInvoiceTemplates(ownerWallet: string): Promise<InvoiceTemplate[]>;
+  createInvoiceTemplate(template: InsertInvoiceTemplate): Promise<InvoiceTemplate>;
+  updateInvoiceTemplate(id: string, updates: Partial<InsertInvoiceTemplate>): Promise<InvoiceTemplate | undefined>;
   deleteInvoiceTemplate(id: string): Promise<boolean>;
 
   // Stats and analytics
@@ -96,6 +98,7 @@ export interface IInvoiceStorage {
     totalInvoices: number;
     totalUsers: number;
     encryptedInvoices: number;
+    totalVolume: number;
   }>;
 }
 
@@ -311,12 +314,20 @@ class InvoiceStorage implements IInvoiceStorage {
     return payment as Payment | undefined;
   }
 
-  async getPaymentsByInvoice(invoiceId: string): Promise<Payment[]> {
-    const rows = await db.select()
+  async getPaymentsByInvoice(invoiceId: string): Promise<(Payment & { receiptNftMint?: string | null })[]> {
+    const rows = await db.select({
+      payment: payments,
+      receipt: paymentReceiptNFTs
+    })
       .from(payments)
+      .leftJoin(paymentReceiptNFTs, eq(payments.id, paymentReceiptNFTs.paymentId))
       .where(eq(payments.invoiceId, invoiceId))
       .orderBy(desc(payments.createdAt));
-    return rows as Payment[];
+
+    return rows.map(({ payment, receipt }) => ({
+      ...payment,
+      receiptNftMint: receipt?.nftMint || null
+    }));
   }
 
   async getPaymentsByWallet(walletAddress: string): Promise<Payment[]> {
@@ -583,27 +594,29 @@ class InvoiceStorage implements IInvoiceStorage {
   // INVOICE TEMPLATE OPERATIONS
   // ===================================
 
-  async getInvoiceTemplate(id: string): Promise<any | undefined> {
+  async getInvoiceTemplate(id: string): Promise<InvoiceTemplate | undefined> {
     const [template] = await db.select().from(invoiceTemplates).where(eq(invoiceTemplates.id, id)).limit(1);
     return template;
   }
 
-  async getInvoiceTemplates(ownerWallet: string): Promise<any[]> {
+  async getInvoiceTemplates(ownerWallet: string): Promise<InvoiceTemplate[]> {
     return await db.select()
       .from(invoiceTemplates)
       .where(eq(invoiceTemplates.ownerWalletAddress, ownerWallet))
       .orderBy(desc(invoiceTemplates.createdAt));
   }
 
-  async createInvoiceTemplate(template: any): Promise<any> {
-    const [newTemplate] = await db.insert(invoiceTemplates).values(template).returning();
+  async createInvoiceTemplate(template: InsertInvoiceTemplate): Promise<InvoiceTemplate> {
+    // Ensure strict type compatibility
+    const insertData: any = { ...template };
+    const [newTemplate] = await db.insert(invoiceTemplates).values(insertData).returning();
     return newTemplate;
   }
 
-  async updateInvoiceTemplate(id: string, updates: any): Promise<any | undefined> {
+  async updateInvoiceTemplate(id: string, updates: Partial<InsertInvoiceTemplate>): Promise<InvoiceTemplate | undefined> {
     const [updated] = await db
       .update(invoiceTemplates)
-      .set(updates)
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(invoiceTemplates.id, id))
       .returning();
     return updated;
@@ -787,9 +800,10 @@ class InvoiceStorage implements IInvoiceStorage {
       const [invResult] = await db.select({ count: sql<string>`count(*)` }).from(invoices);
       const totalInvoices = invResult ? Number(invResult.count) : 0;
 
-      // 2. Total Business Users
-      const [userResult] = await db.select({ count: sql<string>`count(*)` }).from(businessProfiles);
-      const totalUsers = userResult ? Number(userResult.count) : 0;
+      // 2. Total Users (Business + Customers)
+      const [businessResult] = await db.select({ count: sql<string>`count(*)` }).from(businessProfiles);
+      const [customerResult] = await db.select({ count: sql<string>`count(*)` }).from(customerProfiles);
+      const totalUsers = (businessResult ? Number(businessResult.count) : 0) + (customerResult ? Number(customerResult.count) : 0);
 
       // 3. Encrypted Transactions
       const [encResult] = await db.select({ count: sql<string>`count(*)` })
@@ -797,17 +811,22 @@ class InvoiceStorage implements IInvoiceStorage {
         .where(eq(invoices.isArciumEncrypted, true));
       const encryptedInvoices = encResult ? Number(encResult.count) : 0;
 
-      // log("Global Stats Computed:", { totalInvoices, totalUsers, encryptedInvoices });
+      // 4. Total Platform Volume (Sum of all invoices)
+      const [volumeResult] = await db.select({ total: sql<string>`sum(${invoices.totalAmount})` }).from(invoices);
+      const totalVolume = volumeResult?.total ? parseFloat(volumeResult.total) : 0;
+
+      // log("Global Stats Computed:", { totalInvoices, totalUsers, encryptedInvoices, totalVolume });
 
       return {
         totalInvoices,
         totalUsers,
-        encryptedInvoices
+        encryptedInvoices,
+        totalVolume
       };
     } catch (error) {
       console.error("Error computing global stats:", error);
       // Return zeros on error to prevent crash
-      return { totalInvoices: 0, totalUsers: 0, encryptedInvoices: 0 };
+      return { totalInvoices: 0, totalUsers: 0, encryptedInvoices: 0, totalVolume: 0 };
     }
   }
 }

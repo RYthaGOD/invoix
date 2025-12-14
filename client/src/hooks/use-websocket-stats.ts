@@ -9,11 +9,13 @@ export function useWebSocketStats() {
         totalInvoices: number;
         totalUsers: number;
         encryptedInvoices: number;
+        totalVolume: number;
         isLive: boolean; // Tracking connection status
     }>({
         totalInvoices: 0,
         totalUsers: 0,
         encryptedInvoices: 0,
+        totalVolume: 0,
         isLive: false // Default to not live until connected
     });
 
