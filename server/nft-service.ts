@@ -132,7 +132,7 @@ export class InvoiceNFTService {
         const umiKeypair = this.umi.eddsa.createKeypairFromSecretKey(
           payerKeypair.secretKey
         );
-        this.umi.use({ install: (umi) => { umi.payer = umiKeypair as unknown as Signer; } });
+        this.umi.use(keypairIdentity(umiKeypair));
       }
 
       // 1. Check .env first (override)

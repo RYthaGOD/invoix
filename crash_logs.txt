@@ -1,0 +1,72 @@
+Mounting volume on: /var/lib/containers/railwayapp/bind-mounts/23fbb38a-ca16-40b5-b3c8-310e0d34347c/vol_eba9cy1zs7s48zgc
+Starting Container
+npm warn config production Use `--omit=dev` instead.
+
+> invoix@1.0.0 start
+> cross-env NODE_ENV=production node dist/index.js
+
+Γ£à Using PostgreSQL database (pg driver)
+≡ƒöî DB SSL Mode: disable (Internal network: true)
+   Description: Arweave wallet JWK for direct uploads
+   - ENCRYPTION_MASTER_KEY
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_API_URL
+
+ΓåÆ Application starting normally - these are optional
+   Description: IPFS API endpoint (e.g., https://ipfs.infura.io:5001)
+ΓåÆ Encryption and session features may have reduced security
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_ID
+   Description: IPFS project ID for authentication
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_SECRET
+   Description: IPFS project secret for authentication
+8:56:08 PM [express] Γ£à Environment validation passed
+
+ΓÜá∩╕Å  Optional security variables not configured (app will continue):
+8:56:08 PM [express] ≡ƒöì Validating environment variables...
+8:56:08 PM [express] Γä╣∩╕Å  Using default for SOLANA_NETWORK: mainnet-beta
+8:56:08 PM [express] Γä╣∩╕Å  Using default for ENABLE_ARCIUM_ENCRYPTION: false
+
+ΓÜá∩╕Å  Environment Warnings:
+ΓÜá∩╕Å  Optional environment variable not set: BUNDLR_PRIVATE_KEY
+   Description: Private key for Bundlr (Arweave) metadata storage
+ΓÜá∩╕Å  Optional environment variable not set: ARWEAVE_WALLET_JWK
+
+ΓåÆ To enable full security, add these environment variables:
+   ENCRYPTION_MASTER_KEY: openssl rand -hex 32
+   SESSION_SECRET: openssl rand -base64 32
+
+
+Γä╣∩╕Å  MERKLE_TREE_ADDRESS not set in .env
+   System will attempt to load it from the database 'system_settings' table.
+   If not found, a new tree will be created and persisted to the DB.
+   (This is normal for the first run or if relying on DB persistence)
+≡ƒÜÇ Starting Invoix B2B Platform...
+Environment: production
+Port: 8080
+Γ£à Routes registered
+[Static] Serving files from: /app/dist/public
+Γ£à Server successfully started!
+8:56:08 PM [express] serving on port 8080
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 10000ms)
+Γ£à Database connection established
+ΓÅ│ Running database migrations...
+Using migrations folder: /app/dist/migrations
+Γ£à Found migration journal at /app/dist/migrations/meta/_journal.json
+Γ£à Migrations completed successfully
+Γ¥î Failed to initialize NFT service: Error: Trying to use a NullSigner. Did you forget to set a Signer on your Umi instance? See the `signerIdentity` method for more information.
+    at createNullSigner (file:///app/node_modules/@metaplex-foundation/umi/dist/esm/Signer.mjs:99:17)
+    at createNullContext (file:///app/node_modules/@metaplex-foundation/umi/dist/esm/Context.mjs:31:13)
+    at createBaseUmi (file:///app/node_modules/@metaplex-foundation/umi/dist/esm/Umi.mjs:27:6)
+    at createUmi (file:///app/node_modules/@metaplex-foundation/umi-bundle-defaults/dist/esm/index.mjs:6:10)
+    at new InvoiceNFTService (file:///app/dist/index.js:7772:16)
+    at getInvoiceNFTService (file:///app/dist/index.js:8459:26)
+    at initializeNFTService (file:///app/dist/index.js:8464:19)
+    at file:///app/dist/index.js:11196:48
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+ΓÜá∩╕Å  NFT Service failed to initialize (See warning above). NFT features will be disabled.
+Γ£à Database connected. Service is now READY.
+[WS] Client connected
+8:59:00 PM [express] GET /api/auth/me 401 in 3ms :: {"authenticated":false,"message":"Not authenticated"}
+[WS] Client connected
+8:59:09 PM [express] GET /api/health 200 in 1ms :: {"status":"ok","service":"Invoix B2B Invoicing Platform"}
+[WS] Client connected
