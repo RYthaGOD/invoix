@@ -8,78 +8,83 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { SolanaWalletProvider } from "@/lib/wallet-provider";
 import { RealtimeProvider } from "@/hooks/use-realtime";
 import { AuthProvider } from "@/hooks/use-auth";
-import InvoiceLanding from "@/pages/invoice-landing";
-import InvoiceList from "@/pages/invoice-list";
-import InvoiceCreate from "@/pages/invoice-create";
-import InvoiceDetail from "@/pages/invoice-detail";
-import PayInvoice from "@/pages/pay-invoice";
-import Customers from "@/pages/customers";
-import Templates from "@/pages/templates";
-import DashboardLayout from "@/pages/dashboard-layout";
-import NotFound from "@/pages/not-found";
-import ComingSoon from "@/pages/coming-soon";
+import { Suspense, lazy } from "react";
+import { Loader } from "@/components/ui/loader";
 
-import Stats from "@/pages/stats";
-import SettingsPage from "@/pages/settings";
+// Lazy Load Pages
+const InvoiceLanding = lazy(() => import("@/pages/invoice-landing"));
+const InvoiceList = lazy(() => import("@/pages/invoice-list"));
+const InvoiceCreate = lazy(() => import("@/pages/invoice-create"));
+const InvoiceDetail = lazy(() => import("@/pages/invoice-detail"));
+const PayInvoice = lazy(() => import("@/pages/pay-invoice"));
+const Customers = lazy(() => import("@/pages/customers"));
+const Templates = lazy(() => import("@/pages/templates"));
+const DashboardLayout = lazy(() => import("@/pages/dashboard-layout"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const ComingSoon = lazy(() => import("@/pages/coming-soon"));
+const Stats = lazy(() => import("@/pages/stats"));
+const SettingsPage = lazy(() => import("@/pages/settings"));
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={InvoiceLanding} />
-      <Route path="/stats" component={Stats} />
-      <Route path="/pay/:invoiceId" component={PayInvoice} />
+    <Suspense fallback={<Loader />}>
+      <Switch>
+        <Route path="/" component={InvoiceLanding} />
+        <Route path="/stats" component={Stats} />
+        <Route path="/pay/:invoiceId" component={PayInvoice} />
 
-      {/* Dashboard Routes with Layout */}
-      <Route path="/invoices">
-        {() => (
-          <DashboardLayout>
-            <InvoiceList />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path="/invoices/create">
-        {() => (
-          <DashboardLayout>
-            <InvoiceCreate />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path="/invoices/:id">
-        {(params: { id: string }) => (
-          <DashboardLayout>
-            <InvoiceDetail />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path="/customers">
-        {() => (
-          <DashboardLayout>
-            <Customers />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path="/templates">
-        {() => (
-          <DashboardLayout>
-            <Templates />
-          </DashboardLayout>
-        )}
-      </Route>
+        {/* Dashboard Routes with Layout */}
+        <Route path="/invoices">
+          {() => (
+            <DashboardLayout>
+              <InvoiceList />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/invoices/create">
+          {() => (
+            <DashboardLayout>
+              <InvoiceCreate />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/invoices/:id">
+          {(params: { id: string }) => (
+            <DashboardLayout>
+              <InvoiceDetail />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/customers">
+          {() => (
+            <DashboardLayout>
+              <Customers />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/templates">
+          {() => (
+            <DashboardLayout>
+              <Templates />
+            </DashboardLayout>
+          )}
+        </Route>
 
-      {/* Placeholders for Future Features */}
-      <Route path="/pricing" component={ComingSoon} />
-      <Route path="/rewards" component={ComingSoon} />
-      <Route path="/dashboard/settings">
-        {() => (
-          <DashboardLayout>
-            <SettingsPage />
-          </DashboardLayout>
-        )}
-      </Route>
-      <Route path="/dashboard/blacklist" component={ComingSoon} />
+        {/* Placeholders for Future Features */}
+        <Route path="/pricing" component={ComingSoon} />
+        <Route path="/rewards" component={ComingSoon} />
+        <Route path="/dashboard/settings">
+          {() => (
+            <DashboardLayout>
+              <SettingsPage />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/dashboard/blacklist" component={ComingSoon} />
 
-      <Route component={NotFound} />
-    </Switch>
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

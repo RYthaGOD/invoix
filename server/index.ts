@@ -248,9 +248,40 @@ export async function triggerGracefulShutdown() {
     });
 
     // STARTUP STRATEGY:
-    // 1. Start HTTP Server immediately (so Railway sees us as healthy/live)
-    // 2. Try to connect to DB in background
-    // 3. If DB fails, we serve 503 until it reconnects
+    // 1. In Production, we MUST wait for DB connection & migration to prevent early API failures.
+    // 2. In Dev, we can be more lenient, but keeping it consistent is safer.
+
+    console.log("⏳ Connecting to Database...");
+
+    // Retry logic for DB connection
+    let connected = false;
+    let retries = 30; // 60 seconds total
+    while (!connected && retries > 0) {
+      connected = await checkDatabaseConnection(1, 100); // Quick check
+      if (!connected) {
+        retries--;
+        await new Promise(res => setTimeout(res, 2000));
+      }
+    }
+
+    if (!connected) {
+      console.error("❌ CRITICAL: Could not connect to database after 60 seconds.");
+      process.exit(1); // Fail hard in production so platform recycles the instance
+    }
+
+    // Run migrations synchronously before listening
+    await runMigrations();
+
+    // Initialize NFT Service
+    if (process.env.PAYER_PRIVATE_KEY) {
+      const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+      const nftInitSuccess = await initializeNFTService(payerKeypair);
+      if (nftInitSuccess) {
+        console.log("✅ NFT Service initialized with payer wallet");
+      } else {
+        console.warn("⚠️  NFT Service failed to initialize. NFT features will be disabled.");
+      }
+    }
 
     // Global generic error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -270,61 +301,8 @@ export async function triggerGracefulShutdown() {
     server.listen(port, "0.0.0.0", () => {
       console.log(`✅ Server successfully started!`);
       log(`serving on port ${port}`);
-
-      // Background DB Initialization
-      (async () => {
-        let connected = false;
-        startupPhase = "connecting_to_db";
-
-        while (!connected) {
-          try {
-            connected = await checkDatabaseConnection(5, 2000); // Check in small bursts
-            if (connected) {
-              startupPhase = "running_migrations";
-              lastStartupError = null; // Clear error on connection success
-
-              try {
-                await runMigrations();
-
-                // Initialize NFT Service (After DB is ready)
-                // Initialize NFT Service (After DB is ready)
-                if (process.env.PAYER_PRIVATE_KEY) {
-                  const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
-                  const nftInitSuccess = await initializeNFTService(payerKeypair);
-                  if (nftInitSuccess) {
-                    console.log("✅ NFT Service initialized with payer wallet");
-                  } else {
-                    console.warn("⚠️  NFT Service failed to initialize (See warning above). NFT features will be disabled.");
-                  }
-                }
-
-                isServiceReady = true;
-                startupPhase = "ready";
-                console.log("✅ Database connected. Service is now READY.");
-              } catch (migrationError: any) {
-                const msg = migrationError instanceof Error ? migrationError.message : String(migrationError);
-                console.error("❌ Migration failed:", msg);
-                lastStartupError = `Migration failed: ${msg}`;
-                // If migrations fail, we might want to stay in loop or just fail?
-                // For now, let's wait and retry? Or is it fatal?
-                // Usually fatal, but valid to retry if it was a transient DB issue.
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                connected = false; // Force retry loop
-              }
-            } else {
-              const msg = "Database connection check returned false (timeout)";
-              console.log(`⏳ ${msg}. Retrying in 5 seconds...`);
-              lastStartupError = msg;
-              await new Promise(resolve => setTimeout(resolve, 5000));
-            }
-          } catch (e: any) {
-            const msg = e instanceof Error ? e.message : String(e);
-            console.error("❌ Critical error in background initialization (Retrying in 5s):", msg);
-            lastStartupError = `Connection error: ${msg}`;
-            await new Promise(resolve => setTimeout(resolve, 5000));
-          }
-        }
-      })();
+      isServiceReady = true;
+      startupPhase = "ready";
     });
 
     // Graceful shutdown
@@ -336,7 +314,6 @@ export async function triggerGracefulShutdown() {
       });
     });
 
-    // ... (Error handlers)
   } catch (error) {
     console.error("❌ FATAL ERROR during server startup:", error);
     process.exit(1);

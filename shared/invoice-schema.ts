@@ -6,7 +6,7 @@
  */
 
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, decimal, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, decimal, integer, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -88,6 +88,14 @@ export const invoices = pgTable("invoices", {
 
   // Privacy v2
   privacySalt: text("privacy_salt"), // 32-byte hex salt for preventing rainbow table attacks
+}, (table) => {
+  return {
+    invoicerWalletIdx: index("invoicer_wallet_idx").on(table.invoicerWalletAddress),
+    invoiceeWalletIdx: index("invoicee_wallet_idx").on(table.invoiceeWalletAddress),
+    statusIdx: index("status_idx").on(table.status),
+    dueDateIdx: index("due_date_idx").on(table.dueDate),
+    createdAtIdx: index("created_at_idx").on(table.createdAt),
+  };
 });
 
 /**

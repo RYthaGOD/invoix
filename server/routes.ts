@@ -31,6 +31,9 @@ import { registerTemplateRoutes } from "./template-routes";
 // Import Upload routes
 import { registerUploadRoutes } from "./upload-routes";
 
+// Import Profile routes
+import { registerProfileRoutes } from "./profile-routes";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
   app.get("/api/health", (_req, res) => {
@@ -72,6 +75,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // UPLOAD ROUTES (Logos)
   // ================================================
   registerUploadRoutes(app);
+
+  // ================================================
+  // BUSINESS PROFILE ROUTES
+  // ================================================
+  registerProfileRoutes(app);
 
   const server = createServer(app);
   return server;

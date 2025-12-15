@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useToast } from '@/hooks/use-toast';
+import { BusinessProfileForm } from '@/components/business-profile-form';
 
 export default function SettingsPage() {
     const { publicKey } = useWallet();
@@ -156,6 +157,11 @@ export default function SettingsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-8">
+
+                            {/* BUSINESS DETAILS FORM */}
+                            <BusinessProfileForm />
+
+                            <Separator />
 
                             {/* LOGO UPLOAD SECTION */}
                             <div className="flex bg-muted/20 p-6 rounded-lg border gap-6 items-start">
