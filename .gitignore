@@ -52,4 +52,6 @@ replit.nix
 
 # Temp files
 *.tmp
-.cache/
+
+# Temp Bundle
+temp_bundle.js

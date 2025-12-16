@@ -10,8 +10,14 @@ import bs58 from "bs58";
 import nacl from "tweetnacl";
 import fetch from "node-fetch";
 
-// Use the private key from get-pubkey.mjs
-const PRIVATE_KEY = "2kVgx6xbijWa1yVXD16A4iVb4CqM1XWCqX5dw5AjvYGvTqLkgGLmEhcRRF346vhHHUjFhnu1cakCyYLLN5U3jTiz";
+// Use the private key from environment variables
+const PRIVATE_KEY = process.env.TEST_PRIVATE_KEY;
+
+if (!PRIVATE_KEY) {
+    console.error("❌ Error: TEST_PRIVATE_KEY environment variable is not set.");
+    console.error("   Please set it in your .env file or environment.");
+    process.exit(1);
+}
 const API_URL = "https://invoix-web-production.up.railway.app";
 
 async function testAuthentication() {
