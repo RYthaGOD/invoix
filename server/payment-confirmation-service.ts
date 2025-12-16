@@ -4,6 +4,7 @@ import { payments, paymentReceiptNFTs, invoices } from "@shared/invoice-schema";
 import { eq } from "drizzle-orm";
 import { getInvoiceNFTService } from "./nft-service";
 import { Connection } from "@solana/web3.js";
+import crypto from "crypto";
 
 const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com");
 
@@ -33,20 +34,20 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
 
         // 3. Insert Payment Record
         const paymentId = crypto.randomUUID();
-        await db.insert(payments).values({
+        const paymentData = {
             id: paymentId,
             invoiceId: invoiceId,
             paymentNumber: `PAY-${Date.now().toString().slice(-6)}`,
-            amount: invoice.remainingAmount, // Assuming full payment for now
+            amount: invoice.remainingAmount, // Assuming full payment
             currency: invoice.currency,
             txSignature: signature,
-            fromAddress: payerAddress, // Actually the user's wallet, but we only have fee payer here? We need the user's wallet.
-            // In the route, we didn't extract the user's wallet. 
-            // Ideally we parse it from the transaction. For now we use a placeholder or parse later.
+            fromAddress: payerAddress,
             toAddress: invoice.invoicerWalletAddress,
             status: "confirmed",
             confirmedAt: new Date(),
-        });
+        };
+
+        await db.insert(payments).values(paymentData);
 
         // 4. Update Invoice Status
         await db.update(invoices).set({
@@ -56,25 +57,43 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             paidAt: new Date(),
         }).where(eq(invoices.id, invoiceId));
 
-        // 5. Mint Receipt NFT
+        // 5. Special Logic: Community NFT Drop
+        if (invoice.description === "Exclusive Community NFT Mint") {
+            console.log(`[PAYMENT] Community Drop Payment Detected! Minting Standard NFT...`);
+            const nftService = getInvoiceNFTService();
+            if (nftService.isReady()) {
+                try {
+                    // Airdrop the Special NFT to the payer
+                    await nftService.mintSpecialNFT(payerAddress, invoiceId);
+                    console.log(`[NFT] Special NFT Airdropped to ${payerAddress}`);
+                } catch (mintError) {
+                    console.error("[NFT] Failed to mint special NFT:", mintError);
+                }
+            }
+            return;
+        }
+
+        // 6. Standard Receipt NFT
         console.log(`[NFT] Minting Receipt NFT...`);
         const nftService = getInvoiceNFTService();
         if (nftService.isReady()) {
-            const receipt = await nftService.mintPaymentReceiptNFT({
-                paymentId,
-                invoice,
-                payerWallet: payerAddress, // This should be the actual user wallet
-                amount: invoice.remainingAmount,
-                signature
+
+            // Construct the payment object expected by the service
+            // We use 'as any' safely here because paymentData matches the DB schema expected by SelectPayment
+            const receiptResult = await nftService.mintPaymentReceiptNFT({
+                payment: paymentData as any,
+                invoice: invoice,
+                recipientAddress: payerAddress
             });
-            console.log(`[NFT] Receipt Minted: ${receipt.assetId}`);
+
+            console.log(`[NFT] Receipt Minted: ${receiptResult.mint}`);
 
             // Save to DB
             await db.insert(paymentReceiptNFTs).values({
                 paymentId,
                 invoiceId,
-                nftMint: receipt.assetId,
-                nftMetadataUri: "https://arweave.net/...", // Placeholder or from service
+                nftMint: receiptResult.mint,
+                nftMetadataUri: "https://arweave.net/placeholder", // Placeholder
                 nftOwner: payerAddress,
                 receiptNumber: `RCPT-${Date.now()}`,
                 amount: invoice.remainingAmount,
@@ -82,7 +101,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                 paymentDate: new Date(),
                 taxYear: new Date().getFullYear(),
                 txSignature: signature,
-                nftMintSignature: receipt.signature
+                nftMintSignature: receiptResult.signature
             });
         }
 

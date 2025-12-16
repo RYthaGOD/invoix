@@ -11,6 +11,25 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+
+function OGBadge() {
+  const { data } = useQuery<{ isOG: boolean }>({
+    queryKey: ["/api/business/profile"],
+  });
+
+  if (!data?.isOG) return null;
+
+  return (
+    <div
+      className="flex items-center gap-1 mt-1 text-[10px] font-bold text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20 w-fit animate-pulse"
+      title="OG Community Member"
+    >
+      <span>👑</span>
+      <span>OG MEMBER</span>
+    </div>
+  );
+}
 
 const menuItems = [
   {
@@ -62,10 +81,13 @@ export function AppSidebar() {
               <div className="absolute inset-0 bg-primary/20 blur-md rounded-full" />
               <img src="/invoix-logo.jpg" alt="Invoix Logo" className="relative w-8 h-8 object-contain rounded-lg border border-white/10" />
             </div>
-            <span className="text-xl font-bold font-heading tracking-tight">
-              <span className="text-foreground">Inv</span>
-              <span className="text-primary">oix</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold font-heading tracking-tight leading-none">
+                <span className="text-foreground">Inv</span>
+                <span className="text-primary">oix</span>
+              </span>
+              <OGBadge />
+            </div>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

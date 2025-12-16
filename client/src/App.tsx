@@ -25,11 +25,14 @@ const ComingSoon = lazy(() => import("@/pages/coming-soon"));
 const Stats = lazy(() => import("@/pages/stats"));
 const SettingsPage = lazy(() => import("@/pages/settings"));
 
+const CommunityNFTDrop = lazy(() => import("@/pages/community-nft"));
+
 function Router() {
   return (
     <Suspense fallback={<Loader />}>
       <Switch>
         <Route path="/" component={InvoiceLanding} />
+        <Route path="/community-nft" component={CommunityNFTDrop} />
         <Route path="/stats" component={Stats} />
         <Route path="/pay/:invoiceId" component={PayInvoice} />
 

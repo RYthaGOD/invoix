@@ -199,6 +199,16 @@ export class InvoiceNFTService {
   }
 
   /**
+   * Get the current merkle tree address
+   */
+  public getMerkleTree(): string {
+    if (!this.merkleTree) {
+      throw new Error("Merkle tree not initialized");
+    }
+    return this.merkleTree;
+  }
+
+  /**
    * Create a new merkle tree for compressed NFTs
    */
   private async createMerkleTree(): Promise<string> {
@@ -798,20 +808,95 @@ export class InvoiceNFTService {
     try {
       const storageService = getMetadataStorageService();
       const result = await storageService.uploadMetadata(metadata, identifier, {
-        maxRetries: 3,
-        initialDelayMs: 1000,
-        maxDelayMs: 5000,
-        backoffMultiplier: 2,
-      });
-
+        isPrivate: false
+      } as any);
       return result.uri;
+
     } catch (error) {
-      console.error("Failed to upload metadata to decentralized storage:", error);
-      // Fallback to API endpoint
-      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
-      return `${apiUrl}/nft-metadata/${identifier}`;
+      console.error("Failed to upload metadata:", error);
+      // Fallback to a valid dummy or handle error
+      throw error;
     }
   }
+
+  /**
+   * Mint Special NFT (Community Campaign)
+   */
+  /**
+   * Mint Special NFT (Community Campaign) - Standard NFT
+   * Triggered automatically after invoice payment
+   */
+  async mintSpecialNFT(
+    recipientAddress: string,
+    invoiceId: string
+  ): Promise<{ mint: string; signature: string }> {
+    if (!this.isReady()) {
+      throw new Error("NFT service not initialized");
+    }
+
+    try {
+      console.log(`[NFT] Minting INVOIX Exclusive NFT for ${recipientAddress}...`);
+
+      // 1. Generate Metadata
+      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+      const imageUri = `${apiUrl}/uploads/invoix-exclusive.jpg`;
+
+      const metadata: InvoiceNFTMetadata = {
+        name: "INVOIX Exclusive",
+        symbol: "INVX",
+        uri: "", // Will be set after upload
+        description: "Exclusive NFT for community members and supporters. Limited Edition (Max 1000).",
+        image: imageUri,
+        attributes: [
+          { trait_type: "Type", value: "Community Special" },
+          { trait_type: "Edition", value: "Genesis" },
+          { trait_type: "Source Invoice", value: invoiceId }
+        ],
+        properties: {
+          category: "image",
+          creators: [{ address: this.umi.identity.publicKey.toString(), share: 100, verified: true }]
+        }
+      };
+
+      const metadataUri = await this.uploadMetadata(metadata, `invoix-exclusive-${recipientAddress}-${Date.now()}`);
+
+      // 2. Mint Standard NFT
+      const mint = generateSigner(this.umi);
+
+      const createNftIx = createNft(this.umi, {
+        mint,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        uri: metadataUri,
+        sellerFeeBasisPoints: percentAmount(0),
+        tokenStandard: TokenStandard.NonFungible,
+        isMutable: false, // Immutable? Or true if we want to update? Let's say false for "Final" feel.
+        creators: [
+          {
+            address: this.umi.identity.publicKey,
+            verified: true,
+            share: 100,
+          }
+        ],
+        tokenOwner: toPublicKey(recipientAddress), // Airdrop directly to recipient
+      } as any);
+
+      const result = await createNftIx.sendAndConfirm(this.umi);
+      const signature = result.signature.toString();
+
+      console.log(`✅ Minted INVOIX Exclusive NFT. Mint: ${mint.publicKey.toString()} Sig: ${signature}`);
+
+      return {
+        mint: mint.publicKey.toString(),
+        signature: signature
+      };
+
+    } catch (error) {
+      console.error("Failed to mint special NFT:", error);
+      throw error;
+    }
+  }
+
 
   /**
    * Helper: Extract Leaf Index from Transaction (Public)

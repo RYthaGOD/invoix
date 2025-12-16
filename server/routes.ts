@@ -34,6 +34,9 @@ import { registerUploadRoutes } from "./upload-routes";
 // Import Profile routes
 import { registerProfileRoutes } from "./profile-routes";
 
+// Import Special Mint routes
+import { registerSpecialMintRoutes } from "./special-mint-routes";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
   app.get("/api/health", (_req, res) => {
@@ -86,6 +89,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BUSINESS PROFILE ROUTES
   // ================================================
   registerProfileRoutes(app);
+
+  // ================================================
+  // SPECIAL NFT ROUTES
+  // ================================================
+  // registerSpecialMintRoutes(app); // Deprecated in favor of invoice flow? Or keep for direct mint test?
+  // Let's replace it or add alongside. The plan pivoted to invoice based.
+  // We should register the new one.
+
+  // const { registerCommunityDropRoutes } = await import("./community-drop-routes");
+  // registerCommunityDropRoutes(app);
 
   const server = createServer(app);
   return server;

@@ -726,7 +726,7 @@ export function registerInvoiceRoutes(app: Express): void {
    * Get payments for an invoice
    * GET /api/invoices/:id/payments?wallet=xxx
    */
-  app.get("/api/invoices/:id/payments", async (req, res) => {
+  app.get("/api/invoices/:id/payments", requireWalletOwnership, async (req, res) => {
     try {
       const { id } = req.params;
       const walletAddress = req.query.wallet as string;

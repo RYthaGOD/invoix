@@ -1,8 +1,8 @@
 
 import type { Express, Request, Response } from "express";
 import { db } from "./db";
-import { businessProfiles } from "@shared/invoice-schema";
-import { eq } from "drizzle-orm";
+import { businessProfiles, invoices } from "@shared/invoice-schema";
+import { eq, and } from "drizzle-orm";
 import { requireWalletOwnership } from "./security";
 import { z } from "zod";
 
@@ -34,11 +34,22 @@ export function registerProfileRoutes(app: Express) {
                 where: eq(businessProfiles.ownerWalletAddress, walletAddress),
             });
 
+            // Check for OG Status (Paid Community Drop Invoice)
+            const ogPurchase = await db.query.invoices.findFirst({
+                where: and(
+                    eq(invoices.invoiceeWalletAddress, walletAddress),
+                    eq(invoices.description, "Exclusive Community NFT Mint"),
+                    eq(invoices.status, "paid")
+                )
+            });
+
+            const isOG = !!ogPurchase;
+
             if (!profile) {
-                return res.json({ success: true, profile: null });
+                return res.json({ success: true, profile: null, isOG });
             }
 
-            res.json({ success: true, profile });
+            res.json({ success: true, profile, isOG });
         } catch (error: any) {
             console.error("Error fetching profile:", error);
             res.status(500).json({ success: false, message: "Failed to fetch profile" });
