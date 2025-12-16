@@ -58,6 +58,11 @@ const menuItems = [
     icon: Zap,
   },
   {
+    title: "Special NFT",
+    url: "/community-nft",
+    icon: Zap, // Using Zap temporarily or importing Gem/Gift if available. Zap matches "flash" logic, or reuse existing icons.
+  },
+  {
     title: "Blacklist",
     url: "/dashboard/blacklist", // Keeping if relevant, or remove if not implemented
     icon: Shield,
