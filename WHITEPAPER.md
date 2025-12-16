@@ -1,4 +1,4 @@
-# 📄 SolanaInvoice Protocol: Whitepaper
+# 📄 Invoix Protocol: Whitepaper
 
 > **Version**: 1.0.0 (Mainnet Beta) · **Date**: December 2025
 
@@ -8,10 +8,10 @@
 
 Global B2B payments face a critical efficiency gap. Traditional invoice settlement relies on legacy banking rails (SWIFT/ACH) characterized by **3-5 day settlement times**, **high fees (1-3%)**, and opaque tracking. Conversely, while public blockchains offer speed, they default to radical transparency—unacceptable for businesses requiring confidentiality for pricing agreements and client lists.
 
-**SolanaInvoice** bridges this gap. It is a crypto-native invoicing protocol built on Solana that delivers **instant settlement (<400ms)** with **enterprise-grade privacy**. By leveraging a hybrid encryption architecture (AES-256 today, transitioning to Arcium Confidential Computing tomorrow), it allows businesses to transact on-chain without exposing their trade secrets.
+**Invoix** bridges this gap. It is a crypto-native invoicing protocol built on Solana that delivers **instant settlement (<400ms)** with **enterprise-grade privacy**. By leveraging a hybrid encryption architecture (AES-256 today, transitioning to Arcium Confidential Computing tomorrow), it allows businesses to transact on-chain without exposing their trade secrets.
 
 ### Key Value Propositions
-| Feature | Traditional Invoicing | Public Blockchains (Raw) | SolanaInvoice Protocol |
+| Feature | Traditional Invoicing | Public Blockchains (Raw) | Invoix Protocol |
 | :--- | :--- | :--- | :--- |
 | **Settlement Speed** | 3-5 Business Days | 400ms | **400ms** |
 | **Transaction Cost** | $15-$50 (Wire Fees) | ~$0.00025 (Network Fee) | **1% (Platform Fee)** |
