@@ -62,6 +62,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerNftRoutes(app);
 
   // ================================================
+  // GASLESS PAYMENT ROUTES
+  // ================================================
+  app.use("/api", (await import("./payment-routes")).paymentRouter);
+
+
+  // ================================================
   // CUSTOMER ROUTES
   // ================================================
   registerCustomerRoutes(app);

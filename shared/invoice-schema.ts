@@ -339,9 +339,11 @@ export const paymentReceiptNFTs = pgTable("payment_receipt_nfts", {
   invoiceId: varchar("invoice_id").notNull().references(() => invoices.id),
 
   // NFT Details
-  nftMint: text("nft_mint").notNull().unique(), // NFT mint address
+  nftMint: text("nft_mint").notNull().unique(), // NFT mint address (Asset ID for cNFT)
   nftMetadataUri: text("nft_metadata_uri").notNull(), // Metadata URI
   nftOwner: text("nft_owner").notNull(), // Current owner (payment recipient)
+  nftMerkleTree: text("nft_merkle_tree"), // Merkle Tree Address (for cNFTs)
+  nftLeafIndex: integer("nft_leaf_index"), // Leaf Index (for cNFTs)
 
   // Receipt Information
   receiptNumber: text("receipt_number").notNull().unique(), // Human-readable receipt #

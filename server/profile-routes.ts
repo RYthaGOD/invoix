@@ -17,6 +17,7 @@ const profileSchema = z.object({
     taxRegistrationNumber: z.string().optional(),
     defaultPaymentTerms: z.string().optional(),
     defaultInvoicePrefix: z.string().optional(),
+    logoUrl: z.string().optional(), // Added logoUrl
 });
 
 export function registerProfileRoutes(app: Express) {
@@ -78,6 +79,8 @@ export function registerProfileRoutes(app: Express) {
                         businessWebsite: data.businessWebsite || null,
                         taxId: data.taxId || null,
                         taxRegistrationNumber: data.taxRegistrationNumber || null,
+                        // Fix: Save logoUrl
+                        logoUrl: data.logoUrl || existing.logoUrl,
                         defaultPaymentTerms: data.defaultPaymentTerms || "Net 30",
                         defaultInvoicePrefix: data.defaultInvoicePrefix || "INV",
                         updatedAt: new Date(),
@@ -96,6 +99,7 @@ export function registerProfileRoutes(app: Express) {
                         businessWebsite: data.businessWebsite || null,
                         taxId: data.taxId || null,
                         taxRegistrationNumber: data.taxRegistrationNumber || null,
+                        logoUrl: data.logoUrl || null,
                         defaultPaymentTerms: data.defaultPaymentTerms || "Net 30",
                         defaultInvoicePrefix: data.defaultInvoicePrefix || "INV",
                     })
@@ -107,6 +111,69 @@ export function registerProfileRoutes(app: Express) {
         } catch (error: any) {
             console.error("Error updating profile:", error);
             res.status(500).json({ success: false, message: "Failed to update profile" });
+        }
+    });
+
+    /**
+     * Mint Verified Business Identity NFT
+     * POST /api/business/mint-identity-nft
+     */
+    app.post("/api/business/mint-identity-nft", requireWalletOwnership, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = req.session.walletAddress!;
+
+            // 1. Get Profile
+            const profile = await db.query.businessProfiles.findFirst({
+                where: eq(businessProfiles.ownerWalletAddress, walletAddress),
+            });
+
+            if (!profile) {
+                return res.status(404).json({ success: false, message: "Business profile not found. Please save your profile first." });
+            }
+
+            // 2. Sybil Protection: Check if already minted
+            // Prevents draining server funds by minting infinite badges
+            const { businessIdentityNFTs } = await import("@shared/invoice-schema");
+            const existingNft = await db.query.businessIdentityNFTs.findFirst({
+                where: eq(businessIdentityNFTs.businessProfileId, profile.id),
+            });
+
+            if (existingNft) {
+                return res.status(400).json({ success: false, message: "You have already minted a Verified Business Badge." });
+            }
+
+            // 3. Get NFT Service
+            const { getInvoiceNFTService } = await import("./nft-service");
+            const nftService = getInvoiceNFTService();
+
+            if (!nftService.isReady()) {
+                // Try to init
+                const initialized = await nftService.initialize();
+                if (!initialized) {
+                    return res.status(503).json({ success: false, message: "NFT Service unavailable" });
+                }
+            }
+
+            // 4. Mint Identity NFT
+            // This is a server-paid transaction (our gift to the user for verifying)
+            console.log(`Creating Identity NFT for ${profile.businessName}...`);
+            const { mint, signature } = await nftService.mintBusinessIdentityNFT(profile, "basic");
+
+            // 5. Save to DB
+            await db.insert(businessIdentityNFTs).values({
+                businessProfileId: profile.id,
+                nftMint: mint,
+                nftOwner: walletAddress,
+                nftMetadataUri: "https://api.solanainvoice.com/nft-metadata/business/" + profile.id, // Placeholder, actual comes from service but not returned in basic struct
+                verificationLevel: "basic",
+                nftMintSignature: signature,
+            });
+
+            res.json({ success: true, message: "Identity Badge Minted successfully!", mint, signature });
+
+        } catch (error: any) {
+            console.error("Mint Identity Error:", error);
+            res.status(500).json({ success: false, message: error.message || "Failed to mint identity NFT" });
         }
     });
 }

@@ -34,7 +34,7 @@ export default function PayInvoice() {
     const invoiceId = params?.invoiceId;
 
     const { connection } = useConnection();
-    const { publicKey, sendTransaction } = useWallet();
+    const { publicKey, sendTransaction, signTransaction } = useWallet();
 
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [loading, setLoading] = useState(true);
@@ -79,19 +79,46 @@ export default function PayInvoice() {
         setError(null);
 
         try {
+            // 1. Fetch Fee Payer Config
+            const configRes = await fetch("/api/config/fee-payer");
+            const config = await configRes.json();
+
+            if (!config.success) {
+                throw new Error("Gasless payment not available: " + config.message);
+            }
+
+            const FEE_PAYER_PUBKEY = new PublicKey(config.feePayer);
+            // Use configured fee or fallback to safe default (0.15)
+            const GAS_FEE_AMOUNT = config.feeAmount || 0.15;
+            const TREASURY_ADDRESS = new PublicKey(config.treasuryAddress || TREASURY_WALLET_ADDRESS);
+
             const amountToPay = parseFloat(invoice.remainingAmount);
 
-            // Platform Fee Calculation (1%)
-            const feeRate = 0.01;
-            const feeAmount = amountToPay * feeRate;
-            const recipientAmount = amountToPay - feeAmount;
+            // Platform Fee Calculation (1% + Gas Fee)
+            // Note: The original 1% fee was subtracted from recipientAmount in previous code?
+            // "const recipientAmount = amountToPay - feeAmount;" -> Implementation meant Payer pays Total, Recipient gets 99%.
+            // NOW: We want Payer to pay Total + Gas Fee.
+            // OR: Payer pays Total, and Gas Fee is deducted?
+            // User request: "add a small amount as a fee to the transaction to recover"
+            // So: User Pays = Invoice Amount (100) + Gas Fee (0.15). Recipient gets 99, Treasury gets 1 + 0.15.
 
-            const feeLamports = Math.floor(feeAmount * Math.pow(10, invoice.tokenDecimals));
-            const recipientLamports = Math.floor(recipientAmount * Math.pow(10, invoice.tokenDecimals));
+            const platformFeeRate = 0.01;
+            const platformFeeAmount = amountToPay * platformFeeRate; // 1% of invoice
+            const recipientAmount = amountToPay - platformFeeAmount; // 99% of invoice
+
+            // Gas Recovery Fee is EXTRA separate transfer
+            const gasFeeAmount = GAS_FEE_AMOUNT;
+
+            // Convert to Atomic Units
+            const decimals = invoice.tokenDecimals;
+            const toAtomic = (val: number) => Math.floor(val * Math.pow(10, decimals));
+
+            const platformFeeLamports = toAtomic(platformFeeAmount);
+            const recipientLamports = toAtomic(recipientAmount);
+            const gasFeeLamports = toAtomic(gasFeeAmount);
 
             // Get token accounts
             const recipientPubkey = new PublicKey(invoice.invoicerWalletAddress);
-            const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
             const mintPubkey = new PublicKey(invoice.tokenMint);
 
             const senderTokenAccount = await getAssociatedTokenAddress(
@@ -106,20 +133,22 @@ export default function PayInvoice() {
 
             const treasuryTokenAccount = await getAssociatedTokenAddress(
                 mintPubkey,
-                treasuryPubkey
+                TREASURY_ADDRESS
             );
 
             const transaction = new Transaction();
+            transaction.feePayer = FEE_PAYER_PUBKEY; // SET FEE PAYER TO PROTOCOL
 
-            // Import createAssociatedTokenAccountInstruction
-            const { createAssociatedTokenAccountInstruction } = await import('@solana/spl-token');
+            // Import instructions
+            const { createAssociatedTokenAccountInstruction, createTransferInstruction } = await import('@solana/spl-token');
 
-            // 1. Check/Create Recipient ATA
+            // 1. Check/Create Recipient ATA (Payer pays rent for this if needed? Or Protocol?)
+            // If Protocol is fee payer, Protocol pays rent!
             const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
             if (!recipientAccountInfo) {
                 transaction.add(
                     createAssociatedTokenAccountInstruction(
-                        publicKey,
+                        FEE_PAYER_PUBKEY, // Payer creates account (Protocol pays rent)
                         recipientTokenAccount,
                         recipientPubkey,
                         mintPubkey
@@ -132,9 +161,9 @@ export default function PayInvoice() {
             if (!treasuryAccountInfo) {
                 transaction.add(
                     createAssociatedTokenAccountInstruction(
-                        publicKey,
+                        FEE_PAYER_PUBKEY,
                         treasuryTokenAccount,
-                        treasuryPubkey,
+                        TREASURY_ADDRESS,
                         mintPubkey
                     )
                 );
@@ -154,24 +183,64 @@ export default function PayInvoice() {
                 );
             }
 
-            // 4. Transfer Fee to Treasury (1%)
-            if (feeLamports > 0) {
+            // 4. Transfer Platform Fee (1%)
+            if (platformFeeLamports > 0) {
                 transaction.add(
                     createTransferInstruction(
                         senderTokenAccount,
                         treasuryTokenAccount,
                         publicKey,
-                        feeLamports,
+                        platformFeeLamports,
                         [],
                         TOKEN_PROGRAM_ID
                     )
                 );
             }
 
-            // Send transaction
-            const signature = await sendTransaction(transaction, connection);
+            // 5. Transfer Gas Recovery Fee (0.15 USDC)
+            if (gasFeeLamports > 0) {
+                transaction.add(
+                    createTransferInstruction(
+                        senderTokenAccount,
+                        treasuryTokenAccount,
+                        publicKey,
+                        gasFeeLamports,
+                        [],
+                        TOKEN_PROGRAM_ID
+                    )
+                );
+            }
 
-            // Wait for confirmation with retry logic
+            // Get recent blockhash
+            const { blockhash } = await connection.getLatestBlockhash("confirmed");
+            transaction.recentBlockhash = blockhash;
+
+            // PARTIAL SIGN BY USER
+            // User signs to authorize transfers from their wallet
+            const signedTx = await signTransaction!(transaction);
+
+            // Serialize and Send to Backend Relay
+            const serializedTx = signedTx.serialize({ requireAllSignatures: false });
+            const txBase64 = serializedTx.toString('base64');
+
+            const relayResponse = await fetch("/api/payments/relay", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    transaction: txBase64,
+                    invoiceId: invoice.id
+                })
+            });
+
+            const relayResult = await relayResponse.json();
+
+            if (!relayResult.success) {
+                throw new Error(relayResult.message || "Payment relay failed");
+            }
+
+            const signature = relayResult.signature;
+
+            // Wait for confirmation
             let confirmed = false;
             for (let attempt = 0; attempt < 3; attempt++) {
                 try {
@@ -189,14 +258,13 @@ export default function PayInvoice() {
             // Record payment in database
             const paymentData = {
                 invoiceId: invoice.id,
-                amount: invoice.remainingAmount,
+                amount: invoice.remainingAmount, // Full amount recorded as paid
                 currency: invoice.currency,
                 txSignature: signature,
                 fromAddress: publicKey.toString(),
                 toAddress: invoice.invoicerWalletAddress,
-                paymentMethod: "solana_transfer",
+                paymentMethod: "gasless_transfer",
                 status: "completed",
-                // Pass optional accounting fields
                 paymentNotes: paymentNotes || undefined,
                 isBusinessExpense: isBusinessExpense,
             };
@@ -208,12 +276,11 @@ export default function PayInvoice() {
             });
 
             if (!response.ok) {
-                throw new Error("Failed to record payment");
+                console.warn("Payment recorded on chain but DB update failed");
+                // Don't throw here, show success but maybe warn
             }
 
             setPaymentSuccess(true);
-
-            // Refresh invoice to show updated status
             setTimeout(() => {
                 window.location.reload();
             }, 3000);

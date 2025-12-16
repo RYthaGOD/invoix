@@ -28,8 +28,8 @@ export default function Stats() {
             icon: <BarChart3 className="w-5 h-5 text-primary" />
         },
         {
-            label: "Average Transaction Time",
-            value: "< 0.8s",
+            label: "Transaction Speed",
+            value: "Fast",
             change: "Optimal",
             icon: <Zap className="w-5 h-5 text-primary" />
         },
@@ -146,16 +146,16 @@ export default function Stats() {
                     <h2 className="text-2xl font-bold mb-4">System Health</h2>
                     <div className="grid md:grid-cols-3 gap-4">
                         <div className="p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div className="text-sm text-muted-foreground mb-1">API Latency</div>
-                            <div className="text-xl font-mono text-green-500">45ms</div>
+                            <div className="text-sm text-muted-foreground mb-1">API Status</div>
+                            <div className="text-xl font-mono text-green-500">Operational</div>
                         </div>
                         <div className="p-4 rounded-xl bg-background/50 border border-border/50">
                             <div className="text-sm text-muted-foreground mb-1">Solana Network</div>
                             <div className="text-xl font-mono text-green-500">Operational</div>
                         </div>
                         <div className="p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div className="text-sm text-muted-foreground mb-1">Arcium Nodes</div>
-                            <div className="text-xl font-mono text-green-500">12/12 Online</div>
+                            <div className="text-sm text-muted-foreground mb-1">Arcium Privacy</div>
+                            <div className="text-xl font-mono text-green-500">Active</div>
                         </div>
                     </div>
                 </div>

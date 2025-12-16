@@ -328,11 +328,11 @@ export class InvoiceNFTService {
    * Mint Payment Receipt NFT
    * Creates NFT proof of payment for tax/audit purposes
    */
-  async mintPaymentReceiptNFT(
-    payment: SelectPayment,
-    invoice: SelectInvoice,
-    recipientAddress: string
-  ): Promise<{
+  async mintPaymentReceiptNFT(params: {
+    payment: SelectPayment;
+    invoice: SelectInvoice;
+    recipientAddress: string;
+  }): Promise<{
     mint: string;
     signature: string;
   }> {
@@ -342,60 +342,78 @@ export class InvoiceNFTService {
 
     try {
       // Generate payment receipt metadata
-      const metadata = this.generatePaymentReceiptMetadata(payment, invoice);
+      const metadata = this.generatePaymentReceiptMetadata(params.payment, params.invoice);
 
       // Upload metadata
       const metadataUri = await this.uploadMetadata(
         metadata,
-        `payment-${payment.id}`
+        `payment-${params.payment.id}`
       );
 
-      // Mint as standard NFT (receipts should be permanent, not compressed)
-      const mint = generateSigner(this.umi);
+      // Metaplex Bubblegum (Compressed NFT) Logic
+      // Vastly cheaper (~0.000005 SOL vs 0.02 SOL)
+      // Server pays for minting
+      const leafOwner = toPublicKey(params.payment.fromAddress); // Payer owns the receipt
+      const merkleTreePubkey = toPublicKey(this.merkleTree!);
 
-      const createNftIx = await createNft(this.umi, {
-        mint,
-        name: metadata.name,
-        symbol: metadata.symbol,
-        uri: metadataUri,
-        sellerFeeBasisPoints: percentAmount(0),
-        tokenStandard: TokenStandard.NonFungible,
-        creators: [
-          {
-            address: toPublicKey(payment.fromAddress),
-            verified: true,
-            share: 100,
-          },
-        ],
-      } as any);
+      const mintIx = mintV1(this.umi, {
+        leafOwner,
+        merkleTree: merkleTreePubkey,
+        metadata: {
+          name: metadata.name,
+          symbol: metadata.symbol,
+          uri: metadataUri,
+          sellerFeeBasisPoints: 0,
+          collection: none(),
+          creators: [
+            {
+              // We list the Payer as creator but they cannot sign (server is minting)
+              // So verified MUST be false
+              address: toPublicKey(params.payment.fromAddress),
+              verified: false,
+              share: 100, // They own 100% of "creation" credit
+            },
+          ],
+        },
+      });
 
-      const result = await createNftIx.sendAndConfirm(this.umi);
+      const result = await mintIx.sendAndConfirm(this.umi);
+      const signature = result.signature.toString();
 
-      console.log(`✅ Minted payment receipt NFT for payment ${payment.id}`);
+      console.log(`✅ Minted cNFT Payment Receipt. Sig: ${signature}`);
+
+      // Extract details for cNFT
+      const leafIndex = await this.extractLeafIndexFromTransaction(signature);
+      const assetId = await this.deriveAssetId(leafIndex);
+
+      console.log(`   Asset ID: ${assetId}`);
+      console.log(`   Leaf Index: ${leafIndex}`);
 
       // 6. Store in DB (PaymentReceiptNFTs table)
       const { paymentReceiptNFTs } = await import("@shared/invoice-schema");
 
       await db.insert(paymentReceiptNFTs).values({
-        paymentId: payment.id,
-        invoiceId: invoice.id,
-        nftMint: mint.publicKey.toString(),
+        paymentId: params.payment.id,
+        invoiceId: params.invoice.id,
+        nftMint: assetId, // For cNFTs, this is the Asset ID
         nftMetadataUri: metadataUri,
-        nftOwner: payment.fromAddress,
-        receiptNumber: `RCPT-${payment.id.slice(0, 8)}`,
-        amount: payment.amount,
-        currency: payment.currency,
+        nftOwner: params.payment.fromAddress,
+        nftMerkleTree: this.merkleTree!,
+        nftLeafIndex: leafIndex,
+        receiptNumber: `RCPT-${params.payment.id.slice(0, 8)}`,
+        amount: params.payment.amount,
+        currency: params.payment.currency,
         paymentDate: new Date(), // Now
         taxYear: new Date().getFullYear(),
-        txSignature: payment.txSignature,
-        nftMintSignature: result.signature.toString()
+        txSignature: params.payment.txSignature,
+        nftMintSignature: signature
       });
 
       console.log(`✅ Persisted receipt NFT to DB`);
 
       return {
-        mint: mint.publicKey.toString(),
-        signature: result.signature.toString(),
+        mint: assetId,
+        signature: signature,
       };
     } catch (error) {
       console.error(`❌ Failed to mint payment receipt NFT:`, error);
@@ -444,7 +462,7 @@ export class InvoiceNFTService {
         creators: [
           {
             address: toPublicKey(businessProfile.ownerWalletAddress),
-            verified: true,
+            verified: false, // Server is paying/minting, cannot sign for user
             share: 100,
           },
         ],
@@ -729,7 +747,10 @@ export class InvoiceNFTService {
       symbol: "BIZ",
       uri: `${apiUrl}/nft-metadata/business/${businessProfile.id}`,
       description: `Verified business credentials for ${businessProfile.businessName}`,
-      image: `${apiUrl}/images/business-${verificationLevel}-nft.png`,
+      // Use User Logo if available, else configured default
+      image: businessProfile.logoUrl
+        ? (businessProfile.logoUrl.startsWith('http') ? businessProfile.logoUrl : `${apiUrl}${businessProfile.logoUrl}`)
+        : `${apiUrl}/images/business-${verificationLevel}-nft.png`,
       attributes: [
         {
           trait_type: "Business Name",
@@ -976,12 +997,9 @@ export class InvoiceNFTService {
   }
 
 
-  /**
-   * Get configured Merkle Tree Address
-   */
-  public getMerkleTree(): string | undefined {
-    return this.config.merkleTreeAddress;
-  }
+
+
+
 
   /**
    * Derive Asset ID from Leaf Index
