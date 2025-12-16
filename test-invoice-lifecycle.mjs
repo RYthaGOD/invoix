@@ -17,7 +17,13 @@ import fetch from "node-fetch";
 import fs from "fs";
 
 // Configuration
-const PRIVATE_KEY = "2kVgx6xbijWa1yVXD16A4iVb4CqM1XWCqX5dw5AjvYGvTqLkgGLmEhcRRF346vhHHUjFhnu1cakCyYLLN5U3jTiz";
+// Configuration
+const PRIVATE_KEY = process.env.TEST_PRIVATE_KEY;
+
+if (!PRIVATE_KEY) {
+    console.error("❌ Error: TEST_PRIVATE_KEY environment variable is not set.");
+    process.exit(1);
+}
 const API_URL = "https://invoix-web-production.up.railway.app";
 
 async function testLifecycle() {
