@@ -295,7 +295,7 @@ export default function SettingsPage() {
                                         </div>
                                         <Button
                                             className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                                            disabled={!hasProfile && !!publicKey}
+                                            disabled={!hasProfile}
                                             onClick={async () => {
                                                 if (!publicKey) return;
 
