@@ -34,8 +34,8 @@ export default function TransactionAccuracy({ projectId }: TransactionAccuracyPr
   });
 
   // Subscribe to real-time transaction events
-  useTransactionEvents((event) => {
-    console.log("[TransactionAccuracy] New transaction event:", event);
+  useTransactionEvents(() => {
+    // Event handler - intentionally empty, queries auto-refresh
   });
 
   if (isLoading) {
