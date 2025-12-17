@@ -234,6 +234,7 @@ export default function SettingsPage() {
                                                         const res = await fetch('/api/upload', {
                                                             method: 'POST',
                                                             headers: { 'Content-Type': 'application/json' },
+                                                            credentials: 'include',
                                                             body: JSON.stringify({ fileData: base64, fileName: file.name })
                                                         });
                                                         const data = await res.json();
@@ -242,6 +243,7 @@ export default function SettingsPage() {
                                                             await fetch('/api/business/profile', {
                                                                 method: 'PUT',
                                                                 headers: { 'Content-Type': 'application/json' },
+                                                                credentials: 'include',
                                                                 // We need to send other fields too? Or just logo? 
                                                                 // The endpoint expects a full object or validated partial? 
                                                                 // Schema says businessName is required.

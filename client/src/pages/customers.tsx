@@ -40,7 +40,7 @@ export default function Customers() {
 
         setLoading(true);
         try {
-            const response = await fetch(`/api/customers?wallet=${walletAddress}`);
+            const response = await fetch(`/api/customers?wallet=${walletAddress}`, { credentials: 'include' });
             if (!response.ok) throw new Error("Failed to load customers");
 
             const data = await response.json();
@@ -59,6 +59,7 @@ export default function Customers() {
         try {
             const response = await fetch(`/api/customers/${customerId}?wallet=${walletAddress}`, {
                 method: "DELETE",
+                credentials: "include",
             });
 
             if (!response.ok) throw new Error("Failed to delete customer");
@@ -275,6 +276,7 @@ function CustomerForm({
             const response = await fetch(url, {
                 method: customer ? "PATCH" : "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(payload),
             });
 
