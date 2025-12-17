@@ -824,31 +824,47 @@ export class InvoiceNFTService {
    */
   /**
    * Mint Special NFT (Community Campaign) - Standard NFT
-   * Triggered automatically after invoice payment
+   * Uses rarity-weighted random selection from collection
    */
   async mintSpecialNFT(
     recipientAddress: string,
-    invoiceId: string
-  ): Promise<{ mint: string; signature: string }> {
+    invoiceId: string,
+    mintedCounts?: Record<string, number>
+  ): Promise<{ mint: string; signature: string; nftVariant: any }> {
     if (!this.isReady()) {
       throw new Error("NFT service not initialized");
     }
 
     try {
-      console.log(`[NFT] Minting INVOIX Exclusive NFT for ${recipientAddress}...`);
+      // Import collection config
+      const { selectRandomNFT, NFT_COLLECTION } = await import("@shared/nft-collection");
+
+      // Select random NFT based on rarity weights
+      const counts = mintedCounts || { common: 0, uncommon: 0, rare: 0, epic: 0 };
+      const selectedNFT = selectRandomNFT(counts);
+
+      if (!selectedNFT) {
+        throw new Error("All NFTs sold out! Collection complete.");
+      }
+
+      console.log(`[NFT] Minting ${selectedNFT.name} (${selectedNFT.rarity}) for ${recipientAddress}...`);
 
       // 1. Generate Metadata
       const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
-      const imageUri = `${apiUrl}/uploads/invoix-exclusive.jpg`;
+      const imageUri = `${apiUrl}/uploads/${selectedNFT.image}`;
 
       const metadata: InvoiceNFTMetadata = {
-        name: "INVOIX Exclusive",
+        name: selectedNFT.name,
         symbol: "INVX",
         uri: "", // Will be set after upload
-        description: "Exclusive NFT for community members and supporters. Limited Edition (Max 1000).",
+        description: `INVOIX Genesis Collection - ${selectedNFT.rarity.toUpperCase()} Edition. Limited to 1000 total.`,
         image: imageUri,
         attributes: [
-          { trait_type: "Type", value: "Community Special" },
+          { trait_type: "Name", value: selectedNFT.name },
+          { trait_type: "Type", value: selectedNFT.type },
+          { trait_type: "Attack", value: selectedNFT.attack },
+          { trait_type: "HP", value: selectedNFT.hp },
+          { trait_type: "Rarity", value: selectedNFT.rarity.charAt(0).toUpperCase() + selectedNFT.rarity.slice(1) },
           { trait_type: "Edition", value: "Genesis" },
           { trait_type: "Source Invoice", value: invoiceId }
         ],
@@ -858,7 +874,7 @@ export class InvoiceNFTService {
         }
       };
 
-      const metadataUri = await this.uploadMetadata(metadata, `invoix-exclusive-${recipientAddress}-${Date.now()}`);
+      const metadataUri = await this.uploadMetadata(metadata, `${selectedNFT.id}-${recipientAddress}-${Date.now()}`);
 
       // 2. Mint Standard NFT
       const mint = generateSigner(this.umi);
@@ -870,7 +886,7 @@ export class InvoiceNFTService {
         uri: metadataUri,
         sellerFeeBasisPoints: percentAmount(0),
         tokenStandard: TokenStandard.NonFungible,
-        isMutable: false, // Immutable? Or true if we want to update? Let's say false for "Final" feel.
+        isMutable: false,
         creators: [
           {
             address: this.umi.identity.publicKey,
@@ -878,17 +894,18 @@ export class InvoiceNFTService {
             share: 100,
           }
         ],
-        tokenOwner: toPublicKey(recipientAddress), // Airdrop directly to recipient
+        tokenOwner: toPublicKey(recipientAddress),
       } as any);
 
       const result = await createNftIx.sendAndConfirm(this.umi);
       const signature = result.signature.toString();
 
-      console.log(`✅ Minted INVOIX Exclusive NFT. Mint: ${mint.publicKey.toString()} Sig: ${signature}`);
+      console.log(`✅ Minted ${selectedNFT.name} (${selectedNFT.rarity}). Mint: ${mint.publicKey.toString()} Sig: ${signature}`);
 
       return {
         mint: mint.publicKey.toString(),
-        signature: signature
+        signature: signature,
+        nftVariant: selectedNFT
       };
 
     } catch (error) {

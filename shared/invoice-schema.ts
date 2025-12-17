@@ -607,6 +607,33 @@ export const authNonces = pgTable("auth_nonces", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+/**
+ * Special NFT Mints - Tracks community collection mints
+ * Enforces 1 per wallet and supply limits per rarity
+ */
+export const specialNFTMints = pgTable("special_nft_mints", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Wallet that received the NFT
+  walletAddress: text("wallet_address").notNull().unique(), // Only 1 per wallet
+
+  // NFT Details
+  nftId: text("nft_id").notNull(), // e.g., "invoix-exclusive", "king-cobra"
+  nftName: text("nft_name").notNull(),
+  nftRarity: text("nft_rarity").notNull(), // common, uncommon, rare, epic
+  nftMint: text("nft_mint").notNull(), // NFT mint address
+
+  // Transaction Details  
+  txSignature: text("tx_signature").notNull(),
+  invoiceId: text("invoice_id"), // Source invoice if applicable
+
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  walletIdx: index("special_nft_wallet_idx").on(table.walletAddress),
+  rarityIdx: index("special_nft_rarity_idx").on(table.nftRarity),
+}));
+
 // ============================================
 // TYPE EXPORTS
 // ============================================

@@ -15,6 +15,13 @@
       "when": 1765797604909,
       "tag": "0001_outgoing_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765934634992,
+      "tag": "0002_romantic_multiple_man",
+      "breakpoints": true
     }
   ]
 }
