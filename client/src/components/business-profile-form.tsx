@@ -87,6 +87,7 @@ export function BusinessProfileForm() {
             const res = await fetch("/api/business/profile", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include", // Required for session cookie
                 body: JSON.stringify(values),
             });
             const data = await res.json();
