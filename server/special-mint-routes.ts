@@ -14,8 +14,9 @@ const GATEKEEPER_TOKEN_MINT = "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
 const DISCOUNTED_PRICE_USD = 0.50;
 const STANDARD_PRICE_USD = 5.00;
 // Treasury Wallet to receive the fee
-// Ideally this should be in .env or config, we'll try to use the one from env or fallback
-const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET || "H8sMJqjq9yRa9qKz7BwFvbKkYj3ZzV8zL8zZ8zL8zZ8z"; // Replace with actual default or require env
+const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET || "H8sMJqjq9yRa9qKz7BwFvbKkYj3ZzV8zL8zZ8zL8zZ8z";
+// Admin wallet for reserved NFT minting (set in .env for privacy)
+const ADMIN_WALLET = process.env.ADMIN_WALLET;
 
 // Validation Schemas
 const quoteSchema = z.object({
@@ -250,6 +251,120 @@ export function registerSpecialMintRoutes(app: Express) {
         } catch (error: any) {
             console.error("Admin mint error:", error);
             res.status(500).json({ success: false, message: error.message || "Failed to mint" });
+        }
+    });
+
+    /**
+     * Admin: Batch Mint All Reserved NFTs
+     * POST /api/special/admin-batch-mint
+     * Only works for authenticated admin wallet
+     * Mints: 1 Common, 1 Uncommon, 3 Rare, 1 Epic = 6 total
+     */
+    app.post("/api/special/admin-batch-mint", async (req: Request, res: Response) => {
+        try {
+            // Admin endpoint is disabled if ADMIN_WALLET not set
+            if (!ADMIN_WALLET) {
+                return res.status(404).json({ success: false, message: "Not found" });
+            }
+
+            // Check session for admin wallet
+            const sessionWallet = (req.session as any)?.walletAddress;
+
+            if (!sessionWallet) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Not authenticated. Please connect your wallet first."
+                });
+            }
+
+            if (sessionWallet !== ADMIN_WALLET) {
+                // Don't reveal admin wallet info to non-admins
+                return res.status(404).json({ success: false, message: "Not found" });
+            }
+
+            console.log(`[ADMIN] Batch minting 6 reserved NFTs to ${ADMIN_WALLET}`);
+
+            // Import collection config
+            const { NFT_COLLECTION } = await import("@shared/nft-collection");
+
+            // Define reserved NFTs: 1 Common, 1 Uncommon, 3 Rare, 1 Epic
+            const reservedNFTs = [
+                NFT_COLLECTION.find(n => n.id === "invoix-exclusive"),  // Common
+                NFT_COLLECTION.find(n => n.id === "king-cobra"),        // Uncommon
+                NFT_COLLECTION.find(n => n.id === "invoix-koala"),      // Rare 1
+                NFT_COLLECTION.find(n => n.id === "invoix-giraffe"),    // Rare 2
+                NFT_COLLECTION.find(n => n.id === "invoix-koala"),      // Rare 3
+                NFT_COLLECTION.find(n => n.id === "invoix-ant"),        // Epic
+            ].filter(Boolean);
+
+            if (reservedNFTs.length !== 6) {
+                return res.status(500).json({ success: false, message: "Could not find all NFT variants" });
+            }
+
+            // Initialize NFT service
+            const nftService = getInvoiceNFTService();
+            if (!nftService.isReady()) {
+                await nftService.initialize();
+            }
+
+            const results: any[] = [];
+
+            // Mint each reserved NFT
+            for (const nftVariant of reservedNFTs) {
+                try {
+                    console.log(`[ADMIN] Minting ${nftVariant!.name}...`);
+                    const result = await nftService.mintSpecificNFT(ADMIN_WALLET, nftVariant as any);
+
+                    // Record to DB
+                    const { db } = await import("./db");
+                    const { specialNFTMints } = await import("@shared/invoice-schema");
+
+                    // Use a unique identifier to bypass the unique wallet constraint for admin
+                    try {
+                        await db.insert(specialNFTMints).values({
+                            walletAddress: `${ADMIN_WALLET}-reserve-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            nftId: nftVariant!.id,
+                            nftName: nftVariant!.name,
+                            nftRarity: nftVariant!.rarity,
+                            nftMint: result.mint,
+                            txSignature: result.signature,
+                            invoiceId: "admin-batch-reserve",
+                        });
+                    } catch (dbError) {
+                        console.warn("DB insert warning:", dbError);
+                    }
+
+                    results.push({
+                        success: true,
+                        nft: nftVariant!.name,
+                        rarity: nftVariant!.rarity,
+                        mint: result.mint,
+                        signature: result.signature
+                    });
+
+                    // Small delay between mints to avoid rate limiting
+                    await new Promise(r => setTimeout(r, 1000));
+
+                } catch (mintError: any) {
+                    results.push({
+                        success: false,
+                        nft: nftVariant!.name,
+                        error: mintError.message
+                    });
+                }
+            }
+
+            const successful = results.filter(r => r.success).length;
+
+            res.json({
+                success: successful === 6,
+                message: `Minted ${successful}/6 reserved NFTs`,
+                results
+            });
+
+        } catch (error: any) {
+            console.error("Batch mint error:", error);
+            res.status(500).json({ success: false, message: error.message || "Failed to batch mint" });
         }
     });
 }
