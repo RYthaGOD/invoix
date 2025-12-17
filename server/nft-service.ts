@@ -109,6 +109,7 @@ export class InvoiceNFTService {
   private umi: Umi;
   private config: NFTMintConfig;
   private merkleTree: string | null = null;
+  private collectionMint: string | null = null; // Collection NFT for marketplace visibility
   private initialized: boolean = false;
 
   constructor(
@@ -135,15 +136,15 @@ export class InvoiceNFTService {
         this.umi.use(keypairIdentity(umiKeypair));
       }
 
+      // Load database utilities
+      const { systemSettings } = await import("@shared/invoice-schema");
+      const { eq } = await import("drizzle-orm");
+
       // 1. Check .env first (override)
       if (this.config.merkleTreeAddress) {
         this.merkleTree = this.config.merkleTreeAddress;
       } else {
         // 2. Check Database for persisted tree
-        const { systemSettings } = await import("@shared/invoice-schema");
-        const { db } = await import("./db");
-        const { eq } = await import("drizzle-orm");
-
         const storedTree = await db.select().from(systemSettings).where(eq(systemSettings.key, "merkle_tree_address")).limit(1);
 
         if (storedTree.length > 0) {
@@ -180,6 +181,18 @@ export class InvoiceNFTService {
         }
       }
 
+      // Load or create Collection NFT for marketplace integration
+      const storedCollection = await db.select().from(systemSettings).where(eq(systemSettings.key, "genesis_collection_mint")).limit(1);
+
+      if (storedCollection.length > 0) {
+        this.collectionMint = storedCollection[0].value;
+        console.log(`✅ Loaded Collection NFT from DB: ${this.collectionMint}`);
+      } else {
+        // Create collection NFT on first run
+        console.log(`🎨 Creating INVOIX Genesis Collection NFT...`);
+        await this.createCollectionNFT();
+      }
+
       this.initialized = true;
       console.log("✅ Invoice NFT service initialized");
 
@@ -206,6 +219,83 @@ export class InvoiceNFTService {
       throw new Error("Merkle tree not initialized");
     }
     return this.merkleTree;
+  }
+
+  /**
+   * Get the collection mint address
+   */
+  public getCollectionMint(): string | null {
+    return this.collectionMint;
+  }
+
+  /**
+   * Create Collection NFT for marketplace visibility
+   * All minted NFTs will reference this collection
+   */
+  private async createCollectionNFT(): Promise<void> {
+    try {
+      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+
+      // Collection metadata
+      const collectionMetadata = {
+        name: "INVOIX Genesis Collection",
+        symbol: "INVX",
+        uri: "",
+        description: "Official INVOIX Genesis NFT Collection. Limited to 1000 unique pieces across 4 rarity tiers.",
+        image: `${apiUrl}/uploads/invoix-exclusive.jpg`, // Use main NFT as collection image
+        attributes: [
+          { trait_type: "Collection", value: "Genesis" },
+          { trait_type: "Total Supply", value: "1000" },
+        ],
+        properties: {
+          category: "image",
+          creators: [{ address: this.umi.identity.publicKey.toString(), share: 100, verified: true }]
+        }
+      };
+
+      // Upload collection metadata
+      const storageService = getMetadataStorageService();
+      const metadataResult = await storageService.uploadMetadata(collectionMetadata, "invoix-genesis-collection", { isPrivate: false } as any);
+
+      // Create Collection NFT
+      const collectionSigner = generateSigner(this.umi);
+
+      const createCollectionIx = createNft(this.umi, {
+        mint: collectionSigner,
+        name: "INVOIX Genesis Collection",
+        symbol: "INVX",
+        uri: metadataResult.uri,
+        sellerFeeBasisPoints: percentAmount(5), // 5% royalties on all trades
+        isCollection: true,
+        tokenStandard: TokenStandard.NonFungible,
+        creators: [
+          {
+            address: this.umi.identity.publicKey,
+            verified: true,
+            share: 100,
+          }
+        ],
+      } as any);
+
+      await createCollectionIx.sendAndConfirm(this.umi);
+
+      this.collectionMint = collectionSigner.publicKey.toString();
+      console.log(`✅ Created Collection NFT: ${this.collectionMint}`);
+
+      // Persist to DB
+      const { systemSettings } = await import("@shared/invoice-schema");
+      await db.insert(systemSettings).values({
+        key: "genesis_collection_mint",
+        value: this.collectionMint,
+        description: "INVOIX Genesis Collection NFT Address",
+      });
+      console.log(`💾 Persisted Collection NFT to DB`);
+
+    } catch (error) {
+      console.error("❌ Failed to create Collection NFT:", error);
+      // Don't fail initialization - collection is optional for basic functionality
+      console.warn("⚠️ Continuing without collection. NFTs will still work but won't be grouped on marketplaces.");
+    }
   }
 
   /**
@@ -876,15 +966,16 @@ export class InvoiceNFTService {
 
       const metadataUri = await this.uploadMetadata(metadata, `${selectedNFT.id}-${recipientAddress}-${Date.now()}`);
 
-      // 2. Mint Standard NFT
+      // 2. Mint Standard NFT with Collection and Royalties
       const mint = generateSigner(this.umi);
 
-      const createNftIx = createNft(this.umi, {
+      // Build NFT creation with collection if available
+      const nftConfig: any = {
         mint,
         name: metadata.name,
         symbol: metadata.symbol,
         uri: metadataUri,
-        sellerFeeBasisPoints: percentAmount(0),
+        sellerFeeBasisPoints: percentAmount(5), // 5% royalties on secondary sales
         tokenStandard: TokenStandard.NonFungible,
         isMutable: false,
         creators: [
@@ -895,7 +986,18 @@ export class InvoiceNFTService {
           }
         ],
         tokenOwner: toPublicKey(recipientAddress),
-      } as any);
+      };
+
+      // Add collection reference if collection exists
+      if (this.collectionMint) {
+        nftConfig.collection = some({
+          key: toPublicKey(this.collectionMint),
+          verified: false, // Will be verified by collection authority later
+        });
+        console.log(`[NFT] Adding to collection: ${this.collectionMint}`);
+      }
+
+      const createNftIx = createNft(this.umi, nftConfig);
 
       const result = await createNftIx.sendAndConfirm(this.umi);
       const signature = result.signature.toString();
