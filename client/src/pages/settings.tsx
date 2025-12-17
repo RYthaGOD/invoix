@@ -239,22 +239,46 @@ export default function SettingsPage() {
                                                         });
                                                         const data = await res.json();
                                                         if (data.success) {
-                                                            // IMMEDIATELY SAVE TO PROFILE
-                                                            await fetch('/api/business/profile', {
-                                                                method: 'PUT',
-                                                                headers: { 'Content-Type': 'application/json' },
-                                                                credentials: 'include',
-                                                                // We need to send other fields too? Or just logo? 
-                                                                // The endpoint expects a full object or validated partial? 
-                                                                // Schema says businessName is required.
-                                                                // We should actually let the Form handle this to avoid partial updates breaking validation.
-                                                                // I'll show a message to use the form above or Reload.
-                                                                // Actually, let's just trigger a reload or invalidate.
-                                                                // Wait, I can just fetch current profile, update logo, and save back.
+                                                            // Fetch current profile to get businessName (required field)
+                                                            const profileRes = await fetch('/api/business/profile', {
+                                                                credentials: 'include'
                                                             });
-                                                            toast({ title: "Logo Uploaded", description: "PLEASE CLICK 'SAVE BUSINESS DETAILS' in the form above to persist this change permanently if it didn't update." });
-                                                            // To be safe, let's just use the form. The form has a logo uploader now.
-                                                            // I will hide this input or make it just scroll to the form.
+                                                            const profileData = await profileRes.json();
+
+                                                            if (profileData.success && profileData.profile) {
+                                                                // Update profile with new logo URL
+                                                                const updateRes = await fetch('/api/business/profile', {
+                                                                    method: 'PUT',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    credentials: 'include',
+                                                                    body: JSON.stringify({
+                                                                        businessName: profileData.profile.businessName,
+                                                                        businessEmail: profileData.profile.businessEmail || '',
+                                                                        businessPhone: profileData.profile.businessPhone || '',
+                                                                        businessAddress: profileData.profile.businessAddress || '',
+                                                                        businessWebsite: profileData.profile.businessWebsite || '',
+                                                                        taxId: profileData.profile.taxId || '',
+                                                                        taxRegistrationNumber: profileData.profile.taxRegistrationNumber || '',
+                                                                        defaultPaymentTerms: profileData.profile.defaultPaymentTerms || 'Net 30',
+                                                                        defaultInvoicePrefix: profileData.profile.defaultInvoicePrefix || 'INV',
+                                                                        logoUrl: data.url
+                                                                    })
+                                                                });
+                                                                const updateData = await updateRes.json();
+                                                                if (updateData.success) {
+                                                                    toast({ title: "Logo Uploaded", description: "Your business logo has been saved!" });
+                                                                    // Refresh the page or invalidate query to show new logo
+                                                                    window.location.reload();
+                                                                } else {
+                                                                    throw new Error(updateData.message || 'Failed to save logo to profile');
+                                                                }
+                                                            } else {
+                                                                toast({
+                                                                    title: "Logo Uploaded",
+                                                                    description: "Please save your business profile first to attach the logo.",
+                                                                    variant: "destructive"
+                                                                });
+                                                            }
                                                         } else {
                                                             throw new Error(data.message);
                                                         }
