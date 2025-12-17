@@ -114,11 +114,16 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                         // It's sending to treasury ATA. Check amount.
                         // Data layout: [3 (Transfer), amount(8 bytes)]
                         // OR [12 (TransferChecked), amount(8 bytes), decimals(1 byte)]
-                        if (ix.data.length >= 9) {
+                        if (ix.data.length >= 9 && ix.data.length <= 64) { // Safe buffer size bounds
                             // Very rough parsing (Little Endian BigInt)
                             // Skip first byte (instruction)
                             try {
                                 const amountBuffer = ix.data.subarray(1, 9);
+                                // Additional safety: verify buffer is exactly 8 bytes
+                                if (amountBuffer.length !== 8) {
+                                    console.warn("[SECURITY] Malformed instruction data length");
+                                    continue;
+                                }
                                 const amount = amountBuffer.readBigUInt64LE(0);
                                 if (Number(amount) >= requiredFeeAtomic) {
                                     feePaid = true;
