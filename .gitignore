@@ -62,4 +62,4 @@ tsc_output*.txt
 crash_logs.txt
 check_error.txt
 test-error.log
-stats-output.json
+stats-output.jsonlogs.txt

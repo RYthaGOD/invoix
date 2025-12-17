@@ -6,12 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useToast } from '@/hooks/use-toast';
 import { BusinessProfileForm } from '@/components/business-profile-form';
+import { Connection, Transaction, VersionedTransaction } from '@solana/web3.js';
+import { Buffer } from 'buffer';
+
+// Ensure Buffer is available in browser
+if (typeof window !== 'undefined') {
+    (window as any).Buffer = (window as any).Buffer || Buffer;
+}
 
 export default function SettingsPage() {
-    const { publicKey } = useWallet();
+    const { publicKey, signTransaction } = useWallet();
+    const { connection } = useConnection();
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -323,7 +331,7 @@ export default function SettingsPage() {
                                             className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                                             disabled={!hasProfile}
                                             onClick={async () => {
-                                                if (!publicKey) return;
+                                                if (!publicKey || !signTransaction) return;
 
                                                 if (!hasProfile) {
                                                     toast({
@@ -331,13 +339,13 @@ export default function SettingsPage() {
                                                         description: "Please fill out and SAVE your Business Profile details above before minting your identity.",
                                                         variant: "destructive"
                                                     });
-                                                    // Scroll to top
                                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                                     return;
                                                 }
 
-                                                toast({ title: "Minting Identity...", description: "Please wait while we verify your profile." });
+                                                toast({ title: " preparing Mint...", description: "Please wait..." });
                                                 try {
+                                                    // 1. Get Transaction from Server
                                                     const res = await fetch('/api/business/mint-identity-nft', {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
@@ -345,17 +353,52 @@ export default function SettingsPage() {
                                                         body: JSON.stringify({ wallet: publicKey.toBase58() })
                                                     });
                                                     const data = await res.json();
-                                                    if (data.success) {
-                                                        toast({ title: "Identity Minted!", description: "View your new badge in your wallet." });
-                                                    } else {
+
+                                                    if (!data.success) {
                                                         throw new Error(data.message);
                                                     }
+
+                                                    const { transaction: txBase64, mint } = data;
+
+                                                    // 2. Deserialize Transaction (Umi produces Versioned Transactions)
+                                                    const transaction = VersionedTransaction.deserialize(Buffer.from(txBase64, 'base64'));
+
+                                                    // 3. User Signs Transaction (Pays 0.008 SOL + Gas)
+                                                    toast({ title: "Please Sign", description: "Approve the transaction in your wallet. (Cost: ~0.02 SOL total)" });
+                                                    const signedTx = await signTransaction(transaction);
+
+                                                    // 4. Send Transaction
+                                                    toast({ title: "Sending...", description: "Confirming on Solana..." });
+                                                    const signature = await connection.sendRawTransaction(signedTx.serialize());
+
+                                                    // 5. External Confirmation Call
+                                                    // We confirm locally first to ensure UI updates, then tell server
+                                                    await connection.confirmTransaction(signature, 'confirmed');
+
+                                                    // 6. Tell Backend it's done
+                                                    const confirmRes = await fetch('/api/business/confirm-identity-mint', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        credentials: 'include',
+                                                        body: JSON.stringify({ signature, mint })
+                                                    });
+                                                    const confirmData = await confirmRes.json();
+
+                                                    if (confirmData.success) {
+                                                        toast({ title: "Success!", description: "Your Business Identity Badge has been minted." });
+                                                        // Invalidate profile query to reflect changes (if badge is shown in profile)
+                                                        queryClient.invalidateQueries({ queryKey: ["/api/business/profile"] });
+                                                    } else {
+                                                        toast({ title: "Minted but not saved?", description: confirmData.message, variant: "destructive" });
+                                                    }
+
                                                 } catch (err: any) {
-                                                    toast({ title: "Minting Failed", description: err.message, variant: "destructive" });
+                                                    console.error(err);
+                                                    toast({ title: "Minting Failed", description: err.message || "Transaction rejected or failed", variant: "destructive" });
                                                 }
                                             }}
                                         >
-                                            {!hasProfile ? "Save Profile First" : "Mint Badge (Free)"}
+                                            {!hasProfile ? "Save Profile First" : "Mint Badge (0.008 SOL + Gas)"}
                                         </Button>
                                     </div>
                                 </div>

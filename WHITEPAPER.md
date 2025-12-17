@@ -1,92 +1,101 @@
-# 📄 Invoix Protocol: Whitepaper
+# INVOIX: The Hybrid B2B Settlement Layer
 
-> **Version**: 1.0.0 (Mainnet Beta) · **Date**: December 2025
+**Version:** 1.0  
+**Date:** December 2025  
+**Status:** Live Beta
 
 ---
 
 ## 1. Executive Summary
 
-Global B2B payments face a critical efficiency gap. Traditional invoice settlement relies on legacy banking rails (SWIFT/ACH) characterized by **3-5 day settlement times**, **high fees (1-3%)**, and opaque tracking. Conversely, while public blockchains offer speed, they default to radical transparency—unacceptable for businesses requiring confidentiality for pricing agreements and client lists.
+**Invoix** is a next-generation B2B invoicing and settlement platform built on Solana. It bridges the gap between traditional business accounting (Web2) and instantaneous, trustless value transfer (Web3).
 
-**Invoix** bridges this gap. It is a crypto-native invoicing protocol built on Solana that delivers **instant settlement (<400ms)** with **enterprise-grade privacy**. By leveraging a hybrid encryption architecture (AES-256 today, transitioning to Arcium Confidential Computing tomorrow), it allows businesses to transact on-chain without exposing their trade secrets.
+Current B2B payments are slow, expensive (credit card fees ~2.9%), and opaque. Crypto payments are fast but often lack the professional tooling (invoices, receipts, privacy, recurring billing) businesses require.
 
-### Key Value Propositions
-| Feature | Traditional Invoicing | Public Blockchains (Raw) | Invoix Protocol |
-| :--- | :--- | :--- | :--- |
-| **Settlement Speed** | 3-5 Business Days | 400ms | **400ms** |
-| **Transaction Cost** | $15-$50 (Wire Fees) | ~$0.00025 (Network Fee) | **1% (Platform Fee)** |
-| **Data Privacy** | High (Siloed) | None (Public Ledger) | **Hybrid Encrypted** |
-| **Auditability** | Manual / Difficult | Perfect | **Perfect** |
+Invoix solves this by treating **Invoices as Smart Assets** while maintaining a familiar Web2 user experience.
 
 ---
 
-## 2. Technical Architecture
+## 2. The Problem
 
-### 2.1 The Privacy Layer (Hybrid Model)
-The protocol utilizes a dual-state storage architecture to balance performance, privacy, and decentralization.
+### 1. The "Net 30" Friction
+Traditional B2B transactions rely on Net 30/60/90 terms because money moves slowly. Wire transfers take days; checks take weeks. This creates cash flow gaps.
 
-#### Current State: Server-Side Encryption (v1)
-*   **Method**: AES-256-GCM (Galois/Counter Mode).
-*   **Key Management**: Keys are derived from a master secret and managed server-side.
-*   **Access**: Decryption occurs only upon cryptographic signature verification from an authorized wallet (the Issuer or the Recipient).
-*   **Data Partitioning**: 
-    *   *Public*: Invoice Metadata (ID, Status, Dates) → Indexed SQL.
-    *   *Private*: Line Items, Unit Prices, Notes → Encrypted Blobs.
+### 2. Reconciliation Hell
+Sending crypto is easy; knowing *what* a transaction was for is hard. A wallet transaction hash (`8x...abc`) has no semantic context. Accounting teams spend hours matching blockchain hashes to PDF invoices.
 
-#### Future State: Arcium Network Integration (v2)
-*   **Goal**: Remove the central server as a trusted party.
-*   **Technology**: Arcium Multi-Party eXecution (MXE).
-*   **Mechanism**: Encryption keys are sharded across a decentralized network of nodes. Computation (decryption for viewing) happens inside a Trusted Execution Environment (TEE), ensuring even node operators cannot view raw data.
-
-### 2.2 The Settlement Layer
-*   **Network**: Solana Mainnet.
-*   **Assets**: USDC (SPL), EURC (SPL), SOL.
-*   **Payment Verification**: The protocol utilizes an "Optimistic Listener" model. It monitors the blockchain for transactions matching the invoice criteria (Sender, Receiver, Amount, Mint) and automatically reconciles the state to `PAID`.
+### 3. Privacy vs. Transparency
+Public blockchains reveal too much (who paid whom). Traditional systems reveal too little (is the invoice actually valid?). Businesses need a middle ground.
 
 ---
 
-## 3. The x402 Protocol (Anti-Spam & Revenue)
+## 3. The Solution: Hybrid Architecture
 
-To prevent resource exhaustion attacks (invoice spamming) and sustain the platform, the protocol implements the **x402 Standard** (Payment Required).
+Invoix uses a **Hybrid Infrastructure**:
 
-1.  **Gating**: Creating an invoice requires a nominal micropayment token.
-2.  **Cost**: Fixed at **$0.01 USD** (payable in USDC/SOL).
-3.  **Mechanism**: This anti-spam fee is separate from the **1% Settlement Fee** charged upon successful payment.
-4.  **Effect**: Ensures all data settled on the platform has economic value, preventing database bloat while keeping individual costs negligible compared to Web2 alternatives.
+1.  **Web2 Frontend & Database**: A familiar dashboard for creating invoices, managing customers, and tracking status. This ensures a smooth User Experience (UX) without requiring deep crypto knowledge.
+2.  **Web3 Settlement Layer**:
+    *   **Payments**: Instant settlement in USDC, EURC, or SOL.
+    *   **Receipts**: Every payment automatically mints a **Compressed NFT (cNFT)** receipt. This acts as an immutable, on-chain proof of payment linked to the specific invoice ID.
+    *   **Identity**: "Verified Business" Soulbound Tokens (SBTs) allow merchants to build on-chain reputation.
 
----
-
-## 4. Roadmap
-
-Our development trajectory is divided into three strategic phases: **Hardening**, **Expansion**, and **Decentralization**.
-
-### Phase 1: Hardening (Q4 2025 - Current)
-*Target: Stability & Security*
-*   [x] **Signature Replay Protection**: Preventing authentication attacks.
-*   [x] **Rate Limiting**: 3-tier defense against DDoS.
-*   [ ] **Infrastructure Upgrade**: Migration from in-memory sessions to Redis/PostgreSQL.
-*   [ ] **Security Audit**: Third-party review of API endpoints.
-
-### Phase 2: Expansion (Q1-Q2 2026)
-*Target: Feature Parity with Web2 SaaS*
-*   **Mobile Experience**: Native iOS/Android apps for invoices on-the-fly.
-*   **Recurring Billing**: Smart Contracts for subscription management (SaaS billing).
-*   **Accounting Integrations**: One-click sync to QuickBooks/Xero.
-*   **Invoice Factoring**: A DeFi marketplace allowing businesses to borrow against unpaid invoices (e.g., "Get 95% now, we collect later").
-
-### Phase 3: Decentralization (Q3 2026+)
-*Target: Unstoppable Protocol*
-*   **Arcium Migration**: Full TEE-based privacy.
-*   **Protocol DAO**: Transitioning treasury management to community governance.
-*   **Smart Invoices**: Moving business logic from REST API to On-Chain Programs.
+### Key Value Props
+*   **Instant Cash Flow**: Funds arrive in seconds, not days.
+*   **1% Flat Fee**: Significantly cheaper than Stripe/PayPal (2.9% + $0.30).
+*   **Automated Reconciliation**: The payment transaction *is* the receipt.
+*   **Trustless**: The platform cannot freeze funds; settlement is peer-to-peer.
 
 ---
 
-## 5. Tokenomics
+## 4. Technical Architecture
 
-The protocol is supported by a native utility token that aligns incentives between the platform and its users.
+### 4.1. Compressed NFTs (cNFTs) for Scalability
+We utilize **Solana's State Compression** technology.
+*   **Traditional NFTs**: Cost ~$0.002 to mint 1 item. Expensive at scale (millions of invoices).
+*   **Compressed NFTs**: We use a **Merkle Tree** structure. We can mint **millions of receipts for fractions of a SOL**.
+    *   *Current Config*: Max Depth 14 (16,384 invoices per tree).
+    *   *Scalability*: Trivial upgrade to Depth 24+ allows for billions of units.
 
-*   **Revenue Allocation**: **50% of all Protocol Treasury revenue** (derived from the 1% transaction fee) is automatically allocated to the **Rewards Pool**.
-*   **Buy-Back & Distribute**: The protocol uses these funds to buy back the native token from the open market.
-*   **User Rewards**: These bought-back tokens are distributed as rewards to active platform users (Invoicers and Payers) based on their transaction volume, effectively rebating a portion of their costs and granting governance rights.
-*   **Staking**: Nodes providing Arcium computation resources (Phase 3) stake tokens to ensure honest behavior.
+### 4.2. Arcium Tier-0 Encryption (Privacy)
+To solve the privacy paradox, we integrate **Arcium Multi-Party Computation (MPC)**.
+*   **Public Data**: Timestamp, Amount (optional).
+*   **Private Data**: Invoice Line Items, Customer Details.
+*   **How it works**: Sensitive data is encrypted before it leaves the browser. Only the authorized parties (Buyer & Seller) can decrypt the invoice details using the Arcium Network. The blockchain sees an encrypted blob, preserving business secrecy while proving existence.
+
+### 4.3. "Gasless" Design
+We use a **Relayer Pattern**.
+*   Users sign a message ("I approve this invoice").
+*   The Invoix Server pays the SOL gas fees for the transaction.
+*   The outcome: Users don't need to manage SOL balances just to create an invoice.
+
+---
+
+## 5. Business Model
+
+The protocol revenue model is simple and transparent:
+
+1.  **Platform Fee (1%)**: Taken automatically from every invoice payment.
+    *   *Example*: Invoice for $1,000 USDC.
+    *   *Settlement*: $990 to Merchant, $10 to Invoix Treasury.
+    *   *Mechanism*: Atomic transaction instruction ensures the fee cannot be bypassed.
+
+2.  **Identity Verification ($5 - $20)**: One-time fee for businesses to mint their "Verified Merchant" badge.
+
+---
+
+## 6. Roadmap
+
+### Phase 1: Foundation (Completed)
+*   ✅ Invoicing Engine
+*   ✅ Solana/USDC Payments
+*   ✅ Compressed NFT Receipts
+*   ✅ Basic Privacy (Private toggle)
+
+### Phase 2: Polish (Completed)
+*   ✅ Email Notifications (Resend Integration)
+*   ✅ UX Improvements & Status Badges
+
+### Phase 3: Growth (Next)
+*   [ ] **Recurring Billing**: Subscription streams using Token Extensions.
+*   [ ] **Mobile App**: React Native mobile experience.
+*   [ ] **Factoring/Lending**: Allow businesses to borrow against unpaid invoices (DeFi integration).

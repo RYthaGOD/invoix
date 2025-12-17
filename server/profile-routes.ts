@@ -1,5 +1,6 @@
 
 import type { Express, Request, Response } from "express";
+import { Connection } from "@solana/web3.js";
 import { db } from "./db";
 import { businessProfiles, invoices } from "@shared/invoice-schema";
 import { eq, and } from "drizzle-orm";
@@ -126,8 +127,9 @@ export function registerProfileRoutes(app: Express) {
     });
 
     /**
-     * Mint Verified Business Identity NFT
+     * Create Mint Transaction for Identity NFT
      * POST /api/business/mint-identity-nft
+     * Returns: { transaction: base64, mint: string }
      */
     app.post("/api/business/mint-identity-nft", requireWalletOwnership, async (req: Request, res: Response) => {
         try {
@@ -142,8 +144,7 @@ export function registerProfileRoutes(app: Express) {
                 return res.status(404).json({ success: false, message: "Business profile not found. Please save your profile first." });
             }
 
-            // 2. Sybil Protection: Check if already minted
-            // Prevents draining server funds by minting infinite badges
+            // 2. Sybil Protection
             const { businessIdentityNFTs } = await import("@shared/invoice-schema");
             const existingNft = await db.query.businessIdentityNFTs.findFirst({
                 where: eq(businessIdentityNFTs.businessProfileId, profile.id),
@@ -158,33 +159,88 @@ export function registerProfileRoutes(app: Express) {
             const nftService = getInvoiceNFTService();
 
             if (!nftService.isReady()) {
-                // Try to init
                 const initialized = await nftService.initialize();
                 if (!initialized) {
                     return res.status(503).json({ success: false, message: "NFT Service unavailable" });
                 }
             }
 
-            // 4. Mint Identity NFT
-            // This is a server-paid transaction (our gift to the user for verifying)
-            console.log(`Creating Identity NFT for ${profile.businessName}...`);
-            const { mint, signature } = await nftService.mintBusinessIdentityNFT(profile, "basic");
+            // 4. Generate Transaction (Server pays rent, User pays 0.008 fee + gas)
+            console.log(`Creating Identity NFT Tx for ${profile.businessName}...`);
+            const treasuryAddress = process.env.PLATFORM_TREASURY_WALLET || "B4ReZfuB8WSJMepHAu9WnV6sHPChJsD9BtwbMwSuLzkS"; // Fallback to current
+            const { transaction, mint } = await nftService.createBusinessIdentityMintTransaction(
+                profile,
+                walletAddress,
+                treasuryAddress,
+                "basic"
+            );
 
-            // 5. Save to DB
-            await db.insert(businessIdentityNFTs).values({
-                businessProfileId: profile.id,
-                nftMint: mint,
-                nftOwner: walletAddress,
-                nftMetadataUri: "https://api.solanainvoice.com/nft-metadata/business/" + profile.id, // Placeholder, actual comes from service but not returned in basic struct
-                verificationLevel: "basic",
-                nftMintSignature: signature,
-            });
-
-            res.json({ success: true, message: "Identity Badge Minted successfully!", mint, signature });
+            // Return transaction for client to sign
+            res.json({ success: true, transaction, mint });
 
         } catch (error: any) {
             console.error("Mint Identity Error:", error);
-            res.status(500).json({ success: false, message: error.message || "Failed to mint identity NFT" });
+            res.status(500).json({ success: false, message: error.message || "Failed to create mint transaction" });
+        }
+    });
+
+    /**
+     * Confirm Identity Mint
+     * POST /api/business/confirm-identity-mint
+     * Verifies on-chain and saves DB record
+     */
+    app.post("/api/business/confirm-identity-mint", requireWalletOwnership, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = req.session.walletAddress!;
+            const { signature, mint } = req.body;
+
+            if (!signature || !mint) {
+                return res.status(400).json({ success: false, message: "Signature and mint address required" });
+            }
+
+            // 1. Verify Transaction on Solana
+            const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com");
+            const status = await connection.getSignatureStatus(signature);
+
+            // Allow "confirmed" or "finalized"
+            if (!status || !status.value || status.value.err) {
+                return res.status(400).json({ success: false, message: "Transaction failed or not found on-chain" });
+            }
+
+            // 2. Get Profile Again
+            const profile = await db.query.businessProfiles.findFirst({
+                where: eq(businessProfiles.ownerWalletAddress, walletAddress),
+            });
+
+            if (!profile) {
+                return res.status(404).json({ success: false, message: "Profile not found" });
+            }
+
+            // 3. Save to DB
+            const { businessIdentityNFTs } = await import("@shared/invoice-schema");
+
+            // Check if already saved (idempotency)
+            const existing = await db.query.businessIdentityNFTs.findFirst({
+                where: eq(businessIdentityNFTs.nftMint, mint)
+            });
+
+            if (!existing) {
+                await db.insert(businessIdentityNFTs).values({
+                    businessProfileId: profile.id,
+                    nftMint: mint,
+                    nftOwner: walletAddress,
+                    nftMetadataUri: `https://api.solanainvoice.com/nft-metadata/business/${profile.id}`,
+                    verificationLevel: "basic",
+                    nftMintSignature: signature,
+                });
+                console.log(`✅ Confirmed and Saved Identity NFT: ${mint}`);
+            }
+
+            res.json({ success: true, message: "Identity Badge Confirmed!" });
+
+        } catch (error: any) {
+            console.error("Confirm Mint Error:", error);
+            res.status(500).json({ success: false, message: "Failed to confirm mint" });
         }
     });
 }

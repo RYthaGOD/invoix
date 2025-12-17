@@ -158,6 +158,11 @@ export default function InvoiceList() {
                 NFT
               </span>
             )}
+            {invoice.isPrivate && (
+              <span className="text-xs px-2 py-0.5 bg-gray-500/20 text-gray-300 rounded-full border border-gray-500/30 flex items-center gap-1">
+                🔒 Private
+              </span>
+            )}
           </div>
         </td>
         <td className="px-6 py-4">

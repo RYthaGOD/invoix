@@ -41,9 +41,9 @@ import {
   signerIdentity,
   PublicKey as UmiPublicKey,
 } from "@metaplex-foundation/umi";
-import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
+import { fromWeb3JsPublicKey, fromWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { PublicKey, Keypair, Connection } from "@solana/web3.js";
+import { PublicKey, Keypair, Connection, SystemProgram, LAMPORTS_PER_SOL, ComputeBudgetProgram } from "@solana/web3.js";
 import bs58 from "bs58";
 import crypto from "crypto";
 import { db } from "./db";
@@ -525,59 +525,121 @@ export class InvoiceNFTService {
    * Mint Business Identity NFT
    * Creates verified business credential NFT
    */
-  async mintBusinessIdentityNFT(
+  /**
+   * Create Business Identity Mint Transaction (User Pays)
+   * 1. Transfers 0.008 SOL Fee to Treasury
+   * 2. Mints the NFT (User pays gas + rent)
+   */
+  async createBusinessIdentityMintTransaction(
     businessProfile: SelectBusinessProfile,
+    userPublicKey: string,
+    treasuryAddress: string,
     verificationLevel: "basic" | "verified" | "premium" = "basic"
   ): Promise<{
+    transaction: string; // Base64
     mint: string;
-    signature: string;
   }> {
     if (!this.isReady()) {
       throw new Error("NFT service not initialized");
     }
 
     try {
-      // Generate business identity metadata
+      // 1. Generate Metadata
       const metadata = this.generateBusinessIdentityMetadata(
         businessProfile,
         verificationLevel
       );
 
-      // Upload metadata
+      // 2. Upload Metadata
+      // Server performs upload (trivial cost)
       const metadataUri = await this.uploadMetadata(
         metadata,
         `business-${businessProfile.id}`
       );
 
-      // Mint as standard NFT (identity should be permanent)
-      const mint = generateSigner(this.umi);
+      // 3. Prepare Keys
+      const mintSigner = generateSigner(this.umi);
+      const user = toPublicKey(userPublicKey);
+      const treasury = toPublicKey(treasuryAddress);
 
-      const createNftIx = createNft(this.umi, {
-        mint,
+      // 4. Create Transfer Instruction (0.008 SOL Fee)
+      // We use web3.js to create the instruction, then convert to Umi
+      const transferIxWeb3 = SystemProgram.transfer({
+        fromPubkey: new PublicKey(userPublicKey),
+        toPubkey: new PublicKey(treasuryAddress),
+        lamports: 0.008 * LAMPORTS_PER_SOL,
+      });
+
+      const transferIx = fromWeb3JsInstruction(transferIxWeb3);
+
+      // 5. Build NFT Mint Transaction
+      // Server is the Creator/Authority (Identity), User is the Payer/Owner.
+      const createNftBuilder = createNft(this.umi, {
+        mint: mintSigner,
         name: metadata.name,
         symbol: "BIZ",
         uri: metadataUri,
         sellerFeeBasisPoints: percentAmount(0),
         tokenStandard: TokenStandard.NonFungible,
+        authority: this.umi.identity, // Server authorized
+        updateAuthority: this.umi.identity, // Server keeps control
+        isMutable: true,
         creators: [
           {
-            address: toPublicKey(businessProfile.ownerWalletAddress),
-            verified: false, // Server is paying/minting, cannot sign for user
+            address: this.umi.identity.publicKey,
+            verified: true, // Server signs
             share: 100,
           },
         ],
       } as any);
 
-      const result = await createNftIx.sendAndConfirm(this.umi);
+      // 6. Combine Instructions: Transfer First, Then Mint
+      // We start a new builder, add transfer, then add the mint builder
 
-      console.log(`✅ Minted business identity NFT for ${businessProfile.businessName}`);
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 })
+      );
+
+      const priorityFeeIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 })
+      );
+
+      let builder = transactionBuilder()
+        .add({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] })
+        .add({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
+        .add({ instruction: transferIx, bytesCreatedOnChain: 0, signers: [] })
+        .add(createNftBuilder);
+
+      // 7. Set User as Fee Payer
+      // Create dummy signer for user (we don't have their private key)
+      const userSigner: Signer = {
+        publicKey: user,
+        signMessage: async (msg) => msg,
+        signTransaction: async (tx) => tx,
+        signAllTransactions: async (txs) => txs,
+      };
+
+      builder = builder.setFeePayer(userSigner);
+
+      // 8. Build and Partial Sign (Server signs as Authority/Creator + Mint Keypair signs)
+      // The builder will automatically sign with `this.umi.identity` and `mintSigner`
+      // It will NOT sign with `userSigner` (Payer)
+      const tx = await builder.buildAndSign(this.umi);
+
+      // 9. Serialize to Base64
+      const serializedTransaction = this.umi.transactions.serialize(tx);
+      const base64Transaction = Buffer.from(serializedTransaction).toString("base64");
+
+      console.log(`✅ Created Business Identity Mint Tx for ${businessProfile.businessName}`);
+      console.log(`   Mint Address: ${mintSigner.publicKey.toString()}`);
 
       return {
-        mint: mint.publicKey.toString(),
-        signature: result.signature.toString(),
+        transaction: base64Transaction,
+        mint: mintSigner.publicKey.toString(),
       };
+
     } catch (error) {
-      console.error(`❌ Failed to mint business identity NFT:`, error);
+      console.error(`❌ Failed to create business identity transaction:`, error);
       throw error;
     }
   }

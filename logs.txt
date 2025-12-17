@@ -1,0 +1,160 @@
+Mounting volume on: /var/lib/containers/railwayapp/bind-mounts/8ec184a8-2bd2-4440-9ef3-3082037771a1/vol_eba9cy1zs7s48zgc
+Starting Container
+
+npm warn config production Use `--omit=dev` instead.
+
+> invoix@1.0.0 start
+> cross-env NODE_ENV=production node dist/index.js
+ΓÜá∩╕Å  Environment Warnings:
+5:23:04 AM [express] Γä╣∩╕Å  Using default for SOLANA_NETWORK: mainnet-beta
+ΓÜá∩╕Å  Optional environment variable not set: BUNDLR_PRIVATE_KEY
+Γ£à Using PostgreSQL database (pg driver)
+ΓÜá∩╕Å  Optional environment variable not set: ARWEAVE_WALLET_JWK
+5:23:04 AM [express] Γä╣∩╕Å  Using default for ENABLE_ARCIUM_ENCRYPTION: false
+   Description: Private key for Bundlr (Arweave) metadata storage
+≡ƒöî DB SSL Mode: disable (Internal network: true)
+   Description: Arweave wallet JWK for direct uploads
+
+5:23:04 AM [express] ≡ƒöì Validating environment variables...
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_API_URL
+   Description: IPFS API endpoint (e.g., https://ipfs.infura.io:5001)
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_ID
+   Description: IPFS project ID for authentication
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_SECRET
+   Description: IPFS project secret for authentication
+5:23:04 AM [express] Γ£à Environment validation passed
+
+ΓÜá∩╕Å  Optional security variables not configured (app will continue):
+   - ENCRYPTION_MASTER_KEY
+
+ΓåÆ Application starting normally - these are optional
+ΓåÆ Encryption and session features may have reduced security
+ΓåÆ To enable full security, add these environment variables:
+   ENCRYPTION_MASTER_KEY: openssl rand -hex 32
+   SESSION_SECRET: openssl rand -base64 32
+
+
+Γä╣∩╕Å  MERKLE_TREE_ADDRESS not set in .env
+   System will attempt to load it from the database 'system_settings' table.
+   If not found, a new tree will be created and persisted to the DB.
+   (This is normal for the first run or if relying on DB persistence)
+
+≡ƒÜÇ Starting Invoix B2B Platform...
+Environment: production
+Port: 8080
+Γ£à Routes registered
+ΓÅ│ Connecting to Database...
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+ΓÅ│ Waiting for database... (Attempt 1/1) - Error: Connection terminated due to connection timeout
+Γ¥î Database connection failed: Connection terminated due to connection timeout
+≡ƒöì Connection Config: Host=postgres-bivj.railway.internal, Internal=true, SSL=disable
+≡ƒöì Checking database connection... (Timeout: 100ms)
+Γ£à Database connection established
+ΓÅ│ Running database migrations...
+Using migrations folder: /app/dist/migrations
+Γ£à Found migration journal at /app/dist/migrations/meta/_journal.json
+Γ£à Migrations completed successfully
+Γä╣∩╕Å  Server Wallet Address: B4ReZfuB8WSJMepHAu9WnV6sHPChJsD9BtwbMwSuLzkS
+    at async file:///app/dist/index.js:12045:30 {
+Γ¥î Failed to create merkle tree: SendTransactionError: Simulation failed. 
+]. 
+Message: Transaction simulation failed: Error processing Instruction 0: custom program error: 0x1. 
+Catch the `SendTransactionError` and call `getLogs()` on it for full details.
+Logs: 
+    at async InvoiceNFTService.createMerkleTree (file:///app/dist/index.js:2163:11)
+    at async Object.sendTransaction (file:///app/node_modules/@metaplex-foundation/umi-rpc-web3js/dist/esm/createWeb3JsRpc.mjs:171:25)
+[
+    at Connection.sendEncodedTransaction (/app/node_modules/@solana/web3.js/lib/index.cjs.js:8208:13)
+    at async InvoiceNFTService.initialize (file:///app/dist/index.js:2046:15)
+  "Program 11111111111111111111111111111111 invoke [1]",
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async initializeNFTService (file:///app/dist/index.js:1985:10)
+  "Transfer: insufficient lamports 140000000, need 1134034560",
+    at async TransactionBuilder.sendAndConfirm (/app/node_modules/@metaplex-foundation/umi/dist/cjs/TransactionBuilder.cjs:213:23)
+    at async Connection.sendRawTransaction (/app/node_modules/@solana/web3.js/lib/index.cjs.js:8173:20)
+  "Program 11111111111111111111111111111111 failed: custom program error: 0x1"
+  signature: '',
+    at async Object.sendTransaction (file:///app/node_modules/@metaplex-foundation/umi-rpc-web3js/dist/esm/createWeb3JsRpc.mjs:171:25)
+  ]
+}
+  transactionMessage: 'Transaction simulation failed: Error processing Instruction 0: custom program error: 0x1',
+Γ¥î Failed to initialize NFT service: SendTransactionError: Simulation failed. 
+  transactionLogs: [
+Message: Transaction simulation failed: Error processing Instruction 0: custom program error: 0x1. 
+    'Program 11111111111111111111111111111111 invoke [1]',
+Logs: 
+    'Transfer: insufficient lamports 140000000, need 1134034560',
+[
+]. 
+    'Program 11111111111111111111111111111111 failed: custom program error: 0x1'
+  "Program 11111111111111111111111111111111 invoke [1]",
+  "Transfer: insufficient lamports 140000000, need 1134034560",
+Catch the `SendTransactionError` and call `getLogs()` on it for full details.
+  "Program 11111111111111111111111111111111 failed: custom program error: 0x1"
+    at Connection.sendEncodedTransaction (/app/node_modules/@solana/web3.js/lib/index.cjs.js:8208:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Connection.sendRawTransaction (/app/node_modules/@solana/web3.js/lib/index.cjs.js:8173:20)
+    at async TransactionBuilder.sendAndConfirm (/app/node_modules/@metaplex-foundation/umi/dist/cjs/TransactionBuilder.cjs:213:23)
+    at async InvoiceNFTService.createMerkleTree (file:///app/dist/index.js:2163:11)
+    at async InvoiceNFTService.initialize (file:///app/dist/index.js:2046:15)
+    at async initializeNFTService (file:///app/dist/index.js:1985:10)
+    at async file:///app/dist/index.js:12045:30 {
+  signature: '',
+  transactionMessage: 'Transaction simulation failed: Error processing Instruction 0: custom program error: 0x1',
+  transactionLogs: [
+    'Program 11111111111111111111111111111111 invoke [1]',
+    'Transfer: insufficient lamports 140000000, need 1134034560',
+    'Program 11111111111111111111111111111111 failed: custom program error: 0x1'
+  ]
+}
+ΓÜá∩╕Å  NFT Service failed to initialize. NFT features will be disabled.
+[Static] Serving files from: /app/dist/public
+Γ£à Server successfully started!
+5:25:16 AM [express] serving on port 8080
+5:25:35 AM [express] GET /api/auth/me 304 in 7ms :: {"authenticated":true,"walletAddress":"HViPNHJpVJfMM5QHmjMxMZpSUAfF1oCdh7JQa731HFft","authenticatedAt":1765894538571}
+[WS] Client connected
+5:25:36 AM [express] GET /api/auth/me 304 in 2ms :: {"authenticated":true,"walletAddress":"HViPNHJpVJfMM5QHmjMxMZpSUAfF1oCdh7JQa731HFft","authenticatedAt":1765894538571}
+6:30:28 AM [express] GET /api/auth/me 401 in 1ms :: {"authenticated":false,"message":"Not authenticated"}
+[WS] Client connected
+[WS] Client disconnected

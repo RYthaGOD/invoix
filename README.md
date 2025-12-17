@@ -277,50 +277,6 @@ const payment = {
   toAddress: invoice.invoicerWalletAddress,
 };
 
-// Create Solana transaction
-const tx = await createUSDCTransfer(
-  customerWallet,
-  invoice.invoicerWalletAddress,
-  payment.amount
-);
-
-// Record payment
-await fetch("/api/payments", {
-  method: "POST",
-  body: JSON.stringify({
-    ...payment,
-    txSignature: tx.signature
-  })
-});
-
-// Invoice automatically marked as "paid"
-```
-
----
-
-## 🏗️ Architecture
-
-### Technology Stack
-
-- **Frontend**: React, TypeScript, TailwindCSS
-- **Backend**: Node.js, Express, TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
-- **Blockchain**: Solana (SPL tokens, x402 protocol)
-- **Encryption**: Arcium v0.5 MXE (Multi-party eXecution Environment)
-- **Payments**: x402 micropayments, USDC transfers
-
-### Data Flow
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  1. INVOICE CREATION                                    │
-│     - Business creates invoice                          │
-│     - System encrypts details with Arcium MXE          │
-│     - Stores encrypted data on-chain                    │
-│     - Only invoicer + invoicee can decrypt             │
-└──────────────┬──────────────────────────────────────────┘
-               │
-               ▼
 ┌─────────────────────────────────────────────────────────┐
 │  2. x402 SERVICE FEE                                    │
 │     - Pay $0.01 USDC micropayment                      │

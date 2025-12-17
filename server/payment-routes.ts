@@ -65,6 +65,10 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         }
         const invoice = invoiceData[0];
 
+        if (invoice.status === 'paid' || invoice.status === 'void') {
+            return res.status(400).json({ success: false, message: `Invoice is already ${invoice.status}` });
+        }
+
         // 2. Decode Transaction
         const txBuffer = Buffer.from(txBase64, "base64");
         const transaction = Transaction.from(txBuffer);
@@ -211,12 +215,24 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         // We record it first. A background job or webhook should confirm it.
         // For now, we assume it will confirm if simulation passed.
 
+        // Detect the actual payer (User)
+        // The transaction comes with the User's signature. 
+        // The Fee Payer (Protocol) is added at index 0 or via partialSign later, but we can look for the other signer.
+        let userPayer = transaction.feePayer?.toString();
+
+        // Iterate signatures to find the one that is NOT the fee payer (Protocol)
+        // The client signed it, so it must be in the signatures list
+        for (const sigPair of transaction.signatures) {
+            if (!sigPair.publicKey.equals(payerKeypair.publicKey) && sigPair.signature !== null) {
+                userPayer = sigPair.publicKey.toString();
+                break;
+            }
+        }
+
         // MINT RECEIPT NFT (Async)
-        // We trigger this asynchronously to not block the response.
         if (invoiceId && process.env.MINT_RECEIPT_NFTS === "true") {
-            // We need to import this dynamically to avoid circular deps if any
             import("./payment-confirmation-service").then(service => {
-                service.confirmPaymentAndMintOutcome(signature, invoiceId, transaction.feePayer!.toString());
+                service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer || "unknown");
             }).catch(err => console.error("Failed to trigger receipt mint:", err));
         }
 

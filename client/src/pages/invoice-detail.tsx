@@ -45,6 +45,7 @@ import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { serializeInvoiceForHashing } from "@shared/invoice-schema";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
+import { ReceiptNFTDisplay } from "@/components/receipt-nft-display";
 
 interface LineItem {
   id: string;
@@ -931,6 +932,23 @@ export default function InvoiceDetail() {
                     </a>
                   )}
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Receipt NFTs */}
+        {invoice.status === "paid" && payments.some(p => p.receiptNftMint) && (
+          <div className="glass-card p-6 border-l-4 border-green-400">
+            <h2 className="text-lg font-semibold text-white mb-4">Payment Receipts</h2>
+            <div className="space-y-4">
+              {payments.filter(p => p.receiptNftMint).map((payment) => (
+                <ReceiptNFTDisplay
+                  key={payment.id}
+                  invoiceId={invoice.id}
+                  nftMintAddress={payment.receiptNftMint}
+                  status="paid"
+                />
               ))}
             </div>
           </div>
