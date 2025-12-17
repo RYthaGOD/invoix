@@ -94,7 +94,7 @@ export const RARITY_CONFIG: Record<string, RarityConfig> = {
     common: {
         rarity: "common",
         dropRate: 50,    // 50% chance - MOST COMMON (INVOIX Exclusive)
-        maxSupply: 500,  // 500 base NFTs
+        maxSupply: 550,  // 550 base NFTs
         currentMinted: 0,
     },
     uncommon: {
@@ -112,7 +112,7 @@ export const RARITY_CONFIG: Record<string, RarityConfig> = {
     epic: {
         rarity: "epic",
         dropRate: 10,    // 10% chance - RAREST (Ant)
-        maxSupply: 100,  // 100 epic NFTs
+        maxSupply: 50,   // 50 epic NFTs - SUPER LIMITED
         currentMinted: 0,
     },
 };
