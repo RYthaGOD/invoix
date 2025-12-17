@@ -1016,6 +1016,94 @@ export class InvoiceNFTService {
     }
   }
 
+  /**
+   * Mint a SPECIFIC NFT variant (for admin reservations/airdrops)
+   * Unlike mintSpecialNFT, this takes a specific NFT variant instead of random selection
+   */
+  async mintSpecificNFT(
+    recipientAddress: string,
+    nftVariant: { id: string; name: string; type: string; attack: string; image: string; rarity: string; hp: number }
+  ): Promise<{ mint: string; signature: string }> {
+    if (!this.isReady()) {
+      throw new Error("NFT service not initialized");
+    }
+
+    try {
+      console.log(`[NFT] Minting specific ${nftVariant.name} (${nftVariant.rarity}) for ${recipientAddress}...`);
+
+      // 1. Generate Metadata
+      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+      const imageUri = `${apiUrl}/uploads/${nftVariant.image}`;
+
+      const metadata: InvoiceNFTMetadata = {
+        name: nftVariant.name,
+        symbol: "INVX",
+        uri: "",
+        description: `INVOIX Genesis Collection - ${nftVariant.rarity.toUpperCase()} Edition. Limited to 1000 total.`,
+        image: imageUri,
+        attributes: [
+          { trait_type: "Name", value: nftVariant.name },
+          { trait_type: "Type", value: nftVariant.type },
+          { trait_type: "Attack", value: nftVariant.attack },
+          { trait_type: "HP", value: nftVariant.hp },
+          { trait_type: "Rarity", value: nftVariant.rarity.charAt(0).toUpperCase() + nftVariant.rarity.slice(1) },
+          { trait_type: "Edition", value: "Genesis" },
+          { trait_type: "Reserved", value: "Admin Mint" }
+        ],
+        properties: {
+          category: "image",
+          creators: [{ address: this.umi.identity.publicKey.toString(), share: 100, verified: true }]
+        }
+      };
+
+      const metadataUri = await this.uploadMetadata(metadata, `${nftVariant.id}-admin-${recipientAddress}-${Date.now()}`);
+
+      // 2. Mint Standard NFT with Collection and Royalties
+      const mint = generateSigner(this.umi);
+
+      const nftConfig: any = {
+        mint,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        uri: metadataUri,
+        sellerFeeBasisPoints: percentAmount(5), // 5% royalties
+        tokenStandard: TokenStandard.NonFungible,
+        isMutable: false,
+        creators: [
+          {
+            address: this.umi.identity.publicKey,
+            verified: true,
+            share: 100,
+          }
+        ],
+        tokenOwner: toPublicKey(recipientAddress),
+      };
+
+      // Add collection reference if available
+      if (this.collectionMint) {
+        nftConfig.collection = some({
+          key: toPublicKey(this.collectionMint),
+          verified: false,
+        });
+      }
+
+      const createNftIx = createNft(this.umi, nftConfig);
+      const result = await createNftIx.sendAndConfirm(this.umi);
+      const signature = result.signature.toString();
+
+      console.log(`✅ Minted ${nftVariant.name} (${nftVariant.rarity}). Mint: ${mint.publicKey.toString()} Sig: ${signature}`);
+
+      return {
+        mint: mint.publicKey.toString(),
+        signature: signature
+      };
+
+    } catch (error) {
+      console.error("Failed to mint specific NFT:", error);
+      throw error;
+    }
+  }
+
 
   /**
    * Helper: Extract Leaf Index from Transaction (Public)

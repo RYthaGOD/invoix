@@ -182,4 +182,74 @@ export function registerSpecialMintRoutes(app: Express) {
             res.status(500).json({ success: false, message: "Failed to create mint transaction" });
         }
     });
+
+    /**
+     * Admin: Mint Specific NFT (Reserved NFTs)
+     * POST /api/special/admin-mint
+     * Protected by ADMIN_SECRET_KEY
+     */
+    app.post("/api/special/admin-mint", async (req: Request, res: Response) => {
+        try {
+            const { adminKey, recipientAddress, nftId } = req.body;
+
+            // Validate admin key
+            const expectedKey = process.env.ADMIN_SECRET_KEY;
+            if (!expectedKey || adminKey !== expectedKey) {
+                return res.status(403).json({ success: false, message: "Unauthorized" });
+            }
+
+            if (!recipientAddress || !nftId) {
+                return res.status(400).json({ success: false, message: "recipientAddress and nftId are required" });
+            }
+
+            // Import collection config
+            const { NFT_COLLECTION } = await import("@shared/nft-collection");
+
+            // Find the requested NFT
+            const selectedNFT = NFT_COLLECTION.find(nft => nft.id === nftId);
+            if (!selectedNFT) {
+                return res.status(400).json({
+                    success: false,
+                    message: `NFT not found: ${nftId}. Available: ${NFT_COLLECTION.map(n => n.id).join(', ')}`
+                });
+            }
+
+            console.log(`[ADMIN] Minting reserved ${selectedNFT.name} (${selectedNFT.rarity}) to ${recipientAddress}`);
+
+            // Initialize NFT service
+            const nftService = getInvoiceNFTService();
+            if (!nftService.isReady()) {
+                await nftService.initialize();
+            }
+
+            // Mint the specific NFT
+            const result = await nftService.mintSpecificNFT(recipientAddress, selectedNFT);
+
+            // Record to DB
+            const { db } = await import("./db");
+            const { specialNFTMints } = await import("@shared/invoice-schema");
+
+            await db.insert(specialNFTMints).values({
+                walletAddress: recipientAddress,
+                nftId: selectedNFT.id,
+                nftName: selectedNFT.name,
+                nftRarity: selectedNFT.rarity,
+                nftMint: result.mint,
+                txSignature: result.signature,
+                invoiceId: "admin-reserve",
+            });
+
+            res.json({
+                success: true,
+                message: `Minted ${selectedNFT.name} (${selectedNFT.rarity})`,
+                mint: result.mint,
+                signature: result.signature,
+                nft: selectedNFT
+            });
+
+        } catch (error: any) {
+            console.error("Admin mint error:", error);
+            res.status(500).json({ success: false, message: error.message || "Failed to mint" });
+        }
+    });
 }
