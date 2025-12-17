@@ -1094,7 +1094,7 @@ export class InvoiceNFTService {
       throw new Error("Merkle Tree not initialized");
     }
     const assetId = await findLeafAssetIdPda(this.umi, {
-      merkleTree: toPublicKey(this.config.merkleTreeAddress!),
+      merkleTree: toPublicKey(this.merkleTree), // Fixed: use runtime merkleTree, not config
       leafIndex: leafIndex,
     });
     return assetId.toString();
