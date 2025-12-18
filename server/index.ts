@@ -270,12 +270,16 @@ export async function triggerGracefulShutdown() {
     // Retry logic for DB connection
     let connected = false;
     let retries = 30; // 60 seconds total
-    while (!connected && retries > 0) {
-      connected = await checkDatabaseConnection(1, 100); // Quick check
-      if (!connected) {
-        retries--;
-        await new Promise(res => setTimeout(res, 2000));
+    try {
+      while (!connected && retries > 0) {
+        connected = await checkDatabaseConnection(1, 100); // Quick check
+        if (!connected) {
+          retries--;
+          await new Promise(res => setTimeout(res, 2000));
+        }
       }
+    } catch (dbError) {
+      console.error("❌ DB Connection Check Failed:", dbError);
     }
 
     if (!connected) {
@@ -284,17 +288,30 @@ export async function triggerGracefulShutdown() {
     }
 
     // Run migrations synchronously before listening
-    await runMigrations();
+    try {
+      await runMigrations();
+      console.log("✅ Migrations applied successfully");
+    } catch (migrationError) {
+      console.error("❌ CRITICAL: Database Migrations Failed:", migrationError);
+      process.exit(1); // Migrations are critical
+    }
 
-    // Initialize NFT Service
-    if (process.env.PAYER_PRIVATE_KEY) {
-      const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
-      const nftInitSuccess = await initializeNFTService(payerKeypair);
-      if (nftInitSuccess) {
-        console.log("✅ NFT Service initialized with payer wallet");
+    // Initialize NFT Service (Non-Critical)
+    try {
+      if (process.env.PAYER_PRIVATE_KEY) {
+        const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+        const nftInitSuccess = await initializeNFTService(payerKeypair);
+        if (nftInitSuccess) {
+          console.log("✅ NFT Service initialized with payer wallet");
+        } else {
+          console.warn("⚠️  NFT Service failed to initialize. NFT features will be disabled.");
+        }
       } else {
-        console.warn("⚠️  NFT Service failed to initialize. NFT features will be disabled.");
+        console.log("ℹ️  No PAYER_PRIVATE_KEY found, skipping NFT service initialization.");
       }
+    } catch (nftError) {
+      console.error("⚠️  NFT Service Initialization Crashed (Non-Fatal):", nftError);
+      // Do NOT exit, allow server to run without NFTs
     }
 
     // Global generic error handler
