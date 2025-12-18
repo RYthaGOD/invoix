@@ -85,6 +85,7 @@ interface InvoiceNFTMetadata {
 interface NFTMintConfig {
   autoMint: boolean; // Auto-mint invoices on creation
   merkleTreeAddress?: string; // Existing tree or create new
+  collectionMintAddress?: string; // Existing collection or create new
   maxDepth: number; // Tree depth (affects max NFTs)
   maxBufferSize: number; // Buffer size
   canopyDepth: number; // Canopy depth for cheaper transfers
@@ -182,15 +183,19 @@ export class InvoiceNFTService {
       }
 
       // Load or create Collection NFT for marketplace integration
-      const storedCollection = await db.select().from(systemSettings).where(eq(systemSettings.key, "genesis_collection_mint")).limit(1);
-
-      if (storedCollection.length > 0) {
-        this.collectionMint = storedCollection[0].value;
-        console.log(`✅ Loaded Collection NFT from DB: ${this.collectionMint}`);
+      if (this.config.collectionMintAddress) {
+        this.collectionMint = this.config.collectionMintAddress;
       } else {
-        // Create collection NFT on first run
-        console.log(`🎨 Creating INVOIX Genesis Collection NFT...`);
-        await this.createCollectionNFT();
+        const storedCollection = await db.select().from(systemSettings).where(eq(systemSettings.key, "genesis_collection_mint")).limit(1);
+
+        if (storedCollection.length > 0) {
+          this.collectionMint = storedCollection[0].value;
+          console.log(`✅ Loaded Collection NFT from DB: ${this.collectionMint}`);
+        } else {
+          // Create collection NFT on first run
+          console.log(`🎨 Creating INVOIX Genesis Collection NFT...`);
+          await this.createCollectionNFT();
+        }
       }
 
       this.initialized = true;
@@ -534,7 +539,8 @@ export class InvoiceNFTService {
     businessProfile: SelectBusinessProfile,
     userPublicKey: string,
     treasuryAddress: string,
-    verificationLevel: "basic" | "verified" | "premium" = "basic"
+    verificationLevel: "basic" | "verified" | "premium" = "basic",
+    customFeeLamports?: number
   ): Promise<{
     transaction: string; // Base64
     mint: string;
@@ -560,14 +566,17 @@ export class InvoiceNFTService {
       // 3. Prepare Keys
       const mintSigner = generateSigner(this.umi);
       const user = toPublicKey(userPublicKey);
-      const treasury = toPublicKey(treasuryAddress);
+      // const treasury = toPublicKey(treasuryAddress); // Not used directly in Umi transfer for now
 
-      // 4. Create Transfer Instruction (0.008 SOL Fee)
+      // 4. Create Transfer Instruction
+      // Use custom fee if provided, otherwise default to 0.008 SOL
+      const feeLamports = customFeeLamports !== undefined ? customFeeLamports : (0.008 * LAMPORTS_PER_SOL);
+
       // We use web3.js to create the instruction, then convert to Umi
       const transferIxWeb3 = SystemProgram.transfer({
         fromPubkey: new PublicKey(userPublicKey),
         toPubkey: new PublicKey(treasuryAddress),
-        lamports: 0.008 * LAMPORTS_PER_SOL,
+        lamports: feeLamports,
       });
 
       const transferIx = fromWeb3JsInstruction(transferIxWeb3);

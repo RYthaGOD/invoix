@@ -94,6 +94,13 @@ export function registerSpecialMintRoutes(app: Express) {
      * 2. Mints the Special NFT
      * POST /api/special/mint
      */
+    /**
+     * Create Mint Transaction
+     * Generates a transaction that:
+     * 1. Transfers Fee (SOL) to Treasury
+     * 2. Mints the Special NFT
+     * POST /api/special/mint
+     */
     app.post("/api/special/mint", async (req: Request, res: Response) => {
         try {
             // Validate Input
@@ -102,6 +109,17 @@ export function registerSpecialMintRoutes(app: Express) {
                 return res.status(400).json({ success: false, message: parsed.error.issues[0].message });
             }
             const { walletAddress } = parsed.data;
+
+            // 0. Ensure Business Profile Exists
+            const { db } = await import("./db");
+            const { businessProfiles } = await import("@shared/invoice-schema");
+            const { eq } = await import("drizzle-orm");
+
+            const profiles = await db.select().from(businessProfiles).where(eq(businessProfiles.wallet, walletAddress));
+            if (profiles.length === 0) {
+                return res.status(404).json({ success: false, message: "No business profile found. Please create one first." });
+            }
+            const businessProfile = profiles[0];
 
             const connection = new Connection(SOLANA_RPC_URL);
 
@@ -114,60 +132,26 @@ export function registerSpecialMintRoutes(app: Express) {
             const priceSol = Number((priceUsd / solPrice).toFixed(9));
             const lamports = Math.ceil(priceSol * LAMPORTS_PER_SOL);
 
-            // 2. Create Transfer Instruction
-            // Ensure we have a valid treasury wallet
+            // 2. Identify Treasury
             if (!process.env.PLATFORM_TREASURY_WALLET) {
                 console.warn("Using default testing treasury wallet. Please set PLATFORM_TREASURY_WALLET env.");
             }
             const treasuryPubkey = new PublicKey(process.env.PLATFORM_TREASURY_WALLET || TREASURY_WALLET);
-            const userPubkey = new PublicKey(walletAddress);
 
-            const transferIx = SystemProgram.transfer({
-                fromPubkey: userPubkey,
-                toPubkey: treasuryPubkey,
-                lamports: lamports,
-            });
-
-            // 3. Create NFT Mint Instruction
+            // 3. Create Mint Transaction
             const nftService = getInvoiceNFTService();
             if (!nftService.isReady()) {
                 await nftService.initialize();
             }
 
-            const { transaction: nftTx, mint } = await nftService.createMintSpecialTransaction(walletAddress);
-
-            // 4. Combine Instructions
-            // We need to merge the transfer instruction into the NFT transaction
-            // The NFT transaction (nftTx) is already a Transaction object (or Umi transaction builder we need to convert)
-
-            // Note: createMintSpecialTransaction returns a Base64 string of a serialized transaction usually.
-            // Let's modify nft-service to handle this cleanly or deserialze here.
-
-            // Approach: Deserialize the NFT transaction, add the transfer instruction to the beginning.
-            const transactionBuffer = Buffer.from(nftTx, 'base64');
-            const transaction = Transaction.from(transactionBuffer);
-
-            // Insert transfer instruction at the beginning 
-            transaction.instructions.unshift(transferIx);
-
-            // We need to re-serialize. 
-            // IMPORTANT: The transaction from NFT service might already be partially signed or set up for Umi.
-            // If it's a VersionedTransaction (likely with Umi), we need to be careful.
-            // Umi produces VersionedTransactions usually.
-
-            // Let's simplify: We will ask nftService to give us the INSTRUCTION or Builder, OR we handle the merge carefully.
-            // Current nft-service `createMintInvoiceTransaction` returns a base64 string.
-            // Let's assume `createMintSpecialTransaction` will follow the same pattern but we will need to update it to allow injecting instructions OR we add the transfer instruction INSIDE the service method.
-            // --> DECISION: Add the transfer instruction inside `createMintSpecialTransaction` in the service. It's cleaner.
-
-            // So here we likely just get the final base64 from the service which now handles the transfer internally?
-            // No, the service dealing with pricing logic feels coupled.
-            // Better: We calculate amount here, and pass `lamports` and `treasury` to the service method.
-
-            const finalTxBase64 = await nftService.createMintSpecialTransaction(
+            // Call the correct service method
+            // Uses dynamic fee (lamports) calculated from USD price
+            const { transaction: finalTxBase64, mint } = await nftService.createBusinessIdentityMintTransaction(
+                businessProfile,
                 walletAddress,
-                lamports,
-                treasuryPubkey.toString()
+                treasuryPubkey.toString(),
+                "verified", // Default to verified tier for this special mint
+                lamports
             );
 
             res.json({
@@ -175,12 +159,13 @@ export function registerSpecialMintRoutes(app: Express) {
                 transaction: finalTxBase64,
                 message: `Mint Transaction Created. Price: $${priceUsd} (${priceSol} SOL)`,
                 priceUsd,
-                priceSol
+                priceSol,
+                mint
             });
 
         } catch (error: any) {
             console.error("Error creating mint transaction:", error);
-            res.status(500).json({ success: false, message: "Failed to create mint transaction" });
+            res.status(500).json({ success: false, message: "Failed to create mint transaction: " + error.message });
         }
     });
 
