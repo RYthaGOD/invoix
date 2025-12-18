@@ -3,7 +3,6 @@ import 'dotenv/config';
 import dns from 'node:dns';
 
 // Force IPv4 resolution to prevent connection issues on some networks (like Railway Internal)
-// "Connection terminated unexpectedly" is often caused by Node trying IPv6 when DB expects IPv4
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
@@ -13,9 +12,11 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
 import compression from "compression";
-import { db, pool, runMigrations, checkDatabaseConnection } from "./db";
-import { invoiceStorage } from "./invoice-storage";
-import { registerRoutes } from "./routes";
+// REMOVED STATIC IMPORTS for DB and Routes to allow pre-flight DNS fix
+// import { db, pool, runMigrations, checkDatabaseConnection } from "./db";
+// import { invoiceStorage } from "./invoice-storage";
+// import { registerRoutes } from "./routes";
+
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import fs from "fs";
@@ -42,9 +43,6 @@ validateEnvironment();
 checkSecurityEnvVars();
 
 const app = express();
-
-// Session store setup
-const PgSession = connectPgSimple(session);
 const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
 
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
@@ -66,40 +64,19 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use("/uploads", express.static(uploadsDir));
 
-// Session middleware - BEFORE body parsing so it's available in all routes
-// Use Postgres store if pool is available (Production), otherwise MemoryStore (Dev/SQLite)
-const sessionStore = pool
-  ? new PgSession({
-    pool,
-    tableName: 'user_sessions',
-    createTableIfMissing: true,
-    ttl: 7 * 24 * 60 * 60 // 7 days
-  })
-  : new (createMemoryStore(session))({
-    checkPeriod: 86400000 // 24h
-  });
+// PLACEHOLDERS for Dynamic Imports
+let db: any, pool: any, runMigrations: any, checkDatabaseConnection: any;
+let invoiceStorage: any;
+let registerRoutes: any;
 
-app.use(session({
-  store: sessionStore,
-  secret: sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === "production", // HTTPS only in production
-    httpOnly: true, // Prevent XSS attacks
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: "lax", // CSRF protection
-  },
-  name: "invoix_sid", // Custom session cookie name
-}));
-
-// Body parsing with size limits - MUST come before sanitizeInput
+// Body parsing with size limits
 app.use(express.json({ limit: requestSizeLimit }));
 app.use(express.urlencoded({ extended: false, limit: requestSizeLimit }));
 
-// Input sanitization - AFTER body parsing so req.body is populated
+// Input sanitization
 app.use(sanitizeInput);
 
+// Logging Middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -118,11 +95,9 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       if (logLine.length > 2000) {
         logLine = logLine.slice(0, 1999) + "…";
       }
-
       log(logLine);
     }
   });
@@ -130,7 +105,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoints (no authentication required)
+// Health check endpoints
 app.get("/health", healthCheck);
 app.get("/health/live", liveness);
 app.get("/health/ready", readiness);
@@ -142,16 +117,10 @@ app.use("/api", globalRateLimit);
 let server: any;
 let isShuttingDown = false;
 
-// Export shutdown function for external triggers (e.g., AI bot disabled)
 export async function triggerGracefulShutdown() {
-  if (isShuttingDown) {
-    return; // Prevent multiple shutdown attempts
-  }
+  if (isShuttingDown) return;
   isShuttingDown = true;
-
   log("Graceful shutdown triggered programmatically");
-
-  // Force exit after 10 seconds if shutdown hangs
   const forceExitTimer = setTimeout(() => {
     console.error("⚠️ Shutdown timeout - forcing exit");
     process.exit(1);
@@ -169,34 +138,102 @@ export async function triggerGracefulShutdown() {
   } catch (shutdownError) {
     console.error("Error during shutdown:", shutdownError);
   }
-
   clearTimeout(forceExitTimer);
   log("Shutdown complete, exiting...");
   process.exit(0);
 }
 
+// MAIN STARTUP SEQUENCE
 (async () => {
   try {
     console.log("🚀 Starting Invoix B2B Platform...");
     console.log("Environment:", process.env.NODE_ENV || "development");
     console.log("Port:", process.env.PORT || "5000");
 
-    // Check database connection before running migrations
-    // await checkDatabaseConnection(); <- MOVED TO BACKGROUND
+    // -------------------------------------------------------------------------
+    // CRITICAL: PRE-FLIGHT DNS RESOLUTION TO FIX RAILWAY IPV6 ROUTING ISSUES
+    // -------------------------------------------------------------------------
+    if (process.env.DATABASE_URL) {
+      console.log("🌍 Pre-flight: Checking Database DNS resolution...");
+      let hostname = "";
+      try {
+        const urlObj = new URL(process.env.DATABASE_URL);
+        hostname = urlObj.hostname;
+      } catch (e) {
+        const match = process.env.DATABASE_URL.match(/@([^:/]+)(?::(\d+))?/);
+        if (match) hostname = match[1];
+      }
 
-    // Run database migrations (Postgres only)
-    // await runMigrations(); <- MOVED TO BACKGROUND
+      if (hostname && !hostname.match(/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/)) { // If not already an IP
+        try {
+          console.log(`🔄 Resolving '${hostname}' to IPv4...`);
+          const ips = await dns.promises.resolve4(hostname);
+          if (ips && ips.length > 0) {
+            const ip = ips[0];
+            console.log(`✅ Resolved to IPv4: ${ip}`);
+            // Overwrite Environment Variable with IP address
+            process.env.DATABASE_URL = process.env.DATABASE_URL.replace(hostname, ip);
+          }
+        } catch (dnsErr) {
+          console.error("⚠️ Pre-flight DNS Resolution failed (proceeding with original):", dnsErr);
+        }
+      }
+    }
+    // -------------------------------------------------------------------------
 
-    // Initialize NFT Service
+    // DYNAMIC IMPORTS (Now that env var is patched)
+    console.log("📦 Loading Database Module...");
+    const dbModule = await import("./db");
+    db = dbModule.db;
+    pool = dbModule.pool;
+    runMigrations = dbModule.runMigrations;
+    checkDatabaseConnection = dbModule.checkDatabaseConnection;
 
+    console.log("📦 Loading Routes & Storage...");
+    const storageModule = await import("./invoice-storage");
+    invoiceStorage = storageModule.invoiceStorage;
+    const routesModule = await import("./routes");
+    registerRoutes = routesModule.registerRoutes;
 
+    // Initialize Session Store (Requires Pool)
+    const PgSession = connectPgSimple(session);
+    const sessionStore = pool
+      ? new PgSession({
+        pool,
+        tableName: 'user_sessions',
+        createTableIfMissing: true,
+        ttl: 7 * 24 * 60 * 60 // 7 days
+      })
+      : new (createMemoryStore(session))({
+        checkPeriod: 86400000 // 24h
+      });
+
+    // We must register session middleware HERE because it depends on `sessionStore` which depends on `pool`
+    // But `app.use` order matters. We registered a placeholder? No, we didn't.
+    // Wait, Express middleware stack is FIFO.
+    // If we register it now, it will be AFTER security checks (good) but BEFORE routes (good).
+    // ACTUALLY: we need to register it before `registerRoutes` is called.
+
+    app.use(session({
+      store: sessionStore,
+      secret: sessionSecret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: "lax",
+      },
+      name: "invoix_sid",
+    }));
 
     // Service Readiness Flag & Debug Info
     let isServiceReady = false;
     let lastStartupError: string | null = null;
-    let startupPhase = "initializing"; // initializing, db_check, migrations, ready
+    let startupPhase = "initializing";
 
-    // Maintenance Mode Middleware - Must come before routes!
+    // Maintenance Mode Middleware
     app.use((req, res, next) => {
       if (!isServiceReady && req.path !== '/health') {
         return res.status(503).json({
@@ -210,7 +247,7 @@ export async function triggerGracefulShutdown() {
       next();
     });
 
-    // Register routes after maintenance middleware
+    // Register routes
     server = await registerRoutes(app);
 
     console.log("✅ Routes registered");
