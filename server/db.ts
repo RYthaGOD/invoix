@@ -50,12 +50,25 @@ function createPool(forcedSSLMode?: string): string {
     pool.end().catch(() => { });
   }
 
+  // Clean connection string to prevent parameter conflicts (e.g. ?sslmode=require vs ssl: false)
+  let connectionString = process.env.DATABASE_URL || "";
+  try {
+    const urlObj = new URL(connectionString);
+    urlObj.searchParams.delete('sslmode');
+    urlObj.searchParams.delete('ssl');
+    urlObj.searchParams.delete('sslrootcert');
+    urlObj.searchParams.delete('options'); // Sometimes options=-c%20... causes issues
+    connectionString = urlObj.toString();
+  } catch (e) {
+    // failed to parse, use original
+  }
+
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
     ssl: sslConfig,
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 10000,
   });
 
   // Global pool error handler
@@ -173,7 +186,9 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
           // Retry loop immediately with new pool
           continue;
         } catch (probeErr: any) {
-          console.log(`❌ Probe failed (${altMode}): ${probeErr.message}. Sticking with ${currentSSLMode}.`);
+          const probeMsg = `Probe failed (${altMode}): ${probeErr.message}`;
+          console.log(`❌ ${probeMsg}. Sticking with ${currentSSLMode}.`);
+          lastError += ` | ${probeMsg}`;
         }
       }
 
