@@ -145,34 +145,36 @@ export async function runMigrations() {
   }
 }
 
-export async function checkDatabaseConnection(retries = 30, delay = 2000): Promise<boolean> {
-  if (useSQLite) return true;
-  if (!pool) return false;
+export async function checkDatabaseConnection(retries = 30, delay = 2000): Promise<{ connected: boolean; error?: string }> {
+  if (useSQLite) return { connected: true };
+  if (!pool) return { connected: false, error: "Database pool not initialized (DATABASE_URL missing?)" };
 
   const connectionString = process.env.DATABASE_URL || "";
   const isInternal = connectionString.includes('railway.internal');
   const host = connectionString.split('@')[1]?.split(':')[0] || 'unknown';
 
-  console.log(`🔍 Connection Config: Host=${host}, Internal=${isInternal}, SSL=${process.env.DB_SSL_MODE || (isInternal ? 'disable' : 'require')}`);
+  console.log(`🔍 Connection Config: Host=${host}, Internal=${isInternal}, SSL=${process.env.DB_SSL_MODE || 'require'}`);
   console.log(`🔍 Checking database connection... (Timeout: ${retries * delay}ms)`);
+
+  let lastError = "Unknown error";
 
   for (let i = 0; i < retries; i++) {
     try {
       const client = await pool.connect();
       client.release();
       console.log('✅ Database connection established');
-      return true;
-    } catch (err) {
-      console.log(`⏳ Waiting for database... (Attempt ${i + 1}/${retries}) - Error: ${(err as Error).message}`);
-      if (i === retries - 1) {
-        console.error('❌ Database connection failed:', (err as Error).message);
-        return false;
+      return { connected: true };
+    } catch (err: any) {
+      lastError = err.message || String(err);
+      console.log(`⏳ Waiting for database... (Attempt ${i + 1}/${retries}) - Error: ${lastError}`);
+      if (i < retries - 1) {
+        await new Promise(res => setTimeout(res, delay));
       }
-      await new Promise(res => setTimeout(res, delay));
     }
   }
 
-  return false;
+  console.error('❌ Database connection failed:', lastError);
+  return { connected: false, error: lastError };
 }
 
 /**

@@ -292,17 +292,18 @@ export async function triggerGracefulShutdown() {
         // Retry logic for DB connection
         let connected = false;
         let retries = 30; // 60 seconds total
-        try {
-          while (!connected && retries > 0) {
-            connected = await checkDatabaseConnection(1, 100); // Quick check
-            if (!connected) {
-              retries--;
-              await new Promise(res => setTimeout(res, 2000));
+
+        while (!connected && retries > 0) {
+          const result = await checkDatabaseConnection(1, 100); // Quick check
+          connected = result.connected;
+
+          if (!connected) {
+            retries--;
+            if (result.error) {
+              lastStartupError = `DB Connection Failed: ${result.error}`;
             }
+            await new Promise(res => setTimeout(res, 2000));
           }
-        } catch (dbError: any) {
-          console.error("❌ DB Connection Check Failed:", dbError);
-          lastStartupError = `DB Connection Failed: ${dbError.message}`;
         }
 
         if (!connected) {
