@@ -1,5 +1,12 @@
 // Load environment variables from .env file
 import 'dotenv/config';
+import dns from 'node:dns';
+
+// Force IPv4 resolution to prevent connection issues on some networks (like Railway Internal)
+// "Connection terminated unexpectedly" is often caused by Node trying IPv6 when DB expects IPv4
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
