@@ -52,16 +52,23 @@ if (useSQLite) {
 
   // Create a reusable pool configuration with smart SSL default
   // Allow manual override via DB_SSL_MODE
-  // Create a reusable pool configuration with smart SSL default
-  // Allow manual override via DB_SSL_MODE
+  // Determine Network Type
   const isInternal = process.env.DATABASE_URL?.includes('railway.internal');
-  // Default to 'require' (with allow self-signed) to prevent "Connection terminated unexpectedly"
-  // Many internal networks still accept/prefer SSL, and 'disable' can cause termination if server expects SSL.
-  const sslMode = process.env.DB_SSL_MODE || 'require';
+  const isNeon = process.env.DATABASE_URL?.includes('neon.tech');
 
+  // Smart SSL Logic:
+  // 1. If DB_SSL_MODE is set, use it.
+  // 2. If Railway Internal Network, usually DISABLE SSL (port 5432 usually plain text internally).
+  // 3. If Neon/External, usually REQUIRE SSL.
+  // 4. Default to 'require' for security on public networks.
+
+  let defaultMode = 'require';
+  if (isInternal) defaultMode = 'disable';
+
+  const sslMode = process.env.DB_SSL_MODE || defaultMode;
   const sslConfig = sslMode === 'disable' ? false : { rejectUnauthorized: false };
 
-  console.log(`🔌 DB SSL Mode: ${sslMode} (Internal network: ${isInternal})`);
+  console.log(`🔌 DB SSL Mode: ${sslMode} (Internal: ${isInternal}, Neon: ${isNeon})`);
 
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
