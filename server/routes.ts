@@ -1,41 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-
-import { fromZodError } from "zod-validation-error";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
-import {
-  requireWalletOwnership,
-
-} from "./security";
-// Import crypto functions at module level for security
-
-// Import invoice routes
-import { registerInvoiceRoutes } from "./invoice-routes";
-
-// Import auth routes
 import { registerAuthRoutes } from "./auth-routes";
-
-// Import export routes
-import exportRouter from "./export-routes";
-
-// Import NFT routes
+import { registerInvoiceRoutes } from "./invoice-routes";
 import { registerNftRoutes } from "./nft-routes";
-
-// Import Customer routes
 import { registerCustomerRoutes } from "./customer-routes";
-
-// Import Template routes
 import { registerTemplateRoutes } from "./template-routes";
-
-// Import Upload routes
 import { registerUploadRoutes } from "./upload-routes";
-
-// Import Profile routes
 import { registerProfileRoutes } from "./profile-routes";
-
-// Import Special Mint routes
 import { registerSpecialMintRoutes } from "./special-mint-routes";
+import { paymentRouter } from "./payment-routes";
+import { registerCommunityDropRoutes } from "./community-drop-routes";
+import exportRouter from "./export-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
@@ -53,7 +28,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   registerInvoiceRoutes(app);
 
-
   // ================================================
   // EXPORT ROUTES (Accounting)
   // ================================================
@@ -67,8 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   // GASLESS PAYMENT ROUTES
   // ================================================
-  app.use("/api", (await import("./payment-routes")).paymentRouter);
-
+  app.use("/api", paymentRouter);
 
   // ================================================
   // CUSTOMER ROUTES
@@ -95,7 +68,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   registerSpecialMintRoutes(app);
 
-  const { registerCommunityDropRoutes } = await import("./community-drop-routes");
+  // ================================================
+  // COMMUNITY DROP ROUTES (Invoice Gated)
+  // ================================================
   registerCommunityDropRoutes(app);
 
   const server = createServer(app);
