@@ -96,11 +96,23 @@ export async function runMigrations() {
   }
 }
 
+// Connection resiliency logic
 export async function checkDatabaseConnection(retries = 30, delay = 2000): Promise<{ connected: boolean; error?: string }> {
   if (useSQLite) return { connected: true };
   if (!pool) return { connected: false, error: "Pool not initialized" };
 
   let lastError = "Unknown error";
+
+  // Attempt IPv4 resolution if we are having connectivity issues
+  const dns = await import('dns');
+  const { promises: dnsPromises } = dns;
+
+  // Parse current URL to get hostname
+  let currentUrl = process.env.DATABASE_URL || "";
+  let urlObj: URL | null = null;
+  try {
+    urlObj = new URL(currentUrl);
+  } catch (e) { }
 
   for (let i = 0; i < retries; i++) {
     try {
@@ -111,6 +123,55 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
     } catch (err: any) {
       lastError = err.message || String(err);
       console.log(`⏳ DB Attempt ${i + 1}/${retries} Failed: ${lastError}`);
+
+      // FIX: If ENETUNREACH (IPv6 issue), force resolve to IPv4 and recreate pool
+      // Also handle EAI_AGAIN (DNS timeout)
+      if ((lastError.includes('ENETUNREACH') || lastError.includes('EAI_AGAIN') || lastError.includes('ETIMEDOUT')) && urlObj && i === 0) {
+        console.log(`🌍 Network Reachability Error detected: ${lastError}`);
+        console.log(`🔄 Attempting to resolve host '${urlObj.hostname}' to IPv4...`);
+        try {
+          const ipv4Addresses = await dnsPromises.resolve4(urlObj.hostname);
+          if (ipv4Addresses && ipv4Addresses.length > 0) {
+            const newIp = ipv4Addresses[0];
+            console.log(`✅ Resolved to IPv4: ${newIp}`);
+
+            // Reconstruct URL with IP
+            // Keep original Hostname in SSL config for verify match if needed, but here we usually turn off rejectUnauthorized
+            urlObj.hostname = newIp;
+            const newConnectionString = urlObj.toString();
+
+            // Update Process Env (for persistence in this session)
+            process.env.DATABASE_URL = newConnectionString;
+
+            // Recreate Pool
+            console.log("♻️  Recreating DB Pool with IPv4 Address...");
+            await pool.end().catch(() => { });
+
+            const isInternal = newConnectionString.includes('railway.internal');
+            // For IP addresses, always require SSL unless internal, but often we need rejectUnauthorized: false since IP won't match cert
+            const sslConfig = isInternal ? false : { rejectUnauthorized: false };
+
+            pool = new Pool({
+              connectionString: newConnectionString,
+              ssl: sslConfig,
+              max: 5,
+              idleTimeoutMillis: 30000,
+              connectionTimeoutMillis: 10000,
+            });
+
+            pool.on('error', (e) => console.error('Unexpected error on idle client', e));
+
+            // Update Drizzle reference
+            db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
+
+            console.log("🚀 IPv4 Pool Active. Retrying connection...");
+            continue; // Retry immediately
+          }
+        } catch (dnsErr) {
+          console.error("❌ DNS Resolution failed:", dnsErr);
+        }
+      }
+
       if (i < retries - 1) {
         await new Promise(res => setTimeout(res, delay));
       }
