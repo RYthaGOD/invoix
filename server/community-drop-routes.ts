@@ -1,9 +1,9 @@
-
 import type { Express, Request, Response } from "express";
 import { Connection } from "@solana/web3.js";
 import { getTokenBalance } from "./stablecoin-payment-service";
 import { db } from "./db";
-import { invoices, invoiceLineItems } from "@shared/invoice-schema";
+import { invoices, invoiceLineItems, specialNFTMints } from "@shared/invoice-schema";
+import { getInvoiceNFTService } from "./nft-service";
 import { z } from "zod";
 import crypto from "crypto";
 
@@ -53,8 +53,6 @@ export function registerCommunityDropRoutes(app: Express) {
 
             // 2. CHECK MAX SUPPLY
             // Count invoices with description "Exclusive Community NFT Mint" that are PAID.
-            // Or roughly use "all non-cancelled invoices" to prevent over-invoicing?
-            // Safer to check PAID count.
             const paidInvoices = await db.query.invoices.findMany({
                 where: (invoices, { eq, and }) => and(
                     eq(invoices.description, "Exclusive Community NFT Mint"),
@@ -151,7 +149,6 @@ export function registerCommunityDropRoutes(app: Express) {
             }
 
             // 2. Check if already claimed
-            const { specialNFTMints } = await import("@shared/invoice-schema");
             const existingMint = await db.query.specialNFTMints.findFirst({
                 where: (mints, { eq }) => eq(mints.invoiceId, invoiceId)
             });
@@ -161,7 +158,6 @@ export function registerCommunityDropRoutes(app: Express) {
             }
 
             // 3. Create Transaction
-            const { getInvoiceNFTService } = await import("./nft-service");
             const nftService = getInvoiceNFTService();
             if (!nftService.isReady()) await nftService.initialize();
 
@@ -188,8 +184,6 @@ export function registerCommunityDropRoutes(app: Express) {
     app.post("/api/community-drop/confirm-claim", async (req: Request, res: Response) => {
         try {
             const { invoiceId, walletAddress, mint, signature, nftVariant } = req.body;
-
-            const { specialNFTMints } = await import("@shared/invoice-schema");
 
             await db.insert(specialNFTMints).values({
                 walletAddress,

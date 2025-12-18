@@ -1290,7 +1290,17 @@ export class InvoiceNFTService {
       // 5. Build and Partially Sign
       // Payer is User. Server signs as Authority/Creator/CollectionAuth. MintSigner signs as Mint.
       const transaction = await createNftBuilder.buildAndSign({
-        payer: { publicKey: user, signTransaction: async (tx) => tx }, // User placeholder
+        ...this.umi, // REQUIRED: Provide RPC and Transactions context
+        payer: // 3. User (Payer) - We only have their public key and a placeholder sign function
+          // The client will actually sign this transaction.
+          // We cast as Signer to satisfy Umi's strict typing, knowing we won't execute this signer server-side.
+          {
+            publicKey: user,
+            signTransaction: async (tx: any) => tx,
+            signMessage: async (msg: any) => msg,
+            signAllTransactions: async (txs: any) => txs
+          } as unknown as Signer,
+        // User placeholder
       });
 
       // Serialize
