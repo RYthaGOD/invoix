@@ -25,6 +25,7 @@ import {
 import { validateEnvironment } from "./env-validator";
 import { healthCheck, liveness, readiness } from "./health";
 import { initializeNFTService } from "./nft-service";
+import { initializeArciumService } from "./arcium-service";
 import { loadKeypairFromPrivateKey } from "./arcium-service";
 
 // Validate environment variables on startup (before security check)
@@ -261,59 +262,6 @@ export async function triggerGracefulShutdown() {
       }
     }, 5000);
 
-    // STARTUP STRATEGY:
-    // 1. In Production, we MUST wait for DB connection & migration to prevent early API failures.
-    // 2. In Dev, we can be more lenient, but keeping it consistent is safer.
-
-    console.log("⏳ Connecting to Database...");
-
-    // Retry logic for DB connection
-    let connected = false;
-    let retries = 30; // 60 seconds total
-    try {
-      while (!connected && retries > 0) {
-        connected = await checkDatabaseConnection(1, 100); // Quick check
-        if (!connected) {
-          retries--;
-          await new Promise(res => setTimeout(res, 2000));
-        }
-      }
-    } catch (dbError) {
-      console.error("❌ DB Connection Check Failed:", dbError);
-    }
-
-    if (!connected) {
-      console.error("❌ CRITICAL: Could not connect to database after 60 seconds.");
-      process.exit(1); // Fail hard in production so platform recycles the instance
-    }
-
-    // Run migrations synchronously before listening
-    try {
-      await runMigrations();
-      console.log("✅ Migrations applied successfully");
-    } catch (migrationError) {
-      console.error("❌ CRITICAL: Database Migrations Failed:", migrationError);
-      process.exit(1); // Migrations are critical
-    }
-
-    // Initialize NFT Service (Non-Critical)
-    try {
-      if (process.env.PAYER_PRIVATE_KEY) {
-        const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
-        const nftInitSuccess = await initializeNFTService(payerKeypair);
-        if (nftInitSuccess) {
-          console.log("✅ NFT Service initialized with payer wallet");
-        } else {
-          console.warn("⚠️  NFT Service failed to initialize. NFT features will be disabled.");
-        }
-      } else {
-        console.log("ℹ️  No PAYER_PRIVATE_KEY found, skipping NFT service initialization.");
-      }
-    } catch (nftError) {
-      console.error("⚠️  NFT Service Initialization Crashed (Non-Fatal):", nftError);
-      // Do NOT exit, allow server to run without NFTs
-    }
-
     // Global generic error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
@@ -328,13 +276,91 @@ export async function triggerGracefulShutdown() {
       serveStatic(app);
     }
 
+    // Start Server IMMEDIATELY to satisfy Railway/Health checks
     const port = parseInt(process.env.PORT || '5000', 10);
     server.listen(port, "0.0.0.0", () => {
-      console.log(`✅ Server successfully started!`);
+      console.log(`✅ Server bound to port ${port}`);
       log(`serving on port ${port}`);
-      isServiceReady = true;
-      startupPhase = "ready";
     });
+
+    // Async Initialization (DB, Migrations, Services)
+    (async () => {
+      try {
+        console.log("⏳ Connecting to Database...");
+        startupPhase = "db_check";
+
+        // Retry logic for DB connection
+        let connected = false;
+        let retries = 30; // 60 seconds total
+        try {
+          while (!connected && retries > 0) {
+            connected = await checkDatabaseConnection(1, 100); // Quick check
+            if (!connected) {
+              retries--;
+              await new Promise(res => setTimeout(res, 2000));
+            }
+          }
+        } catch (dbError: any) {
+          console.error("❌ DB Connection Check Failed:", dbError);
+          lastStartupError = `DB Connection Failed: ${dbError.message}`;
+        }
+
+        if (!connected) {
+          console.error("❌ CRITICAL: Could not connect to database after 60 seconds. Service will remain unavailable.");
+          // We do NOT exit here to keep the port open for logs, but service is broken.
+          return;
+        }
+
+        // Run migrations synchronously
+        startupPhase = "migrations";
+        try {
+          await runMigrations();
+          console.log("✅ Migrations applied successfully");
+        } catch (migrationError: any) {
+          console.error("❌ CRITICAL: Database Migrations Failed:", migrationError);
+          lastStartupError = `Migrations Failed: ${migrationError.message}`;
+          return;
+        }
+
+        // Initialize NFT Service (Non-Critical)
+        try {
+          if (process.env.PAYER_PRIVATE_KEY) {
+            const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+            const nftInitSuccess = await initializeNFTService(payerKeypair);
+            if (nftInitSuccess) {
+              console.log("✅ NFT Service initialized with payer wallet");
+            } else {
+              console.warn("⚠️  NFT Service failed to initialize. NFT features will be disabled.");
+            }
+          } else {
+            console.log("ℹ️  No PAYER_PRIVATE_KEY found, skipping NFT service initialization.");
+          }
+        } catch (nftError) {
+          console.error("⚠️  NFT Service Initialization Crashed (Non-Fatal):", nftError);
+          // Do NOT exit, allow server to run without NFTs
+        }
+
+        // Initialize Arcium Service (Non-Critical)
+        try {
+          const arciumSuccess = await initializeArciumService();
+          if (arciumSuccess) {
+            console.log("✅ Arcium Service initialized");
+          }
+        } catch (arciumError) {
+          console.error("⚠️  Arcium Service Initialization Failed:", arciumError);
+        }
+
+        // Mark Service as Ready
+        isServiceReady = true;
+        startupPhase = "ready";
+        console.log("🚀 Service is fully ready and accepting requests!");
+
+      } catch (error: any) {
+        console.error("❌ FATAL ERROR during initialization:", error);
+        lastStartupError = `Initialization Error: ${error.message}`;
+        // Do not exit, allow log drains
+      }
+    })();
 
     // Graceful shutdown
     process.on("SIGTERM", () => {
