@@ -1,6 +1,6 @@
 
 import { db } from "./db";
-import { payments, paymentReceiptNFTs, invoices } from "@shared/invoice-schema";
+import { payments, paymentReceiptNFTs, invoices, specialNFTMints } from "@shared/invoice-schema";
 import { eq } from "drizzle-orm";
 import { getInvoiceNFTService } from "./nft-service";
 import { Connection } from "@solana/web3.js";
@@ -64,8 +64,20 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             if (nftService.isReady()) {
                 try {
                     // Airdrop the Special NFT to the payer
-                    await nftService.mintSpecialNFT(payerAddress, invoiceId);
-                    console.log(`[NFT] Special NFT Airdropped to ${payerAddress}`);
+                    const result = await nftService.mintSpecialNFT(payerAddress, invoiceId);
+
+                    // Persist to DB for rarity tracking
+                    await db.insert(specialNFTMints).values({
+                        walletAddress: payerAddress,
+                        nftId: result.nftVariant.id,
+                        nftName: result.nftVariant.name,
+                        nftRarity: result.nftVariant.rarity,
+                        nftMint: result.mint,
+                        txSignature: result.signature,
+                        invoiceId: invoiceId,
+                    });
+
+                    console.log(`[NFT] Special NFT Airdropped to ${payerAddress} (${result.nftVariant.rarity})`);
                 } catch (mintError) {
                     console.error("[NFT] Failed to mint special NFT:", mintError);
                 }
@@ -89,20 +101,8 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             console.log(`[NFT] Receipt Minted: ${receiptResult.mint}`);
 
             // Save to DB
-            await db.insert(paymentReceiptNFTs).values({
-                paymentId,
-                invoiceId,
-                nftMint: receiptResult.mint,
-                nftMetadataUri: "https://arweave.net/placeholder", // Placeholder
-                nftOwner: payerAddress,
-                receiptNumber: `RCPT-${Date.now()}`,
-                amount: invoice.remainingAmount,
-                currency: invoice.currency,
-                paymentDate: new Date(),
-                taxYear: new Date().getFullYear(),
-                txSignature: signature,
-                nftMintSignature: receiptResult.signature
-            });
+            // DB Insertion is handled inside nftService.mintPaymentReceiptNFT
+            // to ensure Asset ID and Merkle indices are captured correctly.
         }
 
     } catch (error) {

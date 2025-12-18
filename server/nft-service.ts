@@ -1037,46 +1037,56 @@ export class InvoiceNFTService {
 
       const metadataUri = await this.uploadMetadata(metadata, `${selectedNFT.id}-${recipientAddress}-${Date.now()}`);
 
-      // 2. Mint Standard NFT with Collection and Royalties
-      const mint = generateSigner(this.umi);
-
-      // Build NFT creation with collection if available
-      const nftConfig: any = {
-        mint,
-        name: metadata.name,
-        symbol: metadata.symbol,
-        uri: metadataUri,
-        sellerFeeBasisPoints: percentAmount(5), // 5% royalties on secondary sales
-        tokenStandard: TokenStandard.NonFungible,
-        isMutable: false,
-        creators: [
-          {
-            address: this.umi.identity.publicKey,
-            verified: true,
-            share: 100,
-          }
-        ],
-        tokenOwner: toPublicKey(recipientAddress),
-      };
-
-      // Add collection reference if collection exists
-      if (this.collectionMint) {
-        nftConfig.collection = some({
-          key: toPublicKey(this.collectionMint),
-          verified: false, // Will be verified by collection authority later
-        });
-        console.log(`[NFT] Adding to collection: ${this.collectionMint}`);
+      // 2. Mint Compressed NFT (cNFT) to save costs and act as Invoice Receipt
+      // Server pays ~0.001 SOL
+      if (!this.merkleTree) {
+        throw new Error("Merkle Tree not initialized");
       }
 
-      const createNftIx = createNft(this.umi, nftConfig);
+      console.log(`[NFT] Minting Compressed Special NFT to tree: ${this.merkleTree}`);
 
-      const result = await createNftIx.sendAndConfirm(this.umi);
+      const merkleTreePubkey = toPublicKey(this.merkleTree);
+      const leafOwner = toPublicKey(recipientAddress);
+
+      // Collection Config
+      let collectionConfig = none<any>();
+      if (this.collectionMint) {
+        collectionConfig = some({
+          key: toPublicKey(this.collectionMint),
+          verified: false // cNFT verification usually requires separate instruction or delegate, keeping false to be safe/simple
+        });
+      }
+
+      const mintIx = mintV1(this.umi, {
+        leafOwner,
+        merkleTree: merkleTreePubkey,
+        metadata: {
+          name: metadata.name,
+          symbol: metadata.symbol,
+          uri: metadataUri,
+          sellerFeeBasisPoints: percentAmount(5),
+          collection: collectionConfig,
+          creators: [
+            {
+              address: this.umi.identity.publicKey,
+              verified: true,
+              share: 100,
+            }
+          ],
+        },
+      });
+
+      const result = await mintIx.sendAndConfirm(this.umi);
       const signature = result.signature.toString();
 
-      console.log(`✅ Minted ${selectedNFT.name} (${selectedNFT.rarity}). Mint: ${mint.publicKey.toString()} Sig: ${signature}`);
+      // Extract Asset ID
+      const leafIndex = await this.extractLeafIndexFromTransaction(signature);
+      const assetId = await this.deriveAssetId(leafIndex);
+
+      console.log(`✅ Minted cNFT ${selectedNFT.name}. Asset ID: ${assetId} Sig: ${signature}`);
 
       return {
-        mint: mint.publicKey.toString(),
+        mint: assetId.toString(),
         signature: signature,
         nftVariant: selectedNFT
       };
@@ -1176,6 +1186,131 @@ export class InvoiceNFTService {
   }
 
 
+
+  /**
+   * Create Claim Transaction (User Pays Gas)
+   * Called AFTER Invoice is paid.
+   * 1. Check Invoice Paid (handled by caller/route)
+   * 2. Mints Standard NFT (User pays gas + rent ~0.02 SOL)
+   */
+  async createClaimTransaction(
+    userPublicKey: string,
+    mintedCounts?: Record<string, number>
+  ): Promise<{
+    transaction: string; // Base64
+    mint: string;
+    nftVariant: any;
+  }> {
+    if (!this.isReady()) {
+      throw new Error("NFT service not initialized");
+    }
+
+    try {
+      // Import collection config
+      const { selectRandomNFT } = await import("@shared/nft-collection");
+
+      // Select random NFT based on rarity weights
+      const counts = mintedCounts || { common: 0, uncommon: 0, rare: 0, epic: 0 };
+      const selectedNFT = selectRandomNFT(counts);
+
+      if (!selectedNFT) {
+        throw new Error("All NFTs sold out! Collection complete.");
+      }
+
+      console.log(`[NFT] Preparing Claim Transaction for ${selectedNFT.name} (${selectedNFT.rarity}) to ${userPublicKey}...`);
+
+      // 1. Generate Metadata
+      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+      const imageUri = `${apiUrl}/uploads/${selectedNFT.image}`;
+
+      const metadata: InvoiceNFTMetadata = {
+        name: selectedNFT.name,
+        symbol: "INVX",
+        uri: "",
+        description: `INVOIX Genesis Collection - ${selectedNFT.rarity.toUpperCase()} Edition. Limited to 1000 total.`,
+        image: imageUri,
+        attributes: [
+          { trait_type: "Name", value: selectedNFT.name },
+          { trait_type: "Type", value: selectedNFT.type },
+          { trait_type: "Attack", value: selectedNFT.attack },
+          { trait_type: "HP", value: selectedNFT.hp },
+          { trait_type: "Rarity", value: selectedNFT.rarity.charAt(0).toUpperCase() + selectedNFT.rarity.slice(1) },
+          { trait_type: "Edition", value: "Genesis" },
+          { trait_type: "Mint Type", value: "Claimed via Invoice" }
+        ],
+        properties: {
+          category: "image",
+          creators: [{ address: this.umi.identity.publicKey.toString(), share: 100, verified: true }]
+        }
+      };
+
+      // 2. Upload Metadata
+      // Server performs upload (trivial cost)
+      const metadataUri = await this.uploadMetadata(
+        metadata,
+        `${selectedNFT.id}-${userPublicKey}-${Date.now()}`
+      );
+
+      // 3. Prepare Keys
+      const mintSigner = generateSigner(this.umi);
+      const user = toPublicKey(userPublicKey);
+
+      // 4. Build NFT Mint Transaction
+      // Server is the Creator/Authority (Identity), User is the Payer/Owner.
+      const nftConfig: any = {
+        mint: mintSigner,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        uri: metadataUri,
+        sellerFeeBasisPoints: percentAmount(5), // 5% royalties
+        tokenStandard: TokenStandard.NonFungible,
+        authority: this.umi.identity, // Server authorized
+        updateAuthority: this.umi.identity, // Server keeps control
+        isMutable: false,
+        creators: [
+          {
+            address: this.umi.identity.publicKey,
+            verified: true, // Server signs
+            share: 100,
+          }
+        ],
+        tokenOwner: user,
+      };
+
+      // Add collection reference if collection exists
+      if (this.collectionMint) {
+        nftConfig.collection = some({
+          key: toPublicKey(this.collectionMint),
+          verified: true, // Server is Authority, so we can verify atomically
+        });
+      }
+
+      const createNftBuilder = createNft(this.umi, nftConfig);
+
+      // 5. Build and Partially Sign
+      // Payer is User. Server signs as Authority/Creator/CollectionAuth. MintSigner signs as Mint.
+      const transaction = await createNftBuilder.buildAndSign({
+        payer: { publicKey: user, signTransaction: async (tx) => tx }, // User placeholder
+      });
+
+      // Serialize
+      const base64Transaction = Buffer.from(
+        this.umi.transactions.serialize(transaction)
+      ).toString("base64");
+
+      return {
+        transaction: base64Transaction,
+        mint: mintSigner.publicKey.toString(),
+        nftVariant: selectedNFT
+      };
+
+    } catch (error) {
+      console.error("Failed to create claim transaction:", error);
+      throw error;
+    }
+  }
+
+
   /**
    * Helper: Extract Leaf Index from Transaction (Public)
    */
@@ -1233,11 +1368,11 @@ export class InvoiceNFTService {
       }
 
       // Fallback: estimate based on transaction slot
-      console.warn("Could not parse leaf index from logs, using fallback estimation");
-      return 0; // Would need to track tree state for accurate estimation
+      console.error("❌ Could not parse leaf index from logs. Raw logs:", tx.meta.logMessages);
+      throw new Error("Failed to extract leaf index from transaction logs. Please try confirming again.");
     } catch (error) {
       console.error("Error extracting leaf index:", error);
-      return 0; // Safe fallback
+      throw error;
     }
   }
 

@@ -93,12 +93,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   // SPECIAL NFT ROUTES
   // ================================================
-  // registerSpecialMintRoutes(app); // Deprecated in favor of invoice flow? Or keep for direct mint test?
-  // Let's replace it or add alongside. The plan pivoted to invoice based.
-  // We should register the new one.
+  registerSpecialMintRoutes(app);
 
-  // const { registerCommunityDropRoutes } = await import("./community-drop-routes");
-  // registerCommunityDropRoutes(app);
+  const { registerCommunityDropRoutes } = await import("./community-drop-routes");
+  registerCommunityDropRoutes(app);
 
   const server = createServer(app);
   return server;

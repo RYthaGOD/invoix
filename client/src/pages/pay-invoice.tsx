@@ -287,7 +287,7 @@ export default function PayInvoice() {
 
             <div className="max-w-4xl mx-auto px-4 py-8">
 
-                {/* Payment Status Overlay - Replaces/Overlays content when active */}
+                {/* Payment Status Overlay */}
                 {(paymentStatus !== 'idle' || txSignature) && (
                     <div className="mb-8">
                         <PaymentStatus
@@ -295,6 +295,59 @@ export default function PayInvoice() {
                             txSignature={txSignature}
                             error={confirmationError}
                         />
+                        {/* Claim NFT Button for Community Drop */}
+                        {paymentStatus === 'verified' && invoice?.description === "Exclusive Community NFT Mint" && (
+                            <div className="mt-4 text-center">
+                                <h3 className="text-xl font-bold text-white mb-2">🎁 Your NFT is Ready!</h3>
+                                <p className="text-gray-400 mb-4 text-sm">You must now claim your Standard NFT (Gas fees apply).</p>
+                                <button
+                                    className="px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg text-white font-bold hover:opacity-90 transition-opacity"
+                                    onClick={async () => {
+                                        if (!signTransaction) return;
+                                        try {
+                                            const { Buffer } = await import("buffer");
+                                            const { VersionedTransaction, Connection } = await import("@solana/web3.js");
+
+                                            // 1. Get Tx
+                                            const res = await fetch("/api/community-drop/claim-transaction", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ invoiceId: invoice.id, walletAddress: publicKey?.toString() })
+                                            });
+                                            const data = await res.json();
+                                            if (!data.success) throw new Error(data.message);
+
+                                            // 2. Sign
+                                            const tx = VersionedTransaction.deserialize(Buffer.from(data.transaction, 'base64'));
+                                            const signed = await signTransaction(tx);
+
+                                            // 3. Send
+                                            // Use existing connection (Devnet/Mainnet aware)
+                                            const sig = await connection.sendRawTransaction(signed.serialize());
+                                            await connection.confirmTransaction(sig, "confirmed");
+
+                                            // 4. Confirm DB
+                                            await fetch("/api/community-drop/confirm-claim", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({
+                                                    invoiceId: invoice.id,
+                                                    walletAddress: publicKey?.toString(),
+                                                    mint: data.mint,
+                                                    signature: sig,
+                                                    nftVariant: data.nftVariant
+                                                })
+                                            });
+                                            alert(`Claimed ${data.nftVariant.rarity} NFT!`);
+                                        } catch (e: any) {
+                                            alert("Claim Failed: " + e.message);
+                                        }
+                                    }}
+                                >
+                                    Claim NFT Now
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 

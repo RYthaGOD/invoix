@@ -3,12 +3,65 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { ShieldCheck, Rocket, ArrowLeft } from "lucide-react";
+import { Loader2, Zap, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+
+import { Connection, VersionedTransaction } from "@solana/web3.js";
+import { Buffer } from "buffer"; // Ensure buffer is available
 
 export default function CommunityNFTDrop() {
+    const { publicKey, signTransaction } = useWallet();
+    const { toast } = useToast();
+    const [, setLocation] = useLocation();
+    const [isLoading, setIsLoading] = useState(false);
+
+    // BLOCKER: Set to false to enable minting
+    const BLOCK_MINT = true;
+
+    const handlePurchase = async () => {
+        if (!publicKey) {
+            toast({
+                title: "Connect Wallet",
+                description: "Please connect your wallet to purchase.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            // 1. Create Invoice (Step 1 of Flow)
+            const response = await apiRequest("POST", "/api/community-drop/create-invoice", {
+                walletAddress: publicKey.toString(),
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.message || "Failed to create invoice");
+            }
+
+            // 2. Redirect to Payment Page
+            // The "Claim" (Mint) happens AFTER payment on that page.
+            setLocation(`/pay/${data.invoiceId}`);
+
+        } catch (error: any) {
+            console.error("Purchase error:", error);
+            toast({
+                title: "Error",
+                description: error.message || "Failed to start purchase.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
             {/* Background Gradients */}
@@ -39,21 +92,25 @@ export default function CommunityNFTDrop() {
                             <img
                                 src="/uploads/invoix-exclusive.jpg"
                                 alt="INVOIX Exclusive NFT"
-                                className="object-cover w-full h-full grayscale opacity-50"
-                                onError={(e) => (e.currentTarget.src = "https://placehold.co/400x400/101010/FFF?text=Coming+Soon")}
+                                className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                                onError={(e) => (e.currentTarget.src = "https://placehold.co/400x400/101010/FFF?text=Exclusive+NFT")}
                             />
-                            {/* Coming Soon Overlay */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-                                <Rocket className="w-12 h-12 text-primary mb-2 animate-pulse" />
-                                <span className="text-xl font-bold text-white tracking-widest uppercase">Coming Soon</span>
+                            {/* Limited Edition Badge */}
+                            <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md border border-white/10 text-white text-[10px] uppercase font-bold px-2 py-1 rounded-full shadow-lg z-10 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                Limited: 1000
+                            </div>
+
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+                                <span className="text-white font-medium text-sm">Preview</span>
                             </div>
                         </div>
 
-                        <div className="space-y-4 opacity-70">
+                        <div className="space-y-4">
                             <div className="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/10">
                                 <h3 className="font-semibold text-primary flex items-center gap-2">
                                     <ShieldCheck className="w-4 h-4" />
-                                    Expected Benefits
+                                    Exclusive Benefits
                                 </h3>
                                 <ul className="mt-2 space-y-2 text-sm text-foreground/80">
                                     <li className="flex items-start gap-2">
@@ -70,17 +127,51 @@ export default function CommunityNFTDrop() {
                                     </li>
                                 </ul>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-center">
+                                <div className="p-3 rounded-lg bg-background border border-border">
+                                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Holders</p>
+                                    <p className="text-xl font-bold text-green-500">$0.50</p>
+                                    <p className="text-[10px] text-muted-foreground">In SOL</p>
+                                </div>
+                                <div className="p-3 rounded-lg bg-background border border-border">
+                                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Standard</p>
+                                    <p className="text-xl font-bold">$5.00</p>
+                                    <p className="text-[10px] text-muted-foreground">In SOL</p>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-4">
-                        <Link href="/invoices">
-                            <Button variant="outline" className="w-full gap-2">
-                                <ArrowLeft className="w-4 h-4" />
-                                Back to Dashboard
+                        {!publicKey ? (
+                            <WalletMultiButton className="w-full !bg-primary !h-12 !rounded-lg" />
+                        ) : BLOCK_MINT ? (
+                            <Button className="w-full h-12 text-lg font-bold bg-muted text-muted-foreground cursor-not-allowed" disabled>
+                                Mint Opening Soon
                             </Button>
-                        </Link>
+                        ) : (
+                            <Button
+                                onClick={handlePurchase}
+                                className="w-full h-12 text-lg font-bold shadow-lg shadow-primary/20"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Generating Invoice...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap className="mr-2 h-4 w-4 fill-current" />
+                                        Purchase Instantly
+                                    </>
+                                )}
+                            </Button>
+                        )}
+
                         <p className="text-xs text-center text-muted-foreground opacity-60">
-                            Join our community to be notified when the drop goes live.
+                            Processed via secure on-chain SOL Invoice. <br />
+                            NFT airdropped immediately upon payment.
                         </p>
                     </CardFooter>
                 </Card>
@@ -88,4 +179,3 @@ export default function CommunityNFTDrop() {
         </div>
     );
 }
-

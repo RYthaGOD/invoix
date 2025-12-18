@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate } from "lucide-react";
+import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate, Sparkles } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,13 +34,20 @@ function OGBadge() {
 const menuItems = [
   {
     title: "Overview",
-    url: "/invoices", // Changed from /dashboard to /invoices to match actual route
+    url: "/invoices",
     icon: Home,
   },
   {
     title: "Create Invoice",
     url: "/invoices/create",
     icon: Plus,
+  },
+  {
+    title: "Community Drop",
+    url: "/community-nft",
+    icon: Sparkles,
+    badge: "New",
+    badgeColor: "text-purple-400 bg-purple-400/10 border-purple-400/20",
   },
   {
     title: "Customers",
@@ -58,13 +65,8 @@ const menuItems = [
     icon: Zap,
   },
   {
-    title: "Special NFT",
-    url: "/community-nft",
-    icon: Zap, // Using Zap temporarily or importing Gem/Gift if available. Zap matches "flash" logic, or reuse existing icons.
-  },
-  {
     title: "Blacklist",
-    url: "/dashboard/blacklist", // Keeping if relevant, or remove if not implemented
+    url: "/dashboard/blacklist",
     icon: Shield,
   },
   {
@@ -103,9 +105,16 @@ export function AppSidebar() {
                     isActive={location === item.url}
                     data-testid={`sidebar-${item.title.toLowerCase().replace(' ', '-')}`}
                   >
-                    <Link href={item.url}>
-                      <item.icon className="w-5 h-5" {...({} as any)} />
-                      <span>{item.title}</span>
+                    <Link href={item.url} className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <item.icon className="w-5 h-5" />
+                        <span>{item.title}</span>
+                      </div>
+                      {(item as any).badge && (
+                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ml-auto ${(item as any).badgeColor || 'text-primary bg-primary/10 border-primary/20'}`}>
+                          {(item as any).badge}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

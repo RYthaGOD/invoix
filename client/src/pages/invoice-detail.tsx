@@ -529,7 +529,7 @@ export default function InvoiceDetail() {
       setMintingStatus("Success! Updating Invoice... ✨");
 
       // 5. Confirm with Server (Sends signature, server derives Asset Id)
-      await fetch(`/api/nft/confirm-mint/${invoice.id}`, {
+      const confirmRes = await fetch(`/api/nft/confirm-mint/${invoice.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -540,6 +540,11 @@ export default function InvoiceDetail() {
           merkleTree: "See Server Config",
         }),
       });
+
+      if (!confirmRes.ok) {
+        const confirmErr = await confirmRes.json();
+        throw new Error(confirmErr.message || "Failed to confirm mint on server. Please try again.");
+      }
 
       // Reload invoice to show new NFT status
       await loadInvoice(invoice.id);

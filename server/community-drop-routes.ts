@@ -127,4 +127,84 @@ export function registerCommunityDropRoutes(app: Express) {
             res.status(500).json({ success: false, message: "Failed to create invoice" });
         }
     });
+
+    /**
+     * Create Claim Transaction (Invoice Gated)
+     * POST /api/community-drop/claim-transaction
+     */
+    app.post("/api/community-drop/claim-transaction", async (req: Request, res: Response) => {
+        try {
+            const { invoiceId, walletAddress } = req.body;
+            if (!invoiceId || !walletAddress) return res.status(400).json({ success: false, message: "Missing invoiceId or walletAddress" });
+
+            // 1. Verify Invoice
+            const invoice = await db.query.invoices.findFirst({
+                where: (invoices, { eq, and }) => and(
+                    eq(invoices.id, invoiceId),
+                    eq(invoices.status, "paid"),
+                    eq(invoices.description, "Exclusive Community NFT Mint")
+                )
+            });
+
+            if (!invoice) {
+                return res.status(400).json({ success: false, message: "Invoice not found or not paid." });
+            }
+
+            // 2. Check if already claimed
+            const { specialNFTMints } = await import("@shared/invoice-schema");
+            const existingMint = await db.query.specialNFTMints.findFirst({
+                where: (mints, { eq }) => eq(mints.invoiceId, invoiceId)
+            });
+
+            if (existingMint) {
+                return res.status(400).json({ success: false, message: "NFT already claimed for this invoice." });
+            }
+
+            // 3. Create Transaction
+            const { getInvoiceNFTService } = await import("./nft-service");
+            const nftService = getInvoiceNFTService();
+            if (!nftService.isReady()) await nftService.initialize();
+
+            const { transaction, mint, nftVariant } = await nftService.createClaimTransaction(walletAddress);
+
+            res.json({
+                success: true,
+                transaction,
+                mint,
+                nftVariant,
+                message: "Claim Transaction Ready"
+            });
+
+        } catch (error: any) {
+            console.error("Error creating claim transaction:", error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
+
+    /**
+     * Confirm Claim (Save to DB)
+     * POST /api/community-drop/confirm-claim
+     */
+    app.post("/api/community-drop/confirm-claim", async (req: Request, res: Response) => {
+        try {
+            const { invoiceId, walletAddress, mint, signature, nftVariant } = req.body;
+
+            const { specialNFTMints } = await import("@shared/invoice-schema");
+
+            await db.insert(specialNFTMints).values({
+                walletAddress,
+                nftId: nftVariant.id,
+                nftName: nftVariant.name,
+                nftRarity: nftVariant.rarity,
+                nftMint: mint,
+                txSignature: signature,
+                invoiceId: invoiceId,
+            });
+
+            res.json({ success: true });
+        } catch (error: any) {
+            console.error("Error confirming claim:", error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    });
 }
