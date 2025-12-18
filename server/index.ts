@@ -215,30 +215,18 @@ export async function triggerGracefulShutdown() {
     wss.on("connection", (ws) => {
       console.log("[WS] Client connected");
 
-      // Real-time Global Stats Emitter
-      const interval = setInterval(async () => {
+      // Send immediate initial stats upon connection
+      invoiceStorage.getGlobalStats().then(stats => {
         if (ws.readyState === ws.OPEN) {
-          try {
-            // 1. Fetch real global stats
-            // We import this dynamically (or available via closure if imported at top)
-            // But since invoiceStorage is a singleton imported at top (we need to add the import), we use it.
-            const stats = await invoiceStorage.getGlobalStats();
-
-            const statsUpdate = {
-              type: "global_stats_update",
-              timestamp: Date.now(),
-              data: stats
-            };
-            ws.send(JSON.stringify(statsUpdate));
-
-          } catch (error) {
-            console.error("Error broadcasting stats:", error);
-          }
+          ws.send(JSON.stringify({
+            type: "global_stats_update",
+            timestamp: Date.now(),
+            data: stats
+          }));
         }
-      }, 5000); // Update every 5 seconds
+      }).catch(err => console.error("Error sending initial stats:", err));
 
       ws.on("close", () => {
-        clearInterval(interval);
         console.log("[WS] Client disconnected");
       });
 
@@ -246,6 +234,32 @@ export async function triggerGracefulShutdown() {
         console.error("[WS] Error:", err);
       });
     });
+
+    // OPTIMIZED: Global Broadcast Loop (Singleton)
+    // Query DB once, broadcast to all.
+    // Prevents DB overload: O(1) queries instead of O(N) where N = clients
+    setInterval(async () => {
+      // Only query if there are connected clients to save resources
+      if (wss.clients.size > 0) {
+        try {
+          const stats = await invoiceStorage.getGlobalStats();
+          const message = JSON.stringify({
+            type: "global_stats_update",
+            timestamp: Date.now(),
+            data: stats
+          });
+
+          // Broadcast to all connected clients
+          wss.clients.forEach((client) => {
+            if (client.readyState === 1) { // 1 = WebSocket.OPEN
+              client.send(message);
+            }
+          });
+        } catch (error) {
+          console.error("Error running global stats broadcast:", error);
+        }
+      }
+    }, 5000);
 
     // STARTUP STRATEGY:
     // 1. In Production, we MUST wait for DB connection & migration to prevent early API failures.
