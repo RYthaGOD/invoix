@@ -107,12 +107,19 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
   const dns = await import('dns');
   const { promises: dnsPromises } = dns;
 
-  // Parse current URL to get hostname
+  // Parse current URL to get hostname (Robustly)
   let currentUrl = process.env.DATABASE_URL || "";
   let urlObj: URL | null = null;
+  let hostname = "";
+
   try {
     urlObj = new URL(currentUrl);
-  } catch (e) { }
+    hostname = urlObj.hostname;
+  } catch (e) {
+    // Fallback: simple extraction for validation
+    const match = currentUrl.match(/@([^:/]+)(?::(\d+))?/);
+    if (match) hostname = match[1];
+  }
 
   for (let i = 0; i < retries; i++) {
     try {
@@ -125,20 +132,25 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
       console.log(`⏳ DB Attempt ${i + 1}/${retries} Failed: ${lastError}`);
 
       // FIX: If ENETUNREACH (IPv6 issue), force resolve to IPv4 and recreate pool
-      // Also handle EAI_AGAIN (DNS timeout)
-      if ((lastError.includes('ENETUNREACH') || lastError.includes('EAI_AGAIN') || lastError.includes('ETIMEDOUT')) && urlObj && i === 0) {
+      // Also handle default error 'address not found' if DNS is weird
+      if ((lastError.includes('ENETUNREACH') || lastError.includes('EAI_AGAIN') || lastError.includes('ETIMEDOUT')) && hostname && i === 0) {
         console.log(`🌍 Network Reachability Error detected: ${lastError}`);
-        console.log(`🔄 Attempting to resolve host '${urlObj.hostname}' to IPv4...`);
+        console.log(`🔄 Attempting to resolve host '${hostname}' to IPv4...`);
         try {
-          const ipv4Addresses = await dnsPromises.resolve4(urlObj.hostname);
+          const ipv4Addresses = await dnsPromises.resolve4(hostname);
           if (ipv4Addresses && ipv4Addresses.length > 0) {
             const newIp = ipv4Addresses[0];
             console.log(`✅ Resolved to IPv4: ${newIp}`);
 
             // Reconstruct URL with IP
-            // Keep original Hostname in SSL config for verify match if needed, but here we usually turn off rejectUnauthorized
-            urlObj.hostname = newIp;
-            const newConnectionString = urlObj.toString();
+            // If URL object is valid, use it. If not, use string replacement (risky if hostname appears in password, but unlikely for full domain)
+            let newConnectionString = "";
+            if (urlObj) {
+              urlObj.hostname = newIp;
+              newConnectionString = urlObj.toString();
+            } else {
+              newConnectionString = currentUrl.replace(hostname, newIp);
+            }
 
             // Update Process Env (for persistence in this session)
             process.env.DATABASE_URL = newConnectionString;
