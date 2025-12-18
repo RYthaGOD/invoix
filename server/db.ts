@@ -52,8 +52,12 @@ if (useSQLite) {
 
   // Create a reusable pool configuration with smart SSL default
   // Allow manual override via DB_SSL_MODE
+  // Create a reusable pool configuration with smart SSL default
+  // Allow manual override via DB_SSL_MODE
   const isInternal = process.env.DATABASE_URL?.includes('railway.internal');
-  const sslMode = process.env.DB_SSL_MODE || (isInternal ? 'disable' : 'require');
+  // Default to 'require' (with allow self-signed) to prevent "Connection terminated unexpectedly"
+  // Many internal networks still accept/prefer SSL, and 'disable' can cause termination if server expects SSL.
+  const sslMode = process.env.DB_SSL_MODE || 'require';
 
   const sslConfig = sslMode === 'disable' ? false : { rejectUnauthorized: false };
 
