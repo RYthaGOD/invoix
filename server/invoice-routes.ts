@@ -60,14 +60,45 @@ export function registerInvoiceRoutes(app: Express): void {
       const validatedData = insertInvoiceWithItemsSchema.parse(req.body);
       const { lineItems, ...invoiceData } = validatedData;
 
+      // --- CALCULATE SUBTOTAL ---
+      // We must calculate subtotal from line items to satisfy DB constraints
+      const subtotal = lineItems?.reduce((sum, item) => {
+        const itemTotal = safeMultiply(item.quantity, item.unitPrice);
+        return safeAdd(sum, itemTotal);
+      }, "0") || "0";
+
+      // Use calculated subtotal if not provided (it was omitted from schema)
+      const finalSubtotal = (invoiceData as any).subtotal || subtotal;
+
       // Auto-calculate remaining amount using shared utility
       const remainingAmount = safeSubtract(invoiceData.totalAmount, invoiceData.paidAmount || "0");
 
+      // --- GENERATE INVOICE NUMBER ---
+      let invoiceNumber = invoiceData.invoiceNumber; // Use provided if any (usually undefined)
+      if (!invoiceNumber) {
+        // Fetch profile to get next number
+        const profile = await invoiceStorage.getBusinessProfile(authenticatedWallet);
+        if (profile) {
+          const nextNum = profile.nextInvoiceNumber;
+          const prefix = profile.defaultInvoicePrefix || "INV";
+          invoiceNumber = `${prefix}-${new Date().getFullYear()}-${String(nextNum).padStart(3, '0')}`;
+
+          // Increment profile counter
+          await invoiceStorage.updateBusinessProfile(authenticatedWallet, {
+            nextInvoiceNumber: nextNum + 1
+          });
+        } else {
+          // Fallback if no profile
+          invoiceNumber = `INV-${Date.now()}`;
+        }
+      }
 
       // Create invoice with line items atomically
       const invoice = await invoiceStorage.createInvoiceWithItems(
         {
           ...invoiceData,
+          invoiceNumber, // Added generated number
+          subtotal: finalSubtotal, // Added calculated subtotal
           dueDate: new Date(invoiceData.dueDate),
           invoicerWalletAddress: authenticatedWallet,
           remainingAmount: remainingAmount,
@@ -674,6 +705,7 @@ export function registerInvoiceRoutes(app: Express): void {
       // Pass the new accounting fields
       const payment = await invoiceStorage.createPayment({
         ...validatedData,
+        paymentNumber: `PAY-${Date.now()}`, // Generate unique payment number
         usdValueAtPayment: validatedData.usdValueAtPayment || undefined, // explicit pass
         isBusinessExpense: validatedData.isBusinessExpense || false,
       });

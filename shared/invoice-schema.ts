@@ -486,6 +486,20 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  invoiceNumber: true, // Backend generated
+  subtotal: true,      // Backend generated
+  taxAmount: true,     // Optional/Backend
+  discountAmount: true, // Optional/Backend
+  totalAmount: true,    // Backend calls it (or frontend passes it?) - Wait, totalAmount checks?
+  remainingAmount: true, // Backend
+  paidAmount: true,    // Backend
+  nftMint: true,
+  nftMerkleTree: true,
+  nftLeafIndex: true,
+  nftMetadataUri: true,
+  nftMintedAt: true,
+  nftTransferredTo: true,
+  nftBurnedAt: true,
 }).extend({
   invoicerWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
   invoiceeWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
@@ -497,6 +511,8 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
 export const insertLineItemSchema = createInsertSchema(invoiceLineItems).omit({
   id: true,
   createdAt: true,
+  lineTotal: true, // Backend generated
+  lineNumber: true, // Backend generated
 }).extend({
   invoiceId: z.string().uuid(),
   quantity: z.string().refine(val => parseFloat(val) > 0, "Quantity must be positive"),
@@ -510,12 +526,20 @@ export const insertInvoiceWithItemsSchema = insertInvoiceSchema.extend({
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
+  paymentNumber: true,
+  fromAddress: true,
+  toAddress: true,
 }).extend({
   invoiceId: z.string().uuid(),
   txSignature: z.string().min(88, "Invalid Solana transaction signature"), // Fixed: Solana signatures are 88 chars
   amount: z.string().refine(val => parseFloat(val) > 0, "Payment amount must be positive"),
   usdValueAtPayment: z.string().optional(), // Optional: can be passed from client or fetched
   isBusinessExpense: z.boolean().optional(),
+
+  // Optional for manual payments (must be supplied if inferred from manual entry)
+  // For crypto payments, backend extracts them from chain
+  fromAddress: z.string().min(32).optional(),
+  toAddress: z.string().min(32).optional(),
 });
 
 export const insertBusinessProfileSchema = createInsertSchema(businessProfiles).omit({

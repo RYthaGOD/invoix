@@ -151,6 +151,8 @@
   "devDependencies": {
     "@types/compression": "^1.8.1",
     "@types/connect-redis": "^0.0.23",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.4",
     "vite-plugin-node-polyfills": "^0.24.0"
   }
 }

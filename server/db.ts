@@ -10,7 +10,7 @@ import * as schemaSqlite from "@shared/invoice-schema-sqlite";
 
 // Use SQLite for local development (no DATABASE_URL needed)
 // Use Postgres for production (requires DATABASE_URL)
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 const useSQLite = isDevelopment && !process.env.DATABASE_URL;
 
 const schema = useSQLite ? schemaSqlite : schemaPg;
@@ -169,4 +169,22 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
   }
 
   return false;
+}
+
+/**
+ * Transaction helper to support Async logic in SQLite (Tests/Dev).
+ * Drizzle's better-sqlite3 driver does not support async transactions.
+ * In Prod (Postgres), we use real transactions.
+ * In Dev/Test (SQLite), we bypass transaction wrapper if async is needed.
+ */
+export async function runTransaction<T>(
+  callback: (tx: any) => Promise<T>
+): Promise<T> {
+  if (useSQLite) {
+    // Run directly on DB instance (No Atomicity, but allows Async)
+    return await callback(db);
+  } else {
+    // Run in proper transaction (Postgres supports Async)
+    return await db.transaction(callback);
+  }
 }

@@ -54,6 +54,7 @@ export const invoices = sqliteTable("invoices", {
 
     // Privacy
     isPrivate: integer("is_private", { mode: "boolean" }).notNull().default(true),
+    privacySalt: text("privacy_salt"), // For hashing sensitive data
     hideAmounts: integer("hide_amounts", { mode: "boolean" }).notNull().default(true),
     hideParties: integer("hide_parties", { mode: "boolean" }).notNull().default(true),
 
