@@ -2,14 +2,13 @@
 import { drizzle as drizzleSQLite, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { drizzle as drizzlePg, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
-const { Pool } = pg;
+const { Pool, Client } = pg;
 
 import Database from 'better-sqlite3';
 import * as schemaPg from "@shared/invoice-schema";
 import * as schemaSqlite from "@shared/invoice-schema-sqlite";
 
 // Use SQLite for local development (no DATABASE_URL needed)
-// Use Postgres for production (requires DATABASE_URL)
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 const useSQLite = isDevelopment && !process.env.DATABASE_URL;
 
@@ -24,71 +23,75 @@ export let db: AppDatabase;
 // Declare pool at top level for export (will be undefined in SQLite mode)
 export let pool: pg.Pool | undefined;
 
-if (useSQLite) {
-  // SQLite setup for local development
-  const sqlite = new Database('./data/invoices.db');
+// State to track current SSL mode for self-healing
+let currentSSLMode: string | undefined;
 
-  // Enable foreign keys
-  sqlite.pragma('foreign_keys = ON');
+// HELPER FUNCTIONS Definitions (Must be outside block for clarity, though JS allows hoisting)
+function getSSLConfig(mode: string) {
+  if (mode === 'disable') return false;
+  return { rejectUnauthorized: false };
+}
 
-  // Polyfill generic Postgres functions for SQLite compatibility
-  sqlite.function('gen_random_uuid', () => crypto.randomUUID());
-  sqlite.function('now', () => new Date().toISOString());
+function createPool(forcedSSLMode?: string): string {
+  // Only used in Postgres mode
+  const isInternal = process.env.DATABASE_URL?.includes('railway.internal');
 
-  console.log('✅ Using SQLite database: ./data/invoices.db');
-
-  // Force cast SQLite instance to AppDatabase to satisfy TypeScript
-  // This allows strict typing in the rest of the app based on the Production schema
-  db = drizzleSQLite(sqlite, { schema: schema as any }) as unknown as AppDatabase;
-} else {
-  // PostgreSQL setup for production (using pg driver for Railway/Standard Postgres)
-  if (!process.env.DATABASE_URL) {
-    throw new Error(
-      "DATABASE_URL must be set for production. For local development, unset DATABASE_URL to use SQLite.",
-    );
+  let mode = forcedSSLMode;
+  if (!mode) {
+    // Default Smart Logic
+    mode = process.env.DB_SSL_MODE || (isInternal ? 'disable' : 'require');
   }
 
-  console.log('✅ Using PostgreSQL database (pg driver)');
+  const sslConfig = getSSLConfig(mode);
+  console.log(`🔌 Initializing DB Pool. Mode: ${mode} (SSL: ${sslConfig ? 'YES' : 'NO'})`);
 
-  // Create a reusable pool configuration with smart SSL default
-  // Allow manual override via DB_SSL_MODE
-  // Determine Network Type
-  const isInternal = process.env.DATABASE_URL?.includes('railway.internal');
-  const isNeon = process.env.DATABASE_URL?.includes('neon.tech');
-
-  // Smart SSL Logic:
-  // 1. If DB_SSL_MODE is set, use it.
-  // 2. If Railway Internal Network, usually DISABLE SSL (port 5432 usually plain text internally).
-  // 3. If Neon/External, usually REQUIRE SSL.
-  // 4. Default to 'require' for security on public networks.
-
-  let defaultMode = 'require';
-  if (isInternal) defaultMode = 'disable';
-
-  const sslMode = process.env.DB_SSL_MODE || defaultMode;
-  const sslConfig = sslMode === 'disable' ? false : { rejectUnauthorized: false };
-
-  console.log(`🔌 DB SSL Mode: ${sslMode} (Internal: ${isInternal}, Neon: ${isNeon})`);
+  // Destroy old pool if exists
+  if (pool) {
+    pool.end().catch(() => { });
+  }
 
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: sslConfig,
-    max: 10, // Reduce pool size for safety on smaller plans
+    max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
-    keepAlive: true, // Prevent TCP dropouts
-    keepAliveInitialDelayMillis: 10000,
+    connectionTimeoutMillis: 5000,
   });
 
-  // Global pool error handler to prevent crashing on "Connection terminated unexpectedly"
-  pool.on('error', (err, client) => {
+  // Global pool error handler
+  pool.on('error', (err) => {
     console.error('Unexpected error on idle client', err);
-    // Don't exit, just log. The pool will reconnect.
   });
 
-
-  db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
+  return mode;
 }
+
+// INITIALIZATION LOGIC
+if (useSQLite) {
+  // SQLite setup for local development
+  const sqlite = new Database('./data/invoices.db');
+  sqlite.pragma('foreign_keys = ON');
+  sqlite.function('gen_random_uuid', () => crypto.randomUUID());
+  sqlite.function('now', () => new Date().toISOString());
+
+  console.log('✅ Using SQLite database: ./data/invoices.db');
+  db = drizzleSQLite(sqlite, { schema: schema as any }) as unknown as AppDatabase;
+
+} else {
+  // PostgreSQL setup for production
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL must be set for production.");
+  }
+  console.log('✅ Using PostgreSQL database (pg driver)');
+
+  // Initial Pool Creation
+  currentSSLMode = createPool();
+  db = drizzlePg(pool!, { schema: schemaPg }) as AppDatabase;
+}
+
+// ------------
+// EXPORTED FUNCTIONS (Must be Top-Level)
+// ------------
 
 export async function runMigrations() {
   if (useSQLite) {
@@ -98,25 +101,13 @@ export async function runMigrations() {
 
   try {
     console.log('⏳ Running database migrations...');
-    // Dynamic import to avoid bundling issues if possible, or just standard import
     const { migrate } = await import("drizzle-orm/node-postgres/migrator");
-
-    // In production (bundled), the migrations are copied to dist/migrations
-    // But we are running from dist/index.js, so the relative path "migrations" locally works if cwd is project root.
-    // However, if we start from dist, we need to be careful.
-    // The build script now copies migrations to dist/migrations.
-
-    // Determine the correct path - ALWAYS use absolute paths to avoid ambiguity
     const fs = await import("fs");
     const path = await import("path");
 
-    // Default to resolving "migrations" relative to CWD (root)
     let migrationsFolder = path.resolve(process.cwd(), "migrations");
-
     if (process.env.NODE_ENV === "production") {
-      // In production, prefer the "dist/migrations" folder if it exists
       const distMigrations = path.resolve(process.cwd(), "dist", "migrations");
-
       if (fs.existsSync(distMigrations)) {
         migrationsFolder = distMigrations;
       }
@@ -124,24 +115,12 @@ export async function runMigrations() {
 
     console.log(`Using migrations folder: ${migrationsFolder}`);
 
-    // Diagnostic check for meta/_journal.json
+    // Diagnostic
     const journalPath = path.join(migrationsFolder, "meta", "_journal.json");
-    if (!fs.existsSync(journalPath)) {
-      console.error(`❌ CRITICAL: Migration journal not found at ${journalPath}`);
-      // List contents of the migrations folder for debugging
-      if (fs.existsSync(migrationsFolder)) {
-        console.log(`Contents of ${migrationsFolder}:`, fs.readdirSync(migrationsFolder));
-        const metaDir = path.join(migrationsFolder, "meta");
-        if (fs.existsSync(metaDir)) {
-          console.log(`Contents of ${metaDir}:`, fs.readdirSync(metaDir));
-        } else {
-          console.log(`Meta directory does not exist at ${metaDir}`);
-        }
-      } else {
-        console.log(`Migrations folder does not exist at ${migrationsFolder}`);
-      }
-    } else {
+    if (fs.existsSync(journalPath)) {
       console.log(`✅ Found migration journal at ${journalPath}`);
+    } else {
+      console.error(`❌ CRITICAL: Migration journal not found at ${journalPath}`);
     }
 
     await migrate(db, { migrationsFolder });
@@ -154,14 +133,7 @@ export async function runMigrations() {
 
 export async function checkDatabaseConnection(retries = 30, delay = 2000): Promise<{ connected: boolean; error?: string }> {
   if (useSQLite) return { connected: true };
-  if (!pool) return { connected: false, error: "Database pool not initialized (DATABASE_URL missing?)" };
-
-  const connectionString = process.env.DATABASE_URL || "";
-  const isInternal = connectionString.includes('railway.internal');
-  const host = connectionString.split('@')[1]?.split(':')[0] || 'unknown';
-
-  console.log(`🔍 Connection Config: Host=${host}, Internal=${isInternal}, SSL=${process.env.DB_SSL_MODE || 'require'}`);
-  console.log(`🔍 Checking database connection... (Timeout: ${retries * delay}ms)`);
+  if (!pool) return { connected: false, error: "Pool not initialized" };
 
   let lastError = "Unknown error";
 
@@ -173,31 +145,51 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
       return { connected: true };
     } catch (err: any) {
       lastError = err.message || String(err);
-      console.log(`⏳ Waiting for database... (Attempt ${i + 1}/${retries}) - Error: ${lastError}`);
+      console.log(`⏳ DB Attempt ${i + 1}/${retries} Failed: ${lastError}`);
+
+      // AUTO-HEALING: Probe with opposite SSL mode
+      if (i === 0 && currentSSLMode) { // Only probe on first failure
+        const altMode = currentSSLMode === 'require' ? 'disable' : 'require';
+        console.log(`🕵️ Probing alternative SSL mode: ${altMode}...`);
+
+        const probeClient = new Client({
+          connectionString: process.env.DATABASE_URL,
+          ssl: getSSLConfig(altMode),
+          connectionTimeoutMillis: 5000,
+        });
+
+        try {
+          await probeClient.connect();
+          await probeClient.end();
+          console.log(`💡 SUCCESS! Alternative SSL mode (${altMode}) worked.`);
+          console.log("🔄 Switching Main Pool to use valid configuration...");
+
+          // Re-create pool
+          currentSSLMode = createPool(altMode);
+
+          // Re-init Drizzle (Critical!)
+          db = drizzlePg(pool!, { schema: schemaPg }) as AppDatabase;
+
+          // Retry loop immediately with new pool
+          continue;
+        } catch (probeErr: any) {
+          console.log(`❌ Probe failed (${altMode}): ${probeErr.message}. Sticking with ${currentSSLMode}.`);
+        }
+      }
+
       if (i < retries - 1) {
         await new Promise(res => setTimeout(res, delay));
       }
     }
   }
 
-  console.error('❌ Database connection failed:', lastError);
-  return { connected: false, error: lastError };
+  return { connected: false, error: `${lastError} (Mode: ${currentSSLMode})` };
 }
 
-/**
- * Transaction helper to support Async logic in SQLite (Tests/Dev).
- * Drizzle's better-sqlite3 driver does not support async transactions.
- * In Prod (Postgres), we use real transactions.
- * In Dev/Test (SQLite), we bypass transaction wrapper if async is needed.
- */
-export async function runTransaction<T>(
-  callback: (tx: any) => Promise<T>
-): Promise<T> {
+export async function runTransaction<T>(callback: (tx: any) => Promise<T>): Promise<T> {
   if (useSQLite) {
-    // Run directly on DB instance (No Atomicity, but allows Async)
     return await callback(db);
   } else {
-    // Run in proper transaction (Postgres supports Async)
     return await db.transaction(callback);
   }
 }
