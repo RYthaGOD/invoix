@@ -7,10 +7,14 @@
 # Dependencies
 node_modules
 dist
+arcium-mxe/target/
+target/
 .DS_Store
 server/public
 vite.config.ts.*
 *.tar.gz
+*.tar.bz2
+solana-release/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -62,6 +66,6 @@ tsc_output*.txt
 crash_logs.txt
 check_error.txt
 test-error.log
-stats-output.jsonlogs.txt
-
-props.txt
+stats-output.json
+arcium_idl.json
+env.sh

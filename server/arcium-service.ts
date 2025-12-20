@@ -6,11 +6,23 @@
  */
 
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import * as anchor from "@coral-xyz/anchor";
 import bs58 from "bs58";
-// @ts-ignore
-import { ArciumClient } from "@arcium-hq/client";
-// @ts-ignore
-import { ArciumReader } from "@arcium-hq/reader";
+import {
+  getArciumEnv,
+  getMXEPublicKey,
+  RescueCipher,
+  x25519,
+  deserializeLE,
+  getArciumProgram
+} from "@arcium-hq/client";
+import { randomBytes } from "crypto";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Fallback Crypto (for environments without proper Arcium config)
 import { encrypt as aesEncrypt, decrypt as aesDecrypt } from "./crypto";
@@ -36,8 +48,8 @@ interface ConfidentialTransactionData {
 }
 
 interface EncryptedTransactionResult {
-  encryptedData: string;
-  encryptionKey: string;
+  encryptedData: string; // Base64 (nonce + ciphertext)
+  encryptionKey: string; // Base64 (Ephemeral Public Key)
   mxeComputationId?: string;
   success: boolean;
   error?: string;
@@ -46,10 +58,9 @@ interface EncryptedTransactionResult {
 export class ArciumService {
   private connection: Connection;
   private initialized: boolean = false;
-
-  // Real Arcium Clients
-  public client: ArciumClient | null = null;
-  public reader: ArciumReader | null = null;
+  private mxePublicKey: Uint8Array | null = null;
+  private provider: anchor.AnchorProvider | null = null;
+  private program: anchor.Program<any> | null = null;
 
   constructor(rpcEndpoint?: string) {
     const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
@@ -57,40 +68,91 @@ export class ArciumService {
   }
 
   /**
-   * Initialize service with Real Arcium SDK
+   * Initialize service with Real Arcium SDK (v0.5.2)
    */
   async initialize(keypair?: Keypair): Promise<boolean> {
     try {
-      console.log("🔒 Initializing Arcium Confidential Computing Service...");
+      console.log("🔒 Initializing Arcium Confidential Computing Service (v0.5.2)...");
 
-      // Initialize Arcium Client
-      // Note: ArciumClient usually requires a connection and a cluster
-      // If keypair is provided, we can presumably use it for signing
-      this.client = new ArciumClient(
-        this.connection,
-        ARCIUM_CONFIG.cluster as any // 'devnet' | 'mainnet-beta'
-      );
+      // Setup Anchor Provider (Read-only if no keypair provided)
+      const wallet = keypair ? new anchor.Wallet(keypair) : new anchor.Wallet(Keypair.generate());
+      this.provider = new anchor.AnchorProvider(this.connection, wallet, { commitment: "confirmed" });
 
-      // Initialize Reader (for decryption)
-      this.reader = new ArciumReader(
-        this.connection,
-        ARCIUM_CONFIG.cluster as any
+      // Get Environment
+      const env = getArciumEnv();
+      console.log(`   Cluster Offset: ${env.arciumClusterOffset}`);
+
+      // Initialize Program via local IDL for consistency
+      const idlPath = path.resolve(__dirname, "../arcium_idl.json");
+      if (!fs.existsSync(idlPath)) {
+        throw new Error(`Critical: Arcium IDL not found at ${idlPath}`);
+      }
+      const idl = JSON.parse(fs.readFileSync(idlPath, "utf-8"));
+
+      const envProgramId = process.env.ARCIUM_PROGRAM_ID ? new PublicKey(process.env.ARCIUM_PROGRAM_ID) : undefined;
+
+      if (envProgramId) {
+        console.log(`   Using Program ID: ${envProgramId.toBase58()}`);
+        idl.address = envProgramId.toBase58();
+        if (idl.metadata) idl.metadata.address = envProgramId.toBase58();
+        this.program = new anchor.Program(idl, this.provider);
+      } else {
+        console.log("   Using default SDK Program.");
+        this.program = getArciumProgram(this.provider);
+      }
+
+      console.log(`   Program ID: ${this.program.programId.toBase58()}`);
+
+      // 3. Manually Fetch MXE Public Key
+      // We do this manually because the SDK helper 'getMXEPublicKey' is hardcoded 
+      // to derivation base 'BpaW2Zm...', while our deployment is user-defined.
+      console.log("   Fetching MXE Metadata Account...");
+
+      const [mxeAccountPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("MXEAccount"), this.program.programId.toBuffer()],
+        this.program.programId
       );
+      console.log(`   MXE PDA: ${mxeAccountPda.toBase58()}`);
+
+      try {
+        // Use our local IDL-based program instance to fetch the metadata
+        // @ts-ignore
+        const mxeAccount = await this.program.account.mxeAccount.fetch(mxeAccountPda);
+
+        // Extract Utility Keys from SetUnset enum
+        // Anchor transforms Rust enum SetUnset::Set(T) into { set: T }
+        // Tuple variants are indexed: Set(T) -> set: { "0": T }
+        if (mxeAccount.utilityPubkeys && mxeAccount.utilityPubkeys.set) {
+          const keys = mxeAccount.utilityPubkeys.set;
+          const target = keys[0] || keys;
+          const x25519Pub = target.x25519Pubkey || target.x25519_pubkey;
+
+          if (!x25519Pub) {
+            throw new Error("X25519 Key not found in utility keys metadata.");
+          }
+
+          this.mxePublicKey = Uint8Array.from(x25519Pub);
+        } else {
+          throw new Error("MXE Public Key state is 'Unset' on-chain.");
+        }
+      } catch (err: any) {
+        console.error(`❌ Arcium Initialization Error: ${err.message}`);
+        throw new Error(`Failed to retrieve MXE metadata from ${mxeAccountPda.toBase58()}.`);
+      }
 
       this.initialized = true;
-      console.log("✅ Arcium SDK Initialized Successfully (v0.5.1)");
+      console.log("✅ Arcium SDK Initialized Successfully.");
       return true;
 
     } catch (error) {
       console.error("❌ Failed to initialize Arcium SDK:", error);
-      console.error("⛔ AES Fallback is DISABLED for Deep Privacy Mode.");
       this.initialized = false;
       return false;
     }
   }
 
   isAvailable(): boolean {
-    return this.initialized && !!this.client;
+    return this.initialized && !!this.mxePublicKey;
   }
 
   /**
@@ -101,7 +163,6 @@ export class ArciumService {
     allowedParties: string[]
   ): Promise<EncryptedTransactionResult> {
 
-    // Strict Privacy Protocol: No Fallback
     if (!this.isAvailable()) {
       console.error("⛔ Arcium TEE not available. Cannot encrypt transaction safely.");
       throw new Error("Arcium TEE unavailable. Transaction rejected for privacy.");
@@ -109,25 +170,25 @@ export class ArciumService {
 
     try {
       const plaintext = JSON.stringify(transactionData);
-      const parties = allowedParties.map(addr => new PublicKey(addr));
-
-      // Real SDK Call
       const bufferData = Buffer.from(plaintext, "utf-8");
 
-      // Using ArciumClient.encrypt (Assuming API signature matches v0.5)
-      // Note: The SDK signature might vary slightly, treating as best-effort based on common patterns
-      const result = await this.client!.encrypt([bufferData], parties);
+      const ephemeralSecret = x25519.utils.randomSecretKey();
+      const ephemeralPublic = x25519.getPublicKey(ephemeralSecret);
+      const sharedSecret = x25519.getSharedSecret(ephemeralSecret, this.mxePublicKey!);
+      const cipher = new RescueCipher(sharedSecret);
+      const nonce = randomBytes(16);
 
-      // result typically contains ciphertext and a key or reference
-      // Mapping result to our interface
-      // Assuming result is { ciphertext: Buffer, ... }
-      // Check SDK structure - adapting to typical patterns
-      const ciphertext = (result as any).ciphertext || (Array.isArray(result) ? result[0] : result);
-      const mockKey = "arcium-managed-key"; // v0.5 might manage keys internally or return them
+      const payload = Array.from(bufferData);
+      const payloadBigInts = payload.map(b => BigInt(b));
+      const ciphertext = cipher.encrypt(payloadBigInts, nonce);
+
+      // ciphertext is number[][], convert to Uint8Array before concat
+      const flatCiphertext = Buffer.concat(ciphertext.map(block => Uint8Array.from(block)));
+      const packedData = Buffer.concat([nonce, flatCiphertext]);
 
       return {
-        encryptedData: ciphertext.toString("base64"),
-        encryptionKey: mockKey,
+        encryptedData: packedData.toString("base64"),
+        encryptionKey: Buffer.from(ephemeralPublic).toString("base64"),
         success: true,
       };
 
@@ -143,20 +204,30 @@ export class ArciumService {
     decryptorKeypair: Keypair
   ): Promise<ConfidentialTransactionData | null> {
     if (!this.isAvailable()) {
-      console.error("⛔ Arcium TEE not available. Cannot decrypt transaction.");
       return null;
     }
 
     try {
-      const ciphertext = Buffer.from(encryptedData, "base64");
+      const packedData = Buffer.from(encryptedData, "base64");
+      const senderPublicKey = Buffer.from(encryptionKey, "base64");
+      const nonce = packedData.subarray(0, 16);
+      const ciphertextFlat = packedData.subarray(16);
+      const receiverSecret = decryptorKeypair.secretKey.subarray(0, 32);
+      const sharedSecret = x25519.getSharedSecret(receiverSecret, senderPublicKey);
+      const cipher = new RescueCipher(sharedSecret);
 
-      // Real SDK Decrypt
-      // decrypt(ciphertext: Buffer | Uint8Array, keypair: Keypair)
-      const decrypted = await this.reader!.decrypt(ciphertext, decryptorKeypair);
+      const CHUNK_SIZE = 32;
+      const numChunks = ciphertextFlat.length / CHUNK_SIZE;
+      const chunks: Uint8Array[] = [];
+      for (let i = 0; i < numChunks; i++) {
+        chunks.push(ciphertextFlat.subarray(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE));
+      }
 
-      const plaintext = decrypted.toString();
+      const decryptedBigInts = cipher.decrypt(chunks, nonce);
+      const decryptedBytes = decryptedBigInts.map(bi => Number(bi));
+      const plaintext = Buffer.from(decryptedBytes).toString("utf-8");
+
       return JSON.parse(plaintext);
-
     } catch (error) {
       console.error("Arcium Decryption Failed:", error);
       return null;
@@ -164,6 +235,7 @@ export class ArciumService {
   }
 
 }
+
 // Singleton
 let arciumServiceInstance: ArciumService | null = null;
 export function getArciumService(rpcEndpoint?: string): ArciumService {

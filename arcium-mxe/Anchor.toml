@@ -1,0 +1,19 @@
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+arcium_mxe = "GSu3xPJNeyG2sVbn9GbZg4CHfzzUwLbYLaxzN7cbS3x"
+
+[programs.devnet]
+arcium_mxe = "GSu3xPJNeyG2sVbn9GbZg4CHfzzUwLbYLaxzN7cbS3x"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "echo 'No tests'"

@@ -1,61 +1,50 @@
-// @ts-ignore
-import { ArciumClient } from "@arcium-hq/client";
-import { Connection, PublicKey } from "@solana/web3.js";
 import * as dotenv from "dotenv";
+import { getArciumService } from "../server/arcium-service";
+import { Keypair } from "@solana/web3.js";
 
 dotenv.config();
 
 async function main() {
-    console.log("🔒 Verifying Arcium MXE Connection (Deep Privacy Mode)...");
+    console.log("🔒 Verifying Refactored Arcium Service (v0.5.2 Primitives)...");
 
-    const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
-    const connection = new Connection(rpcUrl, "confirmed");
-    console.log(`📡 Connected to ${rpcUrl}`);
+    const service = getArciumService();
 
-    const programId = process.env.ARCIUM_PROGRAM_ID;
-    if (!programId) {
-        console.error("❌ ARCIUM_PROGRAM_ID is missing in .env");
-        console.log("👉 Please follow DEPLOY_MXE_INSTRUCTIONS.md to deploy via WSL first.");
+    // Initialize
+    console.log("1. Initializing Service...");
+    const initialized = await service.initialize();
+
+    if (!initialized) {
+        console.error("❌ Failed to initialize service.");
         return;
     }
+    console.log("✅ Service Initialized.");
 
+    // Mock Data
+    const mockData = {
+        amount: "100.00",
+        tokenAmount: "100000000",
+        fromAddress: "11111111111111111111111111111111",
+        toAddress: "11111111111111111111111111111111",
+        txSignature: "mock_signature",
+        timestamp: Date.now(),
+        items: [{ description: "Test Item", quantity: 1, price: 100 }]
+    };
+
+    // Mock Recipient (Devnet dummy)
+    const allowedParties = ["11111111111111111111111111111111"];
+
+    console.log("2. Testing Encryption (Client-Side)...");
     try {
-        console.log(`🔎 Initializing Client for Program: ${programId}`);
-        const client = new ArciumClient(connection, "devnet");
+        const result = await service.encryptTransaction(mockData, allowedParties);
+        console.log("✅ Encryption Successful!");
+        console.log("   Ciphertext Length:", result.encryptedData.length);
+        console.log("   Ephemeral Key:", result.encryptionKey);
 
-        // Mock Transaction Data with Line Items
-        const mockData = Buffer.from(JSON.stringify({
-            amount: "100.00",
-            tokenAmount: "100000000",
-            fromAddress: "11111111111111111111111111111111",
-            toAddress: "11111111111111111111111111111111",
-            txSignature: "mock_signature",
-            timestamp: Date.now(),
-            items: [
-                { description: "Service A", quantity: 1, price: 50.00 },
-                { description: "Service B", quantity: 2, price: 25.00 }
-            ]
-        }));
+        console.log("ℹ️  Decryption skipped (Requires MXE Private Key).");
+        console.log("🚀 Refactoring Verified Successfully.");
 
-        // Mock public key for encryption (normally would be a real recipient)
-        const mockRecipient = new PublicKey("11111111111111111111111111111111");
-
-        console.log("🧪 Attempting Test Encryption (Strict Mode)...");
-        // This will FAIL if the MXE is not actually running/accessible, which is good.
-        // It confirms we are not using a fallback.
-
-        try {
-            const result = await client.encrypt([mockData], [mockRecipient]);
-            console.log("✅ Encryption Successful! MXE is responding.");
-            console.log("Ciphertext length:", result[0].length);
-        } catch (e) {
-            console.warn("⚠️  Encryption failed (Expected if MXE not yet deployed):");
-            console.warn("   " + (e as Error).message);
-            console.log("👉 If you haven't deployed via WSL yet, this is normal.");
-        }
-
-    } catch (error) {
-        console.error("❌ Failed to initialize ArciumClient:", error);
+    } catch (e) {
+        console.error("❌ Encryption Failed:", e);
     }
 }
 

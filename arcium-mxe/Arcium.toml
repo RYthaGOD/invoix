@@ -6,10 +6,10 @@ version = "0.1.0"
 cluster = "devnet"
 
 [programs.localnet]
-arcium_mxe = "GkUa7hY1v...placeholder...replace...with...program...id"
+arcium_mxe = "GSu3xPJNeyG2sVbn9GbZg4CHfzzUwLbYLaxzN7cbS3x"
 
 [programs.devnet]
-arcium_mxe = "GkUa7hY1v...placeholder...replace...with...program...id"
+arcium_mxe = "GSu3xPJNeyG2sVbn9GbZg4CHfzzUwLbYLaxzN7cbS3x"
 
 [programs.mainnet]
-arcium_mxe = "GkUa7hY1v...placeholder...replace...with...program...id"
+arcium_mxe = "GSu3xPJNeyG2sVbn9GbZg4CHfzzUwLbYLaxzN7cbS3x"
