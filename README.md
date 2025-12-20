@@ -107,8 +107,8 @@ npx ts-node scripts/verify-arcium.ts
 Distributed under the MIT License. See `LICENSE.md` for more information.
 
 ## 🤝 Support
-- **Discord**: [Join our community](https://discord.gg/invoix)
-- **Twitter**: [@InvoixApp](https://twitter.com/InvoixApp)
+- **X Community**: [Join our community](https://x.com/i/communities/1998417251041718386)
+- **X**: [@InvoixApp](https://x.com/InvoixSola24238)
 
 ---
 *Built with ❤️ for the decentralized economy by the Invoix Team.*
