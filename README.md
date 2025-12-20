@@ -1,8 +1,8 @@
 # 💼 Invoix: The Hybrid B2B Settlement Layer
 
-> **Confidential B2B Invoicing on Solana powered by Arcium v0.5.2**
+> **Hardened Confidential B2B Invoicing on Solana powered by Arcium v0.5.2 & Midnight Prism 3.0**
 
-**Invoix** is a next-generation invoicing and settlement platform that bridges traditional business accounting with instantaneous, trustless value transfer. By treating **Invoices as Smart Assets**, Invoix enables instant cash flow, automated reconciliation, and military-grade privacy.
+**Invoix** is an enterprise-grade settlement platform that bridges traditional business accounting with instantaneous, trustless value transfer. Featuring **industrial hardening**, military-grade privacy via Arcium, and the high-fidelity **Midnight Prism 3.0** design system.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 [![Solana](https://img.shields.io/badge/Solana-Devnet-blueviolet)](https://explorer.solana.com)
@@ -17,6 +17,17 @@
 - **On-Chain MXE**: Integrated with a custom Arcium MXE (Multi-Party Execution) program for verifiable confidential computing.
 - **Access Control**: Only the Invoicer and Invoicee hold the keys to decrypt their transaction details.
 
+### 💎 **Midnight Prism 3.0 (Premium UX)**
+- **Glassmorphism v3**: High-fidelity UI with 24px blurs, saturation curves, and inner prism glows.
+- **Hardened System HUD**: Real-time transparency widget tracking Arcium MXE status, Anti-Replay Guard, and Atomic Ledger health.
+- **Micro-Animations**: Fluid transitions powered by Framer Motion for an executive-grade experience.
+
+### 🛡️ **Industrial Hardening**
+- **Atomic Sequential Numbering**: Prevents race conditions in invoice generation via Postgres row-level locking.
+- **Global Signature Ledger**: Replay attack protection across standard payments and x402 service fees.
+- **Industrial Logging**: Structured JSON logging for high-fidelity production auditability.
+- **XSS Guard**: Whitelist-oriented sanitization middleware for all shared invoice views.
+
 ### 💳 **Instant Web3 Settlement**
 - **Multi-Currency Support**: Settle in **USDC**, **EURC**, or **SOL**.
 - **Proof-of-Payment NFTs**: Successful payments automatically mint a **Compressed NFT (cNFT)** receipt, providing an immutable on-chain record for accounting.
@@ -25,11 +36,6 @@
 ### ⚡ **x402 Anti-Spam Protocol**
 - Implements a mandatory micropayment (0.0001 SOL) for invoice creation.
 - Protects the database from spam and DOS attacks while maintaining a low barrier to entry for businesses.
-
-### 📊 **Enterprise-Grade Tooling**
-- **Business Profiles**: Establish on-chain identity and verified business credentials.
-- **Flexible Templates**: Automate professional invoicing with customizable prefixes and tax rules.
-- **Real-Time Dashboards**: Powered by WebSockets for instant global trade statistics and payment status updates.
 
 ---
 
@@ -92,6 +98,8 @@ npx ts-node scripts/verify-arcium.ts
 - [x] Arcium v0.5.2 Integration
 - [x] Custom MXE Account PDA support
 - [x] Tier-0 encrypted invoice lifecycle
+- [x] **Perfection Phase Hardening** (Atomic Integrity, Replay Protection, XSS Guard)
+- [x] **Midnight Prism 3.0** UI/UX Overhaul
 
 ### Phase 2: Recurring Economy 🟡
 - [ ] **Subscription Streams**: Automated recurring billing using Solana Token Extensions.
@@ -107,8 +115,7 @@ npx ts-node scripts/verify-arcium.ts
 Distributed under the MIT License. See `LICENSE.md` for more information.
 
 ## 🤝 Support
-- **X Community**: [Join our community](https://x.com/i/communities/1998417251041718386)
-- **X**: (https://x.com/InvoixSola24238)
-
+- **X (Twitter)**: [@InvoixSola24238](https://x.com/InvoixSola24238)
+- **X Community**: [Join the Invoix Community](https://x.com/i/communities/1998417251041718386)
 ---
 *Built with ❤️ for the decentralized economy by the Invoix Team.*

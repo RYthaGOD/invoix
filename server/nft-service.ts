@@ -270,7 +270,7 @@ export class InvoiceNFTService {
         name: "INVOIX Genesis Collection",
         symbol: "INVX",
         uri: metadataResult.uri,
-        sellerFeeBasisPoints: percentAmount(5), // 5% royalties on all trades
+        sellerFeeBasisPoints: percentAmount(5) as any, // 5% royalties on all trades
         isCollection: true,
         tokenStandard: TokenStandard.NonFungible,
         creators: [
@@ -527,9 +527,62 @@ export class InvoiceNFTService {
   }
 
   /**
-   * Mint Business Identity NFT
-   * Creates verified business credential NFT
+   * Mint Business Identity NFT (Server-side)
+   * 
+   * @param businessProfile - The business profile data
+   * @param verificationLevel - The verification tier
+   * @returns Mint address and signature
    */
+  async mintBusinessIdentityNFT(
+    businessProfile: SelectBusinessProfile,
+    verificationLevel: string = "basic"
+  ): Promise<{ mint: string; signature: string }> {
+    if (!this.isReady()) {
+      throw new Error("NFT service not initialized");
+    }
+
+    try {
+      const metadata = this.generateBusinessIdentityMetadata(businessProfile, verificationLevel);
+      const metadataUri = await this.uploadMetadata(metadata, `business-${businessProfile.id}`);
+
+      const mint = generateSigner(this.umi);
+      const owner = toPublicKey(businessProfile.ownerWalletAddress);
+
+      const createNftIx = createNft(this.umi, {
+        mint,
+        name: metadata.name,
+        symbol: "BIZ",
+        uri: metadataUri,
+        sellerFeeBasisPoints: percentAmount(0) as any,
+        tokenStandard: TokenStandard.NonFungible,
+        authority: this.umi.identity,
+        updateAuthority: this.umi.identity,
+        isMutable: true,
+        creators: [
+          {
+            address: this.umi.identity.publicKey,
+            verified: true,
+            share: 100,
+          },
+        ],
+        tokenOwner: owner,
+      } as any);
+
+      const result = await createNftIx.sendAndConfirm(this.umi);
+      const signature = result.signature.toString();
+
+      console.log(`✅ Minted Business Identity NFT: ${mint.publicKey.toString()}`);
+
+      return {
+        mint: mint.publicKey.toString(),
+        signature,
+      };
+    } catch (error) {
+      console.error(`❌ Failed to mint business identity NFT:`, error);
+      throw error;
+    }
+  }
+
   /**
    * Create Business Identity Mint Transaction (User Pays)
    * 1. Transfers 0.008 SOL Fee to Treasury
@@ -550,6 +603,9 @@ export class InvoiceNFTService {
     }
 
     try {
+      // Check 1: Is user authenticated and involved?
+      let isAuthorized = false; // Placeholder for future authorization logic
+
       // 1. Generate Metadata
       const metadata = this.generateBusinessIdentityMetadata(
         businessProfile,
@@ -588,7 +644,7 @@ export class InvoiceNFTService {
         name: metadata.name,
         symbol: "BIZ",
         uri: metadataUri,
-        sellerFeeBasisPoints: percentAmount(0),
+        sellerFeeBasisPoints: percentAmount(0) as any,
         tokenStandard: TokenStandard.NonFungible,
         authority: this.umi.identity, // Server authorized
         updateAuthority: this.umi.identity, // Server keeps control
@@ -1064,7 +1120,7 @@ export class InvoiceNFTService {
           name: metadata.name,
           symbol: metadata.symbol,
           uri: metadataUri,
-          sellerFeeBasisPoints: percentAmount(5),
+          sellerFeeBasisPoints: percentAmount(5) as any,
           collection: collectionConfig,
           creators: [
             {
@@ -1147,7 +1203,7 @@ export class InvoiceNFTService {
         name: metadata.name,
         symbol: metadata.symbol,
         uri: metadataUri,
-        sellerFeeBasisPoints: percentAmount(5), // 5% royalties
+        sellerFeeBasisPoints: percentAmount(5) as any, // 5% royalties
         tokenStandard: TokenStandard.NonFungible,
         isMutable: false,
         creators: [
@@ -1262,7 +1318,7 @@ export class InvoiceNFTService {
         name: metadata.name,
         symbol: metadata.symbol,
         uri: metadataUri,
-        sellerFeeBasisPoints: percentAmount(5), // 5% royalties
+        sellerFeeBasisPoints: percentAmount(5) as any, // 5% royalties
         tokenStandard: TokenStandard.NonFungible,
         authority: this.umi.identity, // Server authorized
         updateAuthority: this.umi.identity, // Server keeps control

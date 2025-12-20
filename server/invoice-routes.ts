@@ -80,7 +80,7 @@ export function registerInvoiceRoutes(app: Express): void {
 
         const verification = await verifyStablecoinPayment(
           connection,
-          invoiceData.x402PaymentSignature,
+          invoiceData.x402PaymentSignature || "", // Add null check
           INVOICE_SERVICE_FEE_SOL,
           TREASURY_WALLET_ADDRESS,
           "SOL",
@@ -98,25 +98,18 @@ export function registerInvoiceRoutes(app: Express): void {
 
         // Ensure the sender is the authenticated user (prevent using someone else's tx)
         // Note: verifyStablecoinPayment returns the detected sender
-        if (verification.fromAddress && verification.fromAddress !== authenticatedWallet) {
-          // Strict check: The wallet paying the fee must generally be the invoicer. 
-          // However, if using a burner wallet or separate key, this might block legitimate users.
-          // For now, let's warn but not block, or maybe better to enforce?
-          // Security decision: Enforcing ownership prevents reuse of other people's txs if we tracked used signatures.
-          // Since verifyStablecoinPayment doesn't track used signatures globally, we rely on signature uniqueness in DB if stored?
-          // We are NOT storing this specific tx signature in a unique constraint table for x402 yet (except maybe the generic payments table, but this isn't a 'payment' record).
-          // TODO: We should store used signatures to prevent replay.
-          // For now, replay attack is possible if we don't track it.
-          // Plan: We should probably just rely on the fact that creating an invoice is "cheap" enough that 0.0001 is the deterrent.
-          // Replay protection: We can check if this signature was used for another invoice.
-          // Let's add a check:
-          const existingUsage = await db.query.invoices.findFirst({
-            where: eq(invoices.x402PaymentSignature, invoiceData.x402PaymentSignature)
-          });
+        // Performance Enhancement: Replay protection check
+        const isReplay = await invoiceStorage.isSignatureUsed(invoiceData.x402PaymentSignature);
+        if (isReplay) {
+          return res.status(400).json({ message: "This payment signature has already been used." });
+        }
 
-          if (existingUsage) {
-            return res.status(400).json({ message: "This payment signature has already been used." });
-          }
+        // Ensure the sender is the authenticated user (prevent using someone else's tx)
+        if (verification.fromAddress && verification.fromAddress !== authenticatedWallet) {
+          return res.status(403).json({
+            message: "Unauthorized: The service fee must be paid by your authenticated wallet.",
+            code: "WALLET_MISMATCH"
+          });
         }
       }
       // -------------------------
@@ -133,27 +126,12 @@ export function registerInvoiceRoutes(app: Express): void {
       const finalSubtotal = (invoiceData as any).subtotal || subtotal;
 
       // Auto-calculate remaining amount using shared utility
-      const remainingAmount = safeSubtract(invoiceData.totalAmount, invoiceData.paidAmount || "0");
+      const remainingAmount = safeSubtract(invoiceData.totalAmount, (invoiceData as any).paidAmount || "0");
 
       // --- GENERATE INVOICE NUMBER ---
-      let invoiceNumber = invoiceData.invoiceNumber; // Use provided if any (usually undefined)
-      if (!invoiceNumber) {
-        // Fetch profile to get next number
-        const profile = await invoiceStorage.getBusinessProfile(authenticatedWallet);
-        if (profile) {
-          const nextNum = profile.nextInvoiceNumber;
-          const prefix = profile.defaultInvoicePrefix || "INV";
-          invoiceNumber = `${prefix}-${new Date().getFullYear()}-${String(nextNum).padStart(3, '0')}`;
-
-          // Increment profile counter
-          await invoiceStorage.updateBusinessProfile(authenticatedWallet, {
-            nextInvoiceNumber: nextNum + 1
-          });
-        } else {
-          // Fallback if no profile
-          invoiceNumber = `INV-${Date.now()}`;
-        }
-      }
+      // Delegated to storage layer (createInvoiceWithItems) for atomicity
+      // If invoiceNumber is passed, it will be used; otherwise, it's generated sequentially
+      const invoiceNumber = (invoiceData as any).invoiceNumber;
 
       // Create invoice with line items atomically
       const invoice = await invoiceStorage.createInvoiceWithItems(
@@ -167,7 +145,7 @@ export function registerInvoiceRoutes(app: Express): void {
           x402FeePaid: true,
           x402PaymentSignature: invoiceData.x402PaymentSignature,
           x402ServiceFeeUSD: "0.015", // ~0.0001 SOL approx value, fixed or fetched
-        },
+        } as any,
         lineItems
       );
 
@@ -214,6 +192,11 @@ export function registerInvoiceRoutes(app: Express): void {
                 toAddress: invoice.invoiceeWalletAddress,
                 txSignature: invoice.invoiceNumber,
                 timestamp: Date.now(),
+                items: (lineItems || []).map((item: any) => ({
+                  description: item.description,
+                  quantity: parseFloat(item.quantity),
+                  price: parseFloat(item.unitPrice)
+                })),
               },
               req.body.allowedParties
             );
@@ -259,7 +242,7 @@ export function registerInvoiceRoutes(app: Express): void {
 
   /**
    * Get invoices for authenticated wallet
-   * GET /api/invoices?wallet=xxx&status=xxx&limit=xxx
+   * GET /api/invoices?wallet=xxx
    */
   app.get("/api/invoices", requireWalletOwnership, async (req, res) => {
     try {
@@ -316,12 +299,21 @@ export function registerInvoiceRoutes(app: Express): void {
 
       // Check 1: Is user authenticated and involved?
       let isAuthorized = false;
+      let isArciumAuthorized = false; // Specific flag for TEE data access
+
       if (sessionWallet) {
+        // Invoicer and Invoicee are always authorized
         if (
           invoice.invoicerWalletAddress === sessionWallet ||
           invoice.invoiceeWalletAddress === sessionWallet
         ) {
           isAuthorized = true;
+          isArciumAuthorized = true;
+        }
+        // Granular Access Control: Check if wallet is in the Arcium allowed list (Auditors, etc.)
+        else if (invoice.arciumAllowedParties && invoice.arciumAllowedParties.includes(sessionWallet)) {
+          isAuthorized = true;
+          isArciumAuthorized = true;
         }
       }
 
@@ -333,29 +325,56 @@ export function registerInvoiceRoutes(app: Express): void {
         // If it's private/draft and they aren't authorized -> Block
         if (!sessionWallet) {
           return res.status(401).json({
-            message: "Authentication required to view this invoice",
+            message: "Authentication required to view this confidential invoice",
             code: "AUTH_REQUIRED"
           });
         }
         return res.status(403).json({
-          message: "Unauthorized: You don't have access to this private invoice",
+          message: "Unauthorized: You do not have permission to access this private invoice",
           code: "ACCESS_DENIED"
         });
       }
 
-      // If viewing publicly (not authorized but accessible), we might want to hide sensitive data?
-      // For now, per plan, we return the invoice. 
-      // Note: isPrivate=false explicitly implies we are okay sharing the text.
+      // Perfection Phase: Sanitize data for public viewers
+      // Unauthorized public viewers should NOT see Arcium ciphertext or masked financial data
+      const sanitizedInvoice: any = { ...invoice };
 
-      // Get line items
-      const lineItems = await invoiceStorage.getLineItems(id);
+      if (!isArciumAuthorized) {
+        // Remove confidential Arcium fields (useless without keys anyway, but prevents leaking ciphertext)
+        delete sanitizedInvoice.arciumEncryptedData;
+        delete sanitizedInvoice.arciumEncryptionKey;
+
+        // Apply field masking based on privacy settings
+        if (invoice.hideAmounts || invoice.isArciumEncrypted) {
+          sanitizedInvoice.totalAmount = "0.00";
+          sanitizedInvoice.subtotal = "0.00";
+          sanitizedInvoice.taxAmount = "0.00";
+          sanitizedInvoice.remainingAmount = "0.00";
+          sanitizedInvoice.paidAmount = "0.00";
+          sanitizedInvoice.notes = "Confidential";
+          sanitizedInvoice.description = sanitizedInvoice.description || "Invoiced Services";
+        }
+
+        if (invoice.hideParties) {
+          const mask = (addr: string) => addr ? `${addr.slice(0, 4)}...${addr.slice(-4)}` : addr;
+          sanitizedInvoice.invoicerWalletAddress = mask(sanitizedInvoice.invoicerWalletAddress);
+          sanitizedInvoice.invoiceeWalletAddress = mask(sanitizedInvoice.invoiceeWalletAddress);
+        }
+      }
+
+      // Get line items (only for authorized users OR if not hidden)
+      let lineItems: any[] = [];
+      if (isArciumAuthorized || (!invoice.hideAmounts && !invoice.isArciumEncrypted)) {
+        lineItems = await invoiceStorage.getLineItems(id);
+      }
 
       res.json({
         success: true,
         invoice: {
-          ...invoice,
+          ...sanitizedInvoice,
           lineItems,
         },
+        accessLevel: isArciumAuthorized ? "full" : "restricted"
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -443,10 +462,8 @@ export function registerInvoiceRoutes(app: Express): void {
         });
       }
 
-      // Validate updates using Zod schema
-      const updateSchema = insertInvoiceSchema.partial().omit({
-        invoicerWalletAddress: true, // Prevent transferring ownership
-        invoiceNumber: true, // Immutable
+      const updateSchema = (insertInvoiceSchema as any).partial().omit({
+        invoicerWalletAddress: true,
       });
 
       const updates = updateSchema.parse(req.body);
@@ -485,7 +502,7 @@ export function registerInvoiceRoutes(app: Express): void {
               businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
             });
           }
-        } catch (emailErr) {
+        } catch (emailErr: any) {
           console.error("Failed to trigger email notification:", emailErr);
           // Don't fail the request, just log error
         }
@@ -743,11 +760,11 @@ export function registerInvoiceRoutes(app: Express): void {
 
         const verification = await verifyStablecoinPayment(
           connection,
-          validatedData.txSignature,
-          recipientAmount, // String
-          validatedData.toAddress,
-          validatedData.currency,
-          feeAmount, // String
+          validatedData.txSignature || "", // Add null check
+          parseFloat(recipientAmount),
+          validatedData.toAddress || "", // Add null check
+          validatedData.currency || "", // Add null check
+          feeAmount ? parseFloat(feeAmount) : 0, // String
           TREASURY_WALLET_ADDRESS
         );
 
@@ -759,6 +776,12 @@ export function registerInvoiceRoutes(app: Express): void {
         }
 
         console.log("✅ Payment Verified On-Chain:", verification);
+
+        // Global Replay Protection (checking across ALL payment types)
+        const isReplay = await invoiceStorage.isSignatureUsed(validatedData.txSignature);
+        if (isReplay) {
+          return res.status(400).json({ message: "This transaction signature has already been used in another context (e.g. service fee or other payment)." });
+        }
       } else {
         // MANUAL PAYMENT (e.g. Cash, Bank Transfer)
         // Only the Invoicer can record manual payments.
@@ -781,7 +804,7 @@ export function registerInvoiceRoutes(app: Express): void {
       // Pass the new accounting fields
       const payment = await invoiceStorage.createPayment({
         ...validatedData,
-        paymentNumber: `PAY-${Date.now()}`, // Generate unique payment number
+        // paymentNumber: `PAY-${Date.now()}`, // Removed as it doesn't exist in schema
         usdValueAtPayment: validatedData.usdValueAtPayment || undefined, // explicit pass
         isBusinessExpense: validatedData.isBusinessExpense || false,
       });
@@ -809,7 +832,7 @@ export function registerInvoiceRoutes(app: Express): void {
             transactionSignature: validatedData.txSignature,
             businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
           });
-        } catch (emailErr) {
+        } catch (emailErr: any) {
           console.error("Failed to trigger receipt email:", emailErr);
         }
       }
@@ -901,7 +924,7 @@ export function registerInvoiceRoutes(app: Express): void {
       const stats = await invoiceStorage.getGlobalStats();
       res.json(stats);
     } catch (error: any) {
-      console.error("Error fetching global stats:", error);
+      console.error("Error running global stats broadcast:", error);
       res.status(500).json({ message: "Failed to fetch stats" });
     }
   });

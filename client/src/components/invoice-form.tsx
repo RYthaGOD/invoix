@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { User, Lock, Loader2, FileText } from "lucide-react";
+import { User, Lock, Loader2, FileText, ShieldCheck, Zap, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { CurrencySelector } from "@/components/currency-selector";
 import { LineItemEditor } from "@/components/line-item-editor";
 import { safeAdd, safeMultiply, safeSubtract } from "@shared/math";
@@ -291,57 +292,103 @@ export function InvoiceForm({
                     Privacy & Features
                 </h2>
 
-                <div className="space-y-4">
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                        <input
-                            {...register("isPrivate")}
-                            type="checkbox"
-                            className="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
-                        />
+                <div className="space-y-6">
+                    {/* x402 Service Fee Info */}
+                    <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-3">
+                        <Zap className="w-5 h-5 text-indigo-400 mt-1 flex-shrink-0" />
                         <div>
-                            <div className="text-white font-medium group-hover:text-purple-300 transition-colors">
+                            <div className="text-white text-sm font-semibold flex items-center gap-2">
+                                Spam Prevention ACTIVE ⚓
+                                <span className="bg-indigo-500/20 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-tighter border border-indigo-500/30">x402 protocol</span>
+                            </div>
+                            <p className="text-xs text-indigo-300/70 mt-1">
+                                Creating an invoice requires a non-refundable service fee of <strong>0.0001 SOL</strong> to prevent network spam.
+                                <span className="block mt-0.5 text-[10px]">Atomic ledger signature protection is active for this transaction.</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <label className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-all cursor-pointer group border border-transparent hover:border-white/10">
+                        <div className="pt-1">
+                            <input
+                                {...register("isPrivate")}
+                                type="checkbox"
+                                className="w-5 h-5 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <div className="text-white font-medium group-hover:text-purple-300 transition-colors flex items-center gap-3">
                                 Private Invoice
+                                <ShieldCheck className="w-4 h-4 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
                             <div className="text-gray-400 text-sm">
-                                Hide amounts and wallet addresses from public view
+                                Hide amounts and wallet addresses from public view.
                             </div>
                         </div>
                     </label>
 
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                        <input
-                            {...register("mintNFT")}
-                            type="checkbox"
-                            className="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
-                        />
-                        <div>
+                    <label className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-all cursor-pointer group border border-transparent hover:border-white/10">
+                        <div className="pt-1">
+                            <input
+                                {...register("mintNFT")}
+                                type="checkbox"
+                                className="w-5 h-5 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
+                            />
+                        </div>
+                        <div className="flex-1">
                             <div className="text-white font-medium group-hover:text-purple-300 transition-colors">
                                 Mint as NFT {connected ? "(Client-Side)" : ""} 🎨
                             </div>
                             <div className="text-gray-400 text-sm">
-                                Create a tradeable NFT.
-                                <span className="text-yellow-400 ml-1">
+                                Create a tradeable, verified invoice NFT.
+                                <span className="text-yellow-400/80 block mt-1 text-xs">
                                     ⚠️ Transaction fee (~0.002 SOL) payed by you.
                                 </span>
                             </div>
                         </div>
                     </label>
 
-                    <label className="flex items-start gap-3 cursor-pointer group">
-                        <input
-                            {...register("encryptWithArcium")}
-                            type="checkbox"
-                            className="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
-                        />
-                        <div>
-                            <div className="text-white font-medium group-hover:text-purple-300 transition-colors">
-                                Arcium Encryption 🔐
+                    <div className="space-y-3">
+                        <label className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-all cursor-pointer group border border-transparent hover:border-white/10">
+                            <div className="pt-1">
+                                <input
+                                    {...register("encryptWithArcium")}
+                                    type="checkbox"
+                                    className="w-5 h-5 rounded border-cyan-500/50 bg-cyan-500/5 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
+                                />
                             </div>
-                            <div className="text-gray-400 text-sm">
-                                End-to-end encryption using Arcium v0.5 MXE
+                            <div className="flex-1">
+                                <div className="text-white font-medium group-hover:text-cyan-300 transition-colors flex items-center justify-between">
+                                    <span>Arcium MXE Encryption 🔐</span>
+                                    <span className="text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded uppercase font-bold tracking-widest">TEE SECURED</span>
+                                </div>
+                                <div className="text-gray-400 text-sm">
+                                    End-to-end encryption using Arcium Confidential Computing.
+                                </div>
                             </div>
-                        </div>
-                    </label>
+                        </label>
+
+                        <AnimatePresence>
+                            {watch("encryptWithArcium") && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="px-12 py-3 bg-cyan-500/5 border-l-2 border-cyan-500/30 rounded-r-lg space-y-2">
+                                        <div className="text-[10px] text-cyan-400 font-bold flex items-center gap-1">
+                                            <ShieldCheck className="w-3 h-3" />
+                                            CONFIDENTIAL DATA MASKING ENABLED
+                                        </div>
+                                        <p className="text-xs text-gray-400 leading-relaxed italic">
+                                            "Only you and the customer will be able to see the decrypted data. Unauthorized parties will only see masked identifiers."
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
 

@@ -25,6 +25,7 @@ const {
   businessIdentityNFTs,
   systemSettings,
   authNonces,
+  x402Micropayments,
 } = schema;
 
 // Types are exported from the main schema file (assuming compatibility)
@@ -103,6 +104,9 @@ export interface IInvoiceStorage {
     encryptedInvoices: number;
     totalVolume: number;
   }>;
+
+  // Signature check
+  isSignatureUsed(signature: string): Promise<boolean>;
 }
 
 export interface InvoiceFilters {
@@ -222,15 +226,49 @@ class InvoiceStorage implements IInvoiceStorage {
 
   async createInvoiceWithItems(invoice: InsertInvoice, lineItems?: Omit<InsertLineItem, 'invoiceId'>[]): Promise<Invoice> {
     return await runTransaction(async (tx) => {
-      // 1. Create Invoice
-      const insertData: any = { ...invoice };
+      let finalInvoiceNumber = invoice.invoiceNumber;
+
+      // 1. Handle Atomic Invoice Numbering if not provided
+      // This prevents race conditions where two invoices get the same number
+      if (!finalInvoiceNumber) {
+        // Lock the business profile row for the invoicer
+        // Note: .for('update') is specific to Postgres and ensures sequential access
+        const [profile] = await tx.select()
+          .from(businessProfiles)
+          .where(eq(businessProfiles.ownerWalletAddress, invoice.invoicerWalletAddress))
+          .for('update');
+
+        if (profile) {
+          const nextNum = profile.nextInvoiceNumber;
+          const prefix = profile.defaultInvoicePrefix || "INV";
+          finalInvoiceNumber = `${prefix}-${new Date().getFullYear()}-${String(nextNum).padStart(3, '0')}`;
+
+          // Increment counter
+          await tx.update(businessProfiles)
+            .set({
+              nextInvoiceNumber: nextNum + 1,
+              updatedAt: new Date()
+            })
+            .where(eq(businessProfiles.id, profile.id));
+        } else {
+          // Fallback if no profile exists
+          finalInvoiceNumber = `INV-${Date.now()}`;
+        }
+      }
+
+      // 2. Create Invoice
+      const insertData: any = {
+        ...invoice,
+        invoiceNumber: finalInvoiceNumber
+      };
+
       if (typeof insertData.dueDate === 'string') {
         insertData.dueDate = new Date(insertData.dueDate);
       }
 
       const [newInvoice] = await tx.insert(invoices).values(insertData).returning();
 
-      // 2. Create Line Items if present
+      // 3. Create Line Items if present
       if (lineItems && lineItems.length > 0) {
         const itemsToInsert = lineItems.map((item, index) => ({
           ...item,
@@ -630,6 +668,38 @@ class InvoiceStorage implements IInvoiceStorage {
   async deleteInvoiceTemplate(id: string): Promise<boolean> {
     const result = await db.delete(invoiceTemplates).where(eq(invoiceTemplates.id, id)).returning();
     return result.length > 0;
+  }
+
+  /**
+   * Check if a transaction signature has already been used in the system
+   * Checks payments, invoices (x402), and x402Micropayments tables
+   */
+  async isSignatureUsed(signature: string): Promise<boolean> {
+    if (!signature) return false;
+
+    // 1. Check Payments table
+    const [payment] = await db.select({ id: payments.id })
+      .from(payments)
+      .where(eq(payments.txSignature, signature))
+      .limit(1);
+
+    if (payment) return true;
+
+    // 2. Check Invoices table (x402 signatures)
+    const [invoice] = await db.select({ id: invoices.id })
+      .from(invoices)
+      .where(eq(invoices.x402PaymentSignature, signature))
+      .limit(1);
+
+    if (invoice) return true;
+
+    // 3. Check x402 Micropayments table
+    const [x402] = await db.select({ id: x402Micropayments.id })
+      .from(x402Micropayments)
+      .where(eq(x402Micropayments.txSignature, signature))
+      .limit(1);
+
+    return !!x402;
   }
 
   // ============================================

@@ -5,6 +5,24 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { WalletButton } from "@/components/wallet-button";
 import { useLocation, Link } from "wouter";
 import {
+  ShieldCheck,
+  ShieldAlert,
+  Zap,
+  Lock,
+  Activity,
+  ChevronDown,
+  Server
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -70,6 +88,65 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
 
             <div className="flex items-center gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-all group">
+                    <Activity className="w-3.5 h-3.5 animate-pulse" />
+                    <span>System Secure</span>
+                    <ChevronDown className="w-3 h-3 text-emerald-500/50 group-hover:text-emerald-500 transition-colors" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 glass-strong border-white/10 mt-2">
+                  <DropdownMenuLabel className="flex items-center gap-2 text-white/90">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    Hardened Protection
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-white/5" />
+
+                  <div className="p-2 space-y-1">
+                    <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                        <span className="text-xs text-gray-300">Arcium MXE 0.5</span>
+                      </div>
+                      <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-[10px] h-5">ACTIVE</Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-3.5 h-3.5 text-indigo-400" />
+                        <span className="text-xs text-gray-300">x402 Anti-Spam</span>
+                      </div>
+                      <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30 text-[10px] h-5">ACTIVE</Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-xs text-gray-300">Anti-Replay Guard</span>
+                      </div>
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] h-5">SECURE</Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Server className="w-3.5 h-3.5 text-blue-400" />
+                        <span className="text-xs text-gray-300">Atomic Sequential</span>
+                      </div>
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] h-5">ENFORCED</Badge>
+                    </div>
+                  </div>
+
+                  <DropdownMenuSeparator className="bg-white/5" />
+                  <div className="p-3">
+                    <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                      NETWORK STATUS: OPTIMIZED
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <ThemeToggle />
               <WalletButton />
             </div>

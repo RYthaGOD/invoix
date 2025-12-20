@@ -132,21 +132,38 @@ export function sanitizeInput(
   res: Response,
   next: NextFunction
 ) {
-  // Remove any potential script tags from string inputs
+  // Advanced sanitization logic: 
+  // 1. Removes common XSS vectors (script tags, event handlers)
+  // 2. Encodes sensitive HTML characters in text fields
+  // 3. Recursively processes objects and arrays
   const sanitize = (obj: any): any => {
     if (typeof obj === "string") {
-      // Remove script tags and potential XSS vectors
-      return obj
+      // Step 1: Remove blacklisted tags and dangerous patterns
+      let sanitized = obj
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
         .replace(/javascript:/gi, "")
-        .replace(/on\w+\s*=/gi, "")
-        .trim();
+        .replace(/on\w+\s*=/gi, "");
+
+      // Step 2: Minimal HTML encoding for protection while preserving readability
+      // (Only if the string looks like it might contain tags)
+      if (sanitized.includes("<") || sanitized.includes(">")) {
+        sanitized = sanitized
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      return sanitized.trim();
     }
 
     if (typeof obj === "object" && obj !== null) {
+      if (obj instanceof Date) return obj; // Preserve dates
+
       const sanitized: any = Array.isArray(obj) ? [] : {};
       for (const key in obj) {
-        sanitized[key] = sanitize(obj[key]);
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          sanitized[key] = sanitize(obj[key]);
+        }
       }
       return sanitized;
     }

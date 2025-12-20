@@ -35,6 +35,7 @@ import { healthCheck, liveness, readiness } from "./health";
 import { initializeNFTService } from "./nft-service";
 import { initializeArciumService } from "./arcium-service";
 import { loadKeypairFromPrivateKey } from "./arcium-service";
+import { logger } from "./logger";
 
 // Validate environment variables on startup (before security check)
 validateEnvironment();
@@ -76,12 +77,17 @@ app.use(express.urlencoded({ extended: false, limit: requestSizeLimit }));
 // Input sanitization
 app.use(sanitizeInput);
 
-// Logging Middleware
+// Structured JSON Logging Middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  // Only log API and asset requests (skip health)
+  if (path === "/health" || path === "/health/live" || path === "/health/ready") {
+    return next();
+  }
+
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
@@ -91,14 +97,16 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      if (logLine.length > 2000) {
-        logLine = logLine.slice(0, 1999) + "…";
-      }
-      log(logLine);
+      logger.info(`${req.method} ${path} ${res.statusCode}`, "express", {
+        method: req.method,
+        path,
+        status: res.statusCode,
+        duration: `${duration}ms`,
+        ip: req.ip,
+        userAgent: req.headers["user-agent"],
+        // In perfection phase, we capture success responses but omit large bodies
+        response: res.statusCode < 400 ? { success: true } : capturedJsonResponse
+      }, req);
     }
   });
 
@@ -208,6 +216,14 @@ export async function triggerGracefulShutdown() {
         checkPeriod: 86400000 // 24h
       });
 
+    // Production Hardening: Fail if no persistent store in production
+    if (process.env.NODE_ENV === "production" && !(sessionStore instanceof PgSession)) {
+      console.error("❌ CRITICAL: In-Memory session store detected in production! This is not allowed for high-availability.");
+      if (process.env.STRICT_SESSION === "true") {
+        throw new Error("Persistent session store required in production.");
+      }
+    }
+
     // We must register session middleware HERE because it depends on `sessionStore` which depends on `pool`
     // But `app.use` order matters. We registered a placeholder? No, we didn't.
     // Wait, Express middleware stack is FIFO.
@@ -257,11 +273,11 @@ export async function triggerGracefulShutdown() {
     // ============================================
     const wss = new WebSocketServer({ server, path: "/ws" });
 
-    wss.on("connection", (ws) => {
+    wss.on("connection", (ws: any) => {
       console.log("[WS] Client connected");
 
       // Send immediate initial stats upon connection
-      invoiceStorage.getGlobalStats().then(stats => {
+      invoiceStorage.getGlobalStats().then((stats: any) => {
         if (ws.readyState === ws.OPEN) {
           ws.send(JSON.stringify({
             type: "global_stats_update",
@@ -275,7 +291,7 @@ export async function triggerGracefulShutdown() {
         console.log("[WS] Client disconnected");
       });
 
-      ws.on("error", (err) => {
+      ws.on("error", (err: any) => {
         console.error("[WS] Error:", err);
       });
     });

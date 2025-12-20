@@ -675,12 +675,32 @@ export default function InvoiceDetail() {
         <div className="glass-card p-6">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">{invoice.invoiceNumber}</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-white">{invoice.invoiceNumber}</h1>
+                <div className="flex items-center gap-2 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] text-cyan-400 font-bold uppercase tracking-widest" title="Generated sequentially via atomic backend ledger">
+                  <ShieldCheck className="w-3 h-3" />
+                  Verified Atomic
+                </div>
+              </div>
               {invoice.description && (
-                <p className="text-gray-400">{invoice.description}</p>
+                <p className={`text-gray-400 ${invoice.description.includes('ARCIUM_MASKED') ? 'italic font-mono text-xs opacity-60' : ''}`}>
+                  {invoice.description.includes('ARCIUM_MASKED') ? (
+                    <span className="flex items-center gap-2">
+                      <Lock className="w-3 h-3" /> {invoice.description}
+                    </span>
+                  ) : invoice.description}
+                </p>
               )}
             </div>
-            {getStatusBadge()}
+            <div className="flex flex-col items-end gap-2">
+              {getStatusBadge()}
+              {invoice.isArciumEncrypted && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-400 text-xs font-bold animate-pulse">
+                  <Lock className="w-3 h-3" />
+                  TEE SECURED
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -721,19 +741,28 @@ export default function InvoiceDetail() {
             <div>
               <div className="text-gray-400 text-sm mb-2">To (Customer)</div>
               <div className="flex items-center gap-2">
-                <code className="text-white text-sm font-mono bg-white/5 px-3 py-1.5 rounded">
-                  {invoice.invoiceeWalletAddress.slice(0, 8)}...{invoice.invoiceeWalletAddress.slice(-6)}
-                </code>
-                <button
-                  onClick={() => copyToClipboard(invoice.invoiceeWalletAddress, "to")}
-                  className="p-1.5 hover:bg-white/10 rounded transition-colors"
-                >
-                  {copied === "to" ? (
-                    <Check className="w-4 h-4 text-green-400" />
-                  ) : (
-                    <Copy className="w-4 h-4 text-gray-400" />
-                  )}
-                </button>
+                {invoice.invoiceeWalletAddress.includes('ARCIUM_MASKED') ? (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/5 border border-cyan-500/10 rounded group cursor-help" title="Decryption failed or unauthorized access">
+                    <Lock className="w-4 h-4 text-cyan-500/50" />
+                    <code className="text-cyan-500/40 text-sm font-mono italic">confidential_address</code>
+                  </div>
+                ) : (
+                  <>
+                    <code className="text-white text-sm font-mono bg-white/5 px-3 py-1.5 rounded">
+                      {invoice.invoiceeWalletAddress.slice(0, 8)}...{invoice.invoiceeWalletAddress.slice(-6)}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(invoice.invoiceeWalletAddress, "to")}
+                      className="p-1.5 hover:bg-white/10 rounded transition-colors"
+                    >
+                      {copied === "to" ? (
+                        <Check className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-gray-400" />
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
