@@ -12,3 +12,6 @@ export const PRICING = {
     },
 } as const;
 
+
+// x402 Spam Control Fee
+export const INVOICE_SERVICE_FEE_SOL = "0.0001";

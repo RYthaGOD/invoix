@@ -11,6 +11,7 @@ import { registerSpecialMintRoutes } from "./special-mint-routes";
 import { paymentRouter } from "./payment-routes";
 import { registerCommunityDropRoutes } from "./community-drop-routes";
 import exportRouter from "./export-routes";
+import { pricingRouter } from "./pricing-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
@@ -29,9 +30,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerInvoiceRoutes(app);
 
   // ================================================
-  // EXPORT ROUTES (Accounting)
+  // EXPORT ROUTES (Mounted under /invoices to access /api/invoices/export)
   // ================================================
-  app.use("/api/exports", exportRouter);
+  app.use("/api/invoices", exportRouter);
+
+  app.use("/api/pricing", pricingRouter);
 
   // ================================================
   // NFT MINTING ROUTES (User-Paid)

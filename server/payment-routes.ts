@@ -80,14 +80,10 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         }
 
         // 4. Validation: Analyze Instructions
-        // We need to verify:
-        // A) Transfer to Invoicee (Amount >= Invoice Remaining) - OPTIONAL/WARNING (User might pay partial)
-        // B) Transfer to Treasury (Amount >= 0.15 USDC) - CRITICAL
+        // A) Transfer to Invoicee (Seller)
+        // B) Transfer to Treasury (Gas Fee + 1% Platform Fee)
 
-        const feeConfig = getStablecoinConfig(invoice.currency); // Assuming fee is in same currency as invoice for simplicity, or we check USDC specifically?
-        // Let's assume the fee is paid in the invoice currency for now to simplify UX "One token".
-        // If invoice is EURC, we charge 0.15 EURC (close enough). 
-
+        const feeConfig = getStablecoinConfig(invoice.currency);
         if (!feeConfig) {
             return res.status(400).json({ success: false, message: "Unsupported currency for gasless payment" });
         }
@@ -95,61 +91,68 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
         const treasuryAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), treasuryPubkey);
 
-        let feePaid = false;
-        const requiredFeeAtomic = Math.floor(GAS_FEE_USDC * Math.pow(10, feeConfig.decimals));
+        // Target Recipient (Seller)
+        const sellerPubkey = new PublicKey(invoice.invoicerWalletAddress);
+        const sellerAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), sellerPubkey);
 
-        // Iterate over instructions to find the fee payment
-        // We can't easily parse inner instructions of spl-token without an IDL or layout decoder, 
-        // but we can check the keys and data buffer roughly or use a library.
-        // For standard SPL transfers, data is 1 byte instruction + 8 bytes amount.
+        // Amounts
+        const invoiceTotal = parseFloat(invoice.remainingAmount);
+        const platformFee = invoiceTotal * 0.01; // 1%
+        const gasFee = GAS_FEE_USDC; // 0.15
 
-        // Simpler approach: Simulate the transaction? 
-        // Simulation is safer but slower. 
-        // Let's do a basic instruction check first.
+        // Exact Atomic Calculation
+        const decimals = feeConfig.decimals;
+        const toAtomic = (amount: number) => Math.floor(amount * Math.pow(10, decimals));
 
+        const requiredTreasuryAmount = toAtomic(platformFee + gasFee);
+        const requiredSellerAmount = toAtomic(invoiceTotal - platformFee);
+
+        let treasuryPaidAmount = BigInt(0);
+        let sellerPaidAmount = BigInt(0);
+
+        // Iterate over instructions to sum up transfers
         for (const ix of transaction.instructions) {
-            // Check if it's a Token Program instruction
+            // Check if it's a Token Program instruction (Transfer or TransferChecked)
             if (ix.programId.toString() === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") {
-                // Check destination (keys[1] usually for transfer)
-                // Transfer instruction: [source, destination, authority]
+                // Ensure we have keys
                 if (ix.keys.length >= 2) {
                     const dest = ix.keys[1].pubkey;
-                    if (dest.equals(treasuryAta)) {
-                        // It's sending to treasury ATA. Check amount.
-                        // Data layout: [3 (Transfer), amount(8 bytes)]
-                        // OR [12 (TransferChecked), amount(8 bytes), decimals(1 byte)]
-                        if (ix.data.length >= 9 && ix.data.length <= 64) { // Safe buffer size bounds
-                            // Very rough parsing (Little Endian BigInt)
-                            // Skip first byte (instruction)
-                            try {
-                                const amountBuffer = ix.data.subarray(1, 9);
-                                // Additional safety: verify buffer is exactly 8 bytes
-                                if (amountBuffer.length !== 8) {
-                                    console.warn("[SECURITY] Malformed instruction data length");
-                                    continue;
-                                }
-                                const amount = amountBuffer.readBigUInt64LE(0);
-                                if (Number(amount) >= requiredFeeAtomic) {
-                                    feePaid = true;
-                                }
-                            } catch (e) {
-                                console.error("Error parsing instruction data", e);
+
+                    let amount = BigInt(0);
+                    // Parse Amount (Transfer: offset 1, 8 bytes; TransferChecked: offset 1, 8 bytes)
+                    if (ix.data.length >= 9) {
+                        try {
+                            // Basic check: Instruction 3 (Transfer) or 12 (TransferChecked)
+                            const type = ix.data[0];
+                            if (type === 3 || type === 12) {
+                                amount = ix.data.subarray(1, 9).readBigUInt64LE(0);
                             }
-                        }
+                        } catch (e) { console.error("Parse error", e); }
+                    }
+
+                    if (dest.equals(treasuryAta)) {
+                        treasuryPaidAmount += amount;
+                    } else if (dest.equals(sellerAta)) {
+                        sellerPaidAmount += amount;
                     }
                 }
             }
         }
 
-        if (!feePaid) {
-            // Fallback: Simulate transaction to be 100% sure
-            const simRes = await connection.simulateTransaction(transaction, [payerKeypair]);
-            if (simRes.value.err) {
-                return res.status(400).json({ success: false, message: "Transaction simulation failed", details: simRes.value.err });
-            }
+        // Logic Checks
+        // Allow small rounding tolerance if needed, but atomic should be precise
+        if (Number(treasuryPaidAmount) < requiredTreasuryAmount) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient Treasury Payment. Expected ${platformFee + gasFee} (1% + 0.15 Gas). Got ${Number(treasuryPaidAmount) / Math.pow(10, decimals)}`
+            });
+        }
 
-            // STRICT MODE: Reject if we didn't find the explicit transfer instruction
-            return res.status(400).json({ success: false, message: `Gas recovery fee of ${GAS_FEE_USDC} ${invoice.currency} not found or insufficient.` });
+        if (Number(sellerPaidAmount) < requiredSellerAmount) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient Seller Payment. Expected ${invoiceTotal - platformFee}. Got ${Number(sellerPaidAmount) / Math.pow(10, decimals)}`
+            });
         }
 
         // SECURITY CHECK: PREVENT PROTOCOL WALLET DRAIN

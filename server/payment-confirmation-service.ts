@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { getInvoiceNFTService } from "./nft-service";
 import { Connection } from "@solana/web3.js";
 import crypto from "crypto";
+import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 
 const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com");
 
@@ -31,6 +32,24 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
         const invoiceList = await db.select().from(invoices).where(eq(invoices.id, invoiceId)).limit(1);
         if (!invoiceList.length) return;
         const invoice = invoiceList[0];
+
+        // 2.5 STRICT VERIFICATION: Verify Amount and Recipient
+        // Prevents "Pay Gas Only" attacks where a valid tx is sent but doesn't pay the invoice
+        const verification = await verifyStablecoinPayment(
+            connection,
+            signature,
+            invoice.remainingAmount, // Expected Amount (String)
+            invoice.invoicerWalletAddress, // Expected Recipient
+            invoice.currency
+        );
+
+        if (!verification.verified) {
+            console.error(`[PAYMENT] Security Alert: Payment verification failed for ${signature}: ${verification.error}`);
+            // Stop processing - do not update DB, do not mint NFT
+            return;
+        }
+
+        console.log(`[PAYMENT] Verified amount: ${verification.amount} ${verification.currency}`);
 
         // 3. Insert Payment Record
         const paymentId = crypto.randomUUID();

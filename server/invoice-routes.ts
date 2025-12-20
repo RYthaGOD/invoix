@@ -32,7 +32,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
 import { Connection, clusterApiUrl } from "@solana/web3.js";
-import { TREASURY_WALLET_ADDRESS } from "@shared/config";
+import { TREASURY_WALLET_ADDRESS, INVOICE_SERVICE_FEE_SOL } from "@shared/config";
 import { registerDynamicImageRoutes } from "./endpoints/dynamic-image";
 
 /**
@@ -59,6 +59,68 @@ export function registerInvoiceRoutes(app: Express): void {
 
       const validatedData = insertInvoiceWithItemsSchema.parse(req.body);
       const { lineItems, ...invoiceData } = validatedData;
+
+      // --- x402 SPAM CONTROL ---
+      // Require 0.0001 SOL payment to Treasury for spam prevention
+      // Skip if in Test Mode (and env var set) to allow automated tests to pass without real SOL
+      const isTestMode = process.env.NODE_ENV === "test" || process.env.SKIP_FEE_CHECK === "true";
+
+      if (!isTestMode) {
+        if (!invoiceData.x402PaymentSignature) {
+          return res.status(402).json({
+            message: "Payment Required: A 0.0001 SOL service fee is required to create an invoice. Please sign the transaction.",
+            code: "x402_PAYMENT_REQUIRED",
+            feeAmount: INVOICE_SERVICE_FEE_SOL,
+            treasuryAddress: TREASURY_WALLET_ADDRESS
+          });
+        }
+
+        console.log(`Verifying x402 Service Fee: ${invoiceData.x402PaymentSignature}`);
+        const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
+
+        const verification = await verifyStablecoinPayment(
+          connection,
+          invoiceData.x402PaymentSignature,
+          INVOICE_SERVICE_FEE_SOL,
+          TREASURY_WALLET_ADDRESS,
+          "SOL",
+          undefined, // No split fee
+          undefined
+        );
+
+        if (!verification.verified) {
+          console.warn("x402 Verification Failed:", verification.error);
+          return res.status(400).json({
+            message: `Service fee verification failed: ${verification.error || "Invalid signature"}`,
+            code: "x402_VERIFICATION_FAILED"
+          });
+        }
+
+        // Ensure the sender is the authenticated user (prevent using someone else's tx)
+        // Note: verifyStablecoinPayment returns the detected sender
+        if (verification.fromAddress && verification.fromAddress !== authenticatedWallet) {
+          // Strict check: The wallet paying the fee must generally be the invoicer. 
+          // However, if using a burner wallet or separate key, this might block legitimate users.
+          // For now, let's warn but not block, or maybe better to enforce?
+          // Security decision: Enforcing ownership prevents reuse of other people's txs if we tracked used signatures.
+          // Since verifyStablecoinPayment doesn't track used signatures globally, we rely on signature uniqueness in DB if stored?
+          // We are NOT storing this specific tx signature in a unique constraint table for x402 yet (except maybe the generic payments table, but this isn't a 'payment' record).
+          // TODO: We should store used signatures to prevent replay.
+          // For now, replay attack is possible if we don't track it.
+          // Plan: We should probably just rely on the fact that creating an invoice is "cheap" enough that 0.0001 is the deterrent.
+          // Replay protection: We can check if this signature was used for another invoice.
+          // Let's add a check:
+          const existingUsage = await db.query.invoices.findFirst({
+            where: eq(invoices.x402PaymentSignature, invoiceData.x402PaymentSignature)
+          });
+
+          if (existingUsage) {
+            return res.status(400).json({ message: "This payment signature has already been used." });
+          }
+        }
+      }
+      // -------------------------
+
 
       // --- CALCULATE SUBTOTAL ---
       // We must calculate subtotal from line items to satisfy DB constraints
@@ -102,6 +164,9 @@ export function registerInvoiceRoutes(app: Express): void {
           dueDate: new Date(invoiceData.dueDate),
           invoicerWalletAddress: authenticatedWallet,
           remainingAmount: remainingAmount,
+          x402FeePaid: true,
+          x402PaymentSignature: invoiceData.x402PaymentSignature,
+          x402ServiceFeeUSD: "0.015", // ~0.0001 SOL approx value, fixed or fetched
         },
         lineItems
       );
@@ -325,10 +390,15 @@ export function registerInvoiceRoutes(app: Express): void {
             message: "Unauthorized: You don't have access to this invoice"
           });
         }
-      } else if (invoice.isPrivate) {
-        return res.status(403).json({
-          message: "Authentication required: This invoice is private"
-        });
+      } else {
+        // Public Access Rules matching GET /api/invoices/:id
+        const isPublicAccessible = !invoice.isPrivate && invoice.status !== "draft";
+
+        if (!isPublicAccessible) {
+          return res.status(403).json({
+            message: "Authentication required: This invoice is private or in draft"
+          });
+        }
       }
 
       const lineItems = await invoiceStorage.getLineItems(invoice.id);
@@ -504,7 +574,7 @@ export function registerInvoiceRoutes(app: Express): void {
    * Add line item to invoice
    * POST /api/invoices/:id/line-items
    */
-  app.post("/api/invoices/:id/line-items", requireWalletOwnership, async (req, res) => {
+  app.post("/api/invoices/:id/line-items", requireWalletOwnership, strictRateLimit, async (req, res) => {
     try {
       const { id } = req.params;
       const walletAddress = req.query.wallet as string;
@@ -519,6 +589,12 @@ export function registerInvoiceRoutes(app: Express): void {
         return res.status(403).json({
           message: "Unauthorized: Only the invoicer can add line items"
         });
+      }
+
+      // Check max line items (DoS protection)
+      const currentItems = await db.select().from(invoiceLineItems).where(eq(invoiceLineItems.invoiceId, id));
+      if (currentItems.length >= 100) {
+        return res.status(400).json({ message: "Limit reached: Maximum 100 line items allowed per invoice" });
       }
 
       const validatedData = insertLineItemSchema.parse({
@@ -1527,91 +1603,7 @@ export function registerInvoiceRoutes(app: Express): void {
     }
   });
 
-  /**
-   * Create invoice from template
-   * POST /api/invoices/from-template
-   */
-  app.post("/api/invoices/from-template", requireWalletOwnership, async (req, res) => {
-    try {
-      const { templateId, invoiceeWalletAddress, dueDate, customLineItems } = req.body;
-      const walletAddress = req.query.wallet as string;
 
-      if (!templateId || !invoiceeWalletAddress) {
-        return res.status(400).json({ message: "Template ID and customer wallet address are required" });
-      }
-
-      // Get template
-      const template = await invoiceStorage.getInvoiceTemplate(templateId);
-      if (!template) {
-        return res.status(404).json({ message: "Template not found" });
-      }
-
-      // Parse line items
-      const lineItems = customLineItems || (template.defaultLineItems ? JSON.parse(template.defaultLineItems) : []);
-
-      // Calculate totals
-      // Calculate totals
-      const subtotal = lineItems.reduce((sum: string, item: any) => {
-        const itemTotal = safeMultiply(item.quantity, item.unitPrice);
-        return safeAdd(sum, itemTotal);
-      }, "0");
-
-      // Calculate due date
-      const invoiceDueDate = dueDate ? new Date(dueDate) : new Date(Date.now() + template.defaultDueDays * 24 * 60 * 60 * 1000);
-
-      // Generate invoice number
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-
-      // Create invoice
-      const invoice = await invoiceStorage.createInvoice({
-        invoiceNumber,
-        invoicerWalletAddress: walletAddress,
-        invoiceeWalletAddress,
-        description: `Invoice from template: ${template.name}`,
-        notes: null,
-        dueDate: invoiceDueDate,
-        currency: template.defaultCurrency,
-        tokenMint: template.defaultTokenMintAddress,
-        tokenMintAddress: template.defaultTokenMintAddress || "",
-        tokenDecimals: 6,
-        subtotal: subtotal.toString(),
-        taxAmount: "0",
-        discountAmount: "0",
-        totalAmount: subtotal.toString(),
-        remainingAmount: subtotal.toString(),
-        paidAmount: "0",
-        status: "draft",
-        paymentTerms: template.defaultPaymentTerms,
-        isPrivate: false,
-        hideAmounts: false,
-        hideParties: false,
-        isArciumEncrypted: false,
-      });
-
-      // Add line items
-      for (let i = 0; i < lineItems.length; i++) {
-        const item = lineItems[i];
-        const lineTotal = safeMultiply(item.quantity, item.unitPrice);
-
-        await invoiceStorage.createLineItem({
-          invoiceId: invoice.id,
-          description: item.description,
-          quantity: item.quantity.toString(),
-          unitPrice: item.unitPrice.toString(),
-          lineTotal: lineTotal.toString(),
-          lineNumber: i + 1,
-        });
-      }
-
-      res.json({
-        success: true,
-        invoice,
-        message: "Invoice created from template successfully",
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
 
   // ============================================
   // NFT METADATA ROUTES

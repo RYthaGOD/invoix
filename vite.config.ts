@@ -61,6 +61,8 @@ export default defineConfig({
     global: 'globalThis',
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     'process.env.REPL_ID': JSON.stringify(process.env.REPL_ID),
+    'process.env.SOLANA_NETWORK': JSON.stringify(process.env.SOLANA_NETWORK || 'devnet'),
+    'process.env.VITE_SOLANA_RPC_URL': JSON.stringify(process.env.VITE_SOLANA_RPC_URL),
   },
   optimizeDeps: {
     esbuildOptions: {

@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { InvoiceForm, InvoiceFormData } from "@/components/invoice-form";
-import { VersionedTransaction, Connection, clusterApiUrl } from "@solana/web3.js";
+import { VersionedTransaction, Connection, clusterApiUrl, Transaction, SystemProgram, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { TREASURY_WALLET_ADDRESS, INVOICE_SERVICE_FEE_SOL } from "@shared/config";
 import { Buffer } from "buffer";
 
 // Polyfill for Buffer
@@ -22,13 +23,14 @@ export default function InvoiceCreate() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mintingStatus, setMintingStatus] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [solPrice, setSolPrice] = useState<number | null>(null);
 
   // Templates state
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [templateData, setTemplateData] = useState<Partial<InvoiceFormData>>({});
 
-  // Fetch templates on load
+  // Fetch templates and price on load
   useEffect(() => {
     async function fetchTemplates() {
       if (!wallet?.publicKey) return;
@@ -45,6 +47,14 @@ export default function InvoiceCreate() {
       }
     }
     fetchTemplates();
+
+    // Fetch SOL Price
+    fetch("/api/pricing/sol")
+      .then(res => res.json())
+      .then(data => {
+        if (data.price) setSolPrice(data.price);
+      })
+      .catch(err => console.error("Price fetch failed", err));
   }, [wallet?.publicKey]);
 
   // Handle template selection
@@ -108,6 +118,46 @@ export default function InvoiceCreate() {
           amount: (parseFloat(item.quantity) * parseFloat(item.unitPrice)).toString()
         }))
       };
+
+      // Add Arcium allowed parties (Invoicer + Invoicee)
+      if (data.encryptWithArcium) {
+        (finalPayload as any).allowedParties = [
+          wallet.publicKey.toBase58(),
+          data.invoiceeWalletAddress
+        ];
+      }
+
+      // --- x402 SPAM CONTROL ---
+      // Pay 0.0001 SOL Service Fee
+      setMintingStatus("Paying Service Fee (0.0001 SOL)... 🛡️");
+
+      if (!wallet.signTransaction) {
+        throw new Error("Wallet does not support signing!");
+      }
+
+      const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: wallet.publicKey,
+          toPubkey: new PublicKey(TREASURY_WALLET_ADDRESS),
+          lamports: parseFloat(INVOICE_SERVICE_FEE_SOL) * LAMPORTS_PER_SOL,
+        })
+      );
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = wallet.publicKey;
+
+      const signedTx = await wallet.signTransaction(transaction);
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+
+      setMintingStatus("Verifying Fee... ⏳");
+      await connection.confirmTransaction(signature, "confirmed");
+
+      // Add signature to payload
+      (finalPayload as any).x402PaymentSignature = signature;
+      // -------------------------
 
       const res = await fetch("/api/invoices", {
         method: "POST",
@@ -216,6 +266,11 @@ export default function InvoiceCreate() {
             </h1>
             <p className="text-gray-400 mt-1">
               Issue a new invoice on the Solana blockchain
+              {solPrice && (
+                <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  1 SOL ≈ ${solPrice.toFixed(2)}
+                </span>
+              )}
             </p>
           </div>
         </div>

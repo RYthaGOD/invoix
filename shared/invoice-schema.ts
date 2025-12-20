@@ -506,6 +506,7 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   tokenMintAddress: z.string().min(32, "Invalid token mint address"),
   totalAmount: z.string().refine(val => parseFloat(val) > 0, "Total amount must be positive"),
   dueDate: z.date().or(z.string()),
+  x402PaymentSignature: z.string().optional(), // Spam control payment signature
 });
 
 export const insertLineItemSchema = createInsertSchema(invoiceLineItems).omit({
@@ -520,7 +521,7 @@ export const insertLineItemSchema = createInsertSchema(invoiceLineItems).omit({
 });
 
 export const insertInvoiceWithItemsSchema = insertInvoiceSchema.extend({
-  lineItems: z.array(insertLineItemSchema.omit({ invoiceId: true })).optional(),
+  lineItems: z.array(insertLineItemSchema.omit({ invoiceId: true })).optional().refine(val => !val || val.length <= 100, "Maximum 100 line items allowed per invoice"),
 });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({

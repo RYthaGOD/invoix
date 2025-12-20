@@ -1,0 +1,19 @@
+[package]
+name = "arcium_mxe"
+version = "0.1.0"
+description = "Arcium MXE for B2B Invoicing Confidential Computing"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+solana-program = "1.18.0"

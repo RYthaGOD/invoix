@@ -1,133 +1,60 @@
-
 import { Router } from "express";
-import { db } from "./db";
-import { invoices, payments, businessProfiles, customerProfiles } from "@shared/invoice-schema";
-import { eq, desc, and, or, sql } from "drizzle-orm";
-import { requireWalletOwnership } from "./security";
+import { invoiceStorage } from "./invoice-storage";
+import { Parser } from "json2csv";
 
 const router = Router();
 
-/**
- * Helper to convert array of objects to CSV string
- */
-function toCSV(data: any[]): string {
-    if (data.length === 0) return "";
+// Mounted at /api/invoices via routes.ts, so this becomes /api/invoices/export
+router.get("/export", async (req, res) => {
+    // 1. Auth Check (Must be logged in)
+    if (!req.isAuthenticated()) {
+        return res.status(401).send("Unauthorized");
+    }
 
-    const headers = Object.keys(data[0]);
-    const csvRows = [headers.join(",")];
+    const format = req.query.format as string || "csv";
+    if (format !== "csv") {
+        return res.status(400).send("Only CSV format is currently supported");
+    }
 
-    for (const row of data) {
-        const values = headers.map(header => {
-            const escaped = ('' + (row[header] ?? '')).replace(/"/g, '\\"');
-            return `"${escaped}"`;
+    try {
+        // 2. Fetch Invoices (My Invoices)
+        // Optimization: In a real "Perfect" app, we would stream this from DB cursor.
+        // For MVP/QuickWin, fetching all into memory is acceptable for <10k records.
+        const userWallet = (req.user as any).walletAddress;
+
+        // Fetch All (no pagination)
+        const invoices = await invoiceStorage.getInvoices(userWallet, {
+            limit: 10000 // Hard safety limit
         });
-        csvRows.push(values.join(","));
-    }
 
-    return csvRows.join("\n");
-}
+        if (!invoices || invoices.length === 0) {
+            return res.status(404).send("No invoices found to export");
+        }
 
-/**
- * Export Invoices as CSV
- * GET /api/exports/invoices?wallet=xxx
- */
-router.get("/invoices", requireWalletOwnership, async (req, res) => {
-    try {
-        const walletAddress = req.query.wallet as string;
+        // 3. Transform to CSV
+        const fields = [
+            { label: 'Invoice #', value: 'invoiceNumber' },
+            { label: 'Date Issued', value: (row: any) => row.dateIssued ? new Date(row.dateIssued).toISOString().split('T')[0] : '' },
+            { label: 'Due Date', value: (row: any) => row.dueDate ? new Date(row.dueDate).toISOString().split('T')[0] : '' },
+            { label: 'Customer', value: 'customerName' },
+            { label: 'Total Amount', value: 'totalAmount' },
+            { label: 'Currency', value: 'currency' },
+            { label: 'Status', value: 'status' },
+            { label: 'Paid Amount', value: 'paidAmount' },
+            { label: 'Date Paid', value: (row: any) => row.paidAt ? new Date(row.paidAt).toISOString().split('T')[0] : '' }
+        ];
 
-        // Fetch all invoices for this wallet (sent or received)
-        const results = await db.select({
-            Date: invoices.createdAt,
-            InvoiceNumber: invoices.invoiceNumber,
-            Role: sql<string>`CASE WHEN ${invoices.invoicerWalletAddress} = ${walletAddress} THEN 'Sender' ELSE 'Receiver' END`,
-            OtherParty: sql<string>`CASE WHEN ${invoices.invoicerWalletAddress} = ${walletAddress} THEN ${invoices.invoiceeWalletAddress} ELSE ${invoices.invoicerWalletAddress} END`,
-            Amount: invoices.totalAmount,
-            Currency: invoices.currency,
-            Status: invoices.status,
-            IsPrivate: invoices.isPrivate,
-        })
-            .from(invoices)
-            .where(
-                or(
-                    eq(invoices.invoicerWalletAddress, walletAddress),
-                    eq(invoices.invoiceeWalletAddress, walletAddress)
-                )
-            )
-            .orderBy(desc(invoices.createdAt));
+        const json2csvParser = new Parser({ fields });
+        const csv = json2csvParser.parse(invoices);
 
-        // Format dates and amounts
-        const formattedData = results.map(row => ({
-            ...row,
-            Date: row.Date ? new Date(row.Date).toISOString().split('T')[0] : '',
-            Amount: row.Amount?.toString() || '0',
-        }));
-
-        const csv = toCSV(formattedData);
-
-        res.header("Content-Type", "text/csv");
-        res.header("Content-Disposition", `attachment; filename="invoices-${walletAddress.slice(0, 8)}.csv"`);
+        // 4. Send File
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', `attachment; filename="invoices-${new Date().toISOString().split('T')[0]}.csv"`);
         res.send(csv);
 
-    } catch (error: any) {
-        console.error("Export Invoices Error:", error);
-        res.status(500).json({ message: "Failed to export invoices" });
-    }
-});
-
-/**
- * Export Payments as CSV
- * GET /api/exports/payments?wallet=xxx
- */
-router.get("/payments", requireWalletOwnership, async (req, res) => {
-    try {
-        const walletAddress = req.query.wallet as string;
-
-        // Fetch payments related to this wallet (payer or payee via invoice)
-        // We join with invoices to check relationship
-        const results = await db.select({
-            Date: payments.createdAt,
-            PaymentId: payments.id,
-            InvoiceNumber: invoices.invoiceNumber,
-            Direction: sql<string>`CASE WHEN ${payments.toAddress} = ${walletAddress} THEN 'Incoming' ELSE 'Outgoing' END`,
-            Amount: payments.amount,
-            Currency: payments.currency,
-            USDValue: payments.usdValueAtPayment,
-            IsExpense: payments.isBusinessExpense,
-            TxSignature: payments.txSignature,
-            From: payments.fromAddress,
-            To: payments.toAddress,
-        })
-            .from(payments)
-            .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
-            .where(
-                or(
-                    eq(payments.fromAddress, walletAddress),
-                    eq(payments.toAddress, walletAddress),
-                    // Also include payments if user is the invoicer (even if payment went to a different address? usually same)
-                    eq(invoices.invoicerWalletAddress, walletAddress),
-                    eq(invoices.invoiceeWalletAddress, walletAddress)
-                )
-            )
-            .orderBy(desc(payments.createdAt));
-
-        // Format
-        const formattedData = results.map(row => ({
-            ...row,
-            Date: row.Date ? new Date(row.Date).toISOString().split('T')[0] : '',
-            Amount: row.Amount?.toString() || '0',
-            USDValue: row.USDValue?.toString() || '',
-            IsExpense: row.IsExpense ? 'Yes' : 'No',
-        }));
-
-        const csv = toCSV(formattedData);
-
-        res.header("Content-Type", "text/csv");
-        res.header("Content-Disposition", `attachment; filename="payments-${walletAddress.slice(0, 8)}.csv"`);
-        res.send(csv);
-
-    } catch (error: any) {
-        console.error("Export Payments Error:", error);
-        res.status(500).json({ message: "Failed to export payments" });
+    } catch (error) {
+        console.error("Export failed:", error);
+        res.status(500).send("Export failed");
     }
 });
 
