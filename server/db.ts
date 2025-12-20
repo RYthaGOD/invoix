@@ -35,35 +35,36 @@ if (useSQLite) {
   db = drizzleSQLite(sqlite, { schema: schema as any }) as unknown as AppDatabase;
 
 } else {
-  // PostgreSQL setup for production
   if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL must be set for production.");
+    console.warn("⚠️  DATABASE_URL not set. Production database operations will fail until it is provided.");
+    // We let the pool initialization be skipped or deferred
+  } else {
+    console.log('✅ Using PostgreSQL database (pg driver)');
+
+    // Determine SSL mode based on URL and Environment
+    const isInternal = process.env.DATABASE_URL.includes('railway.internal');
+
+    // Standard Railway Config:
+    // Internal = No SSL
+    // Public = SSL Required (rejectUnauthorized: false)
+    const sslConfig = isInternal ? false : { rejectUnauthorized: false };
+
+    console.log(`🔌 DB Config: Internal=${isInternal}, SSL=${!!sslConfig}`);
+
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: sslConfig,
+      max: 5, // Conservative limit to prevent 'terminating connection' due to overload
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    });
+
+    pool.on('error', (err) => {
+      console.error('Unexpected error on idle client', err);
+    });
+
+    db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
   }
-  console.log('✅ Using PostgreSQL database (pg driver)');
-
-  // Determine SSL mode based on URL and Environment
-  const isInternal = process.env.DATABASE_URL.includes('railway.internal');
-
-  // Standard Railway Config:
-  // Internal = No SSL
-  // Public = SSL Required (rejectUnauthorized: false)
-  const sslConfig = isInternal ? false : { rejectUnauthorized: false };
-
-  console.log(`🔌 DB Config: Internal=${isInternal}, SSL=${!!sslConfig}`);
-
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: sslConfig,
-    max: 5, // Conservative limit to prevent 'terminating connection' due to overload
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
-  });
-
-  pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-  });
-
-  db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
 }
 
 // ------------

@@ -480,8 +480,8 @@ export function checkSecurityEnvVars(): void {
   if (missingCritical.length > 0 && process.env.NODE_ENV === "production") {
     console.error("❌ CRITICAL: Missing required environment variables:");
     missingCritical.forEach(v => console.error(`   - ${v}`));
-    console.error("\nCannot start without these variables.");
-    process.exit(1);
+    console.error("\n⚠️  Platform will serve 503 Maintenance until these are configured.");
+    // process.exit(1); 
   }
 
   // Check recommended vars (warn but don't block)
