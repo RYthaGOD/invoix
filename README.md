@@ -108,7 +108,7 @@ Distributed under the MIT License. See `LICENSE.md` for more information.
 
 ## 🤝 Support
 - **X Community**: [Join our community](https://x.com/i/communities/1998417251041718386)
-- **X**: [@InvoixApp](https://x.com/InvoixSola24238)
+- **X**: (https://x.com/InvoixSola24238)
 
 ---
 *Built with ❤️ for the decentralized economy by the Invoix Team.*
