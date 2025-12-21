@@ -159,29 +159,14 @@ app.use((req, res, next) => {
     console.log("🚀 Initializing Invoix Platform Components...");
     console.log("   Cluster:", process.env.NODE_ENV || "development");
 
-    // 1. DNS Pre-flight
+    // 1. DNS Resolution Check
     if (process.env.DATABASE_URL) {
       startupPhase = "dns_preflight";
-      let hostname = "";
       try {
         const urlObj = new URL(process.env.DATABASE_URL);
-        hostname = urlObj.hostname;
+        console.log(`   🔍 DB Host: ${urlObj.hostname}`);
       } catch (e) {
-        const match = process.env.DATABASE_URL.match(/@([^:/]+)(?::(\d+))?/);
-        if (match) hostname = match[1];
-      }
-
-      if (hostname && !hostname.match(/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/)) {
-        try {
-          console.log(`   🔄 Resolving DB host '${hostname}'...`);
-          const ips = await dns.promises.resolve4(hostname);
-          if (ips && ips.length > 0) {
-            process.env.DATABASE_URL = process.env.DATABASE_URL.replace(hostname, ips[0]);
-            console.log(`   ✅ DB Host resolved to IPv4.`);
-          }
-        } catch (dnsErr) {
-          console.warn("   ⚠️ DNS Pre-flight failed, proceeding with original hostname.");
-        }
+        console.warn("   ⚠️  Invalid DATABASE_URL format");
       }
     }
 
@@ -270,7 +255,7 @@ app.use((req, res, next) => {
     // 9. Realtime Systems (WS)
     const wss = new WebSocketServer({ server, path: "/ws" });
     wss.on("connection", (ws: WebSocket) => {
-      invoiceStorage.getGlobalStats().then((stats) => {
+      invoiceStorage.getGlobalStats().then((stats: any) => {
         if (ws.readyState === 1) ws.send(JSON.stringify({ type: "global_stats_update", data: stats }));
       }).catch(() => { });
     });
