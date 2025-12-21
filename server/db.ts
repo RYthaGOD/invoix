@@ -59,32 +59,8 @@ if (useSQLite) {
 
     console.log(`🔌 DB Config: Internal=${isInternal}, SSL=${!!sslConfig}`);
 
-    let connectionString = process.env.DATABASE_URL;
-
-    // PRE-FLIGHT: Try to force IPv4 for Supabase/Public DBs to avoid IPv6 ENETUNREACH issues
-    if (!isInternal) {
-      try {
-        const urlObj = new URL(connectionString);
-        const hostname = urlObj.hostname;
-
-        // Only for public cloud URLs
-        if (hostname.includes('supabase.co') || hostname.includes('neon.tech') || hostname.includes('.com')) {
-          console.log(`🔍 Pre-flight DNS: Resolving ${hostname} to IPv4...`);
-          const dns = await import('dns');
-          const ips = await dns.promises.resolve4(hostname).catch(() => []);
-          if (ips.length > 0) {
-            console.log(`✅ Pre-flight Resolved: ${ips[0]} (Original: ${hostname})`);
-            urlObj.hostname = ips[0];
-            connectionString = urlObj.toString();
-          }
-        }
-      } catch (e) {
-        console.warn("⚠️  Pre-flight DNS failed, continuing with original URL");
-      }
-    }
-
     pool = new Pool({
-      connectionString: connectionString,
+      connectionString: process.env.DATABASE_URL,
       ssl: sslConfig,
       max: 5, // Conservative limit to prevent 'terminating connection' due to overload
       idleTimeoutMillis: 30000,

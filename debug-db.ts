@@ -1,15 +1,22 @@
 
-import { checkDatabaseConnection } from './server/db';
 import 'dotenv/config';
+import { checkDatabaseConnection } from './server/db.js';
 
 console.log("TESTING DATABASE CONNECTION...");
-console.log("URL:", process.env.DATABASE_URL?.replace(/:[^:]*@/, ':****@'));
+// Mask password for logging
+const maskedUrl = process.env.DATABASE_URL?.replace(/:([^:@]+)@/, (match, p1) => `:${"*".repeat(p1.length)}@`);
+console.log("URL:", maskedUrl);
 
 async function main() {
     process.env.NODE_ENV = 'production'; // Force PG mode
-    const result = await checkDatabaseConnection(5, 1000);
-    console.log("Result:", result);
-    process.exit(result.connected ? 0 : 1);
+    try {
+        const result = await checkDatabaseConnection(5, 1000);
+        console.log("Result:", result);
+        process.exit(result.connected ? 0 : 1);
+    } catch (err) {
+        console.error("Fatal error during connection check:", err);
+        process.exit(1);
+    }
 }
 
 main();
