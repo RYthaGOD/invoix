@@ -238,7 +238,11 @@ export default function PayInvoice() {
 
         } catch (err: any) {
             console.error("Payment error:", err);
-            setPageError(err.message || "Payment failed");
+            let errorMessage = err.message || "Payment failed";
+            if (errorMessage.includes("Attempt to debit") || errorMessage.includes("0x1")) {
+                errorMessage = "Payment simulation failed. Ensure you have enough SOL for Rent (if creating accounts).";
+            }
+            setPageError(errorMessage);
         } finally {
             setPaying(false);
         }

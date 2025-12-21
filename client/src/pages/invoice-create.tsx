@@ -178,6 +178,15 @@ export default function InvoiceCreate() {
         description: message,
       });
 
+      // Verify Arcium Encryption Status
+      if (data.encryptWithArcium && !invoice.isArciumEncrypted) {
+        toast({
+          variant: "destructive",
+          title: "Privacy Warning",
+          description: "Arcium TEE was unavailable. Invoice was created WITHOUT encryption.",
+        });
+      }
+
       // 2. Handle Client-Side Minting (if selected)
       if (data.mintNFT && wallet.signTransaction) {
         try {
