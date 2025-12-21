@@ -259,7 +259,7 @@ app.use((req, res, next) => {
       const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
       await initializeNFTService(payerKeypair).catch(e => console.warn("⚠️ NFT Init failed:", e));
     }
-    await initializeArciumService().catch(e => console.warn("⚠️ Arcium Init failed:", e));
+    // await initializeArciumService().catch(e => console.warn("⚠️ Arcium Init failed:", e));
 
     // Finalize
     isServiceReady = true;
