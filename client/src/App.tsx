@@ -10,6 +10,7 @@ import { RealtimeProvider } from "@/hooks/use-realtime";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Suspense, lazy } from "react";
 import { Loader } from "@/components/ui/loader";
+import { DevnetBanner } from "@/components/devnet-banner";
 
 // Lazy Load Pages
 const InvoiceLanding = lazy(() => import("@/pages/invoice-landing"));
@@ -100,6 +101,7 @@ function App() {
             <ThemeProvider defaultTheme="dark">
               <TooltipProvider>
                 <RealtimeProvider>
+                  <DevnetBanner />
                   <Toaster />
                   <Router />
                 </RealtimeProvider>
