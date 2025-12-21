@@ -63,12 +63,16 @@ if (useSQLite) {
       connectionString: process.env.DATABASE_URL,
       ssl: sslConfig,
       max: 5, // Conservative limit to prevent 'terminating connection' due to overload
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 60000, // Increase idle timeout
+      connectionTimeoutMillis: 30000, // Increase connection timeout to 30s
     });
 
-    pool.on('error', (err) => {
-      console.error('Unexpected error on idle client', err);
+    pool.on('error', (err: any) => {
+      if (err.message && err.message.includes('Circuit breaker open')) {
+        console.error('🪫  Supabase Pooler Circuit Breaker is OPEN. Cooling down...');
+      } else {
+        console.error('Unexpected error on idle client', err);
+      }
     });
 
     db = drizzlePg(pool, { schema: schemaPg }) as AppDatabase;
@@ -147,6 +151,14 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
       return { connected: true };
     } catch (err: any) {
       lastError = err.message || String(err);
+
+      // Specifically detect Supabase Pooler Circuit Breaker
+      if (lastError.includes('Circuit breaker open')) {
+        console.warn('⚠️  Supabase Pooler is in a cooldown period (Circuit Breaker Open).');
+        console.warn('💡 This usually happens after many failed attempts or a password change.');
+        console.warn('⏩ The app will continue to retry safely.');
+      }
+
       console.log(`⏳ DB Attempt ${i + 1}/${retries} Failed: ${lastError}`);
 
       // FIX: If ENETUNREACH (IPv6 issue), force resolve to IPv4 and recreate pool
@@ -185,8 +197,8 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
               connectionString: newConnectionString,
               ssl: sslConfig,
               max: 5,
-              idleTimeoutMillis: 30000,
-              connectionTimeoutMillis: 10000,
+              idleTimeoutMillis: 60000, // Match main config
+              connectionTimeoutMillis: 30000, // Match main config
             });
 
             pool.on('error', (e) => console.error('Unexpected error on idle client', e));

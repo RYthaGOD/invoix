@@ -41,6 +41,7 @@ const menuItems = [
     title: "Create Invoice",
     url: "/invoices/create",
     icon: Plus,
+    id: "tour-create-invoice",
   },
   {
     title: "Community Drop",
@@ -105,7 +106,7 @@ export function AppSidebar() {
                     isActive={location === item.url}
                     data-testid={`sidebar-${item.title.toLowerCase().replace(' ', '-')}`}
                   >
-                    <Link href={item.url} className="flex items-center justify-between w-full">
+                    <Link href={item.url} className="flex items-center justify-between w-full" id={(item as any).id}>
                       <div className="flex items-center gap-2">
                         <item.icon className="w-5 h-5" />
                         <span>{item.title}</span>

@@ -47,7 +47,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={style as CSSProperties}>
-      <div className="flex h-screen w-full bg-background transition-colors duration-300">
+      <div className="flex h-screen w-full bg-background transition-colors duration-300" id="tour-welcome">
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Header - Glass Effect */}

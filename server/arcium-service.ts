@@ -230,7 +230,9 @@ export class ArciumService {
         chunks.push(ciphertextFlat.subarray(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE));
       }
 
-      const decryptedBigInts = cipher.decrypt(chunks, nonce);
+      // Fix: cipher.decrypt expects number[][] but chunks is Uint8Array[]
+      const chunksAsNumbers = chunks.map(chunk => Array.from(chunk));
+      const decryptedBigInts = cipher.decrypt(chunksAsNumbers, Uint8Array.from(nonce));
       const decryptedBytes = decryptedBigInts.map(bi => Number(bi));
       const plaintext = Buffer.from(decryptedBytes).toString("utf-8");
 

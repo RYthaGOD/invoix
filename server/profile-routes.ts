@@ -82,7 +82,7 @@ export function registerProfileRoutes(app: Express) {
 
             if (existing) {
                 // Update
-                [updatedProfile] = await db.update(businessProfiles as any)
+                const updateResult = await db.update(businessProfiles as any)
                     .set({
                         businessName: data.businessName,
                         businessEmail: data.businessEmail || null,
@@ -98,10 +98,11 @@ export function registerProfileRoutes(app: Express) {
                         updatedAt: new Date(),
                     })
                     .where(eq(businessProfiles.ownerWalletAddress, walletAddress))
-                    .returning();
+                    .returning() as any[];
+                updatedProfile = updateResult[0];
             } else {
                 // Insert
-                [updatedProfile] = await db.insert(businessProfiles as any)
+                const insertResult = await db.insert(businessProfiles as any)
                     .values({
                         ownerWalletAddress: walletAddress,
                         businessName: data.businessName,
@@ -115,7 +116,8 @@ export function registerProfileRoutes(app: Express) {
                         defaultPaymentTerms: data.defaultPaymentTerms || "Net 30",
                         defaultInvoicePrefix: data.defaultInvoicePrefix || "INV",
                     })
-                    .returning();
+                    .returning() as any[];
+                updatedProfile = insertResult[0];
             }
 
             res.json({ success: true, profile: updatedProfile, message: "Profile updated successfully" });

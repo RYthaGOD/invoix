@@ -1,4 +1,3 @@
-
 import { useRef, useEffect } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
@@ -6,44 +5,60 @@ import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
 
 export function TourGuide() {
-    // We don't need to persist the driver instance if we create it on demand
-    // but keeping a ref is fine if we want to programmatically close it later.
     const driverRef = useRef<any>(null);
 
     const startTour = () => {
-        // Define all possible steps
         const allSteps = [
+            // Landing Page Steps
             {
                 element: '#tour-welcome',
                 popover: {
-                    title: 'Welcome to Invoix ⚡',
-                    description: 'The world\'s first Confidential B2B Invoicing Platform on Solana. Let us show you around.',
+                    title: 'Welcome to Invoix Protocol ⚡',
+                    description: 'The world\'s first Confidential B2B Invoicing Platform on Solana. Fast, secure, and rewarding.',
                     side: "bottom" as const,
                     align: 'start' as const
                 }
             },
             {
-                element: '#tour-system-status',
+                element: '#hero-create-invoice',
                 popover: {
-                    title: 'System Security Status 🛡️',
-                    description: 'This widget monitors our industrial hardening: Arcium Encryption, x402 Anti-Spam, and Atomic Sequencing.',
+                    title: 'Start Invoicing Now 🚀',
+                    description: 'Ready to go? Click here to launch the app and create your first invoice in seconds.',
                     side: "bottom" as const
                 }
             },
             {
                 element: '#tour-create-invoice',
                 popover: {
-                    title: 'Create Confidential Invoices 📝',
-                    description: 'Start here. Invoices require a tiny 0.0001 SOL fee (x402 protocol) to prevent spam and verify business intent.',
+                    title: 'Create Your First Invoice 📝',
+                    description: 'Click here to start. You can invoice in SOL, USDC, or USDT. Fees are just 0.0001 SOL (network cost).',
                     side: "right" as const
+                }
+            },
+
+            // Dashboard Steps
+            {
+                element: '#tour-system-status',
+                popover: {
+                    title: 'System Security Status 🛡️',
+                    description: 'This indicator shows that our Arcium Confidential Computing layer is active and protecting your data.',
+                    side: "bottom" as const
                 }
             },
             {
                 element: '#tour-wallet-connect',
                 popover: {
-                    title: 'Connect Your Wallet 💳',
-                    description: 'Connect your Phantom or Solflare wallet to sign transactions and decrypt your private data via Arcium.',
+                    title: 'Connect Wallet to Access 💳',
+                    description: 'You must connect your Solana wallet (Phantom, Solflare) to view encrypted invoices and sign transactions.',
                     side: "left" as const
+                }
+            },
+            {
+                element: '#nav-dashboard',
+                popover: {
+                    title: 'Access Your Dashboard 🚀',
+                    description: 'Already have an account? Jump straight to your dashboard to manage invoices and clients.',
+                    side: "bottom" as const
                 }
             }
         ];
@@ -58,12 +73,11 @@ export function TourGuide() {
             return;
         }
 
-        // Initialize driver only when starting the tour
         const driverObj = driver({
             showProgress: true,
             animate: true,
             allowClose: true,
-            overlayColor: 'rgba(0, 0, 0, 0.8)', // Darker overlay for Midnight Prism
+            overlayColor: 'rgba(0, 0, 0, 0.8)',
             steps: validSteps,
             onDestroyed: () => {
                 driverRef.current = null;
@@ -74,7 +88,6 @@ export function TourGuide() {
         driverObj.drive();
     };
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (driverRef.current) {
@@ -91,7 +104,7 @@ export function TourGuide() {
             className="gap-2 text-muted-foreground hover:text-primary transition-colors"
         >
             <HelpCircle className="h-4 w-4" />
-            <span>Tour</span>
+            <span className="hidden sm:inline">Tour</span>
         </Button>
     );
 }
