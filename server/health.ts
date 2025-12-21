@@ -4,7 +4,6 @@
  */
 
 import { type Request, type Response } from "express";
-// @ts-ignore - db type inference issue with conditional exports
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { getEnvInfo } from "./env-validator";

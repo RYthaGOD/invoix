@@ -1,8 +1,8 @@
 
 import type { Express, Request, Response } from "express";
 import { Connection } from "@solana/web3.js";
-import { db } from "./db";
-import { businessProfiles, invoices } from "@shared/invoice-schema";
+import { db, schema } from "./db";
+const { businessProfiles, invoices } = schema;
 import { eq, and } from "drizzle-orm";
 import { requireWalletOwnership } from "./security";
 import { z } from "zod";
@@ -82,7 +82,7 @@ export function registerProfileRoutes(app: Express) {
 
             if (existing) {
                 // Update
-                [updatedProfile] = await db.update(businessProfiles)
+                [updatedProfile] = await db.update(businessProfiles as any)
                     .set({
                         businessName: data.businessName,
                         businessEmail: data.businessEmail || null,
@@ -101,7 +101,7 @@ export function registerProfileRoutes(app: Express) {
                     .returning();
             } else {
                 // Insert
-                [updatedProfile] = await db.insert(businessProfiles)
+                [updatedProfile] = await db.insert(businessProfiles as any)
                     .values({
                         ownerWalletAddress: walletAddress,
                         businessName: data.businessName,

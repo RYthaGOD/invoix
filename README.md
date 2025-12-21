@@ -17,10 +17,14 @@
 - **On-Chain MXE**: Integrated with a custom Arcium MXE (Multi-Party Execution) program for verifiable confidential computing.
 - **Access Control**: Only the Invoicer and Invoicee hold the keys to decrypt their transaction details.
 
-### 💎 **Midnight Prism 3.0 (Premium UX)**
-- **Glassmorphism v3**: High-fidelity UI with 24px blurs, saturation curves, and inner prism glows.
+### 💎 **Pearlescent Design System**
+- **Mother of Pearl (Dark)**: Deep gunmetal surfaces with nacreous pink/cyan iridescence.
+- **White Pearlescent (Light)**: Shimmering ice white with subtle rainbow prism effects.
 - **Hardened System HUD**: Real-time transparency widget tracking Arcium MXE status, Anti-Replay Guard, and Atomic Ledger health.
-- **Micro-Animations**: Fluid transitions powered by Framer Motion for an executive-grade experience.
+
+### 🌟 **Interactive Onboarding**
+- **Guided Tour**: Integrated `driver.js` tour to welcome users and explain key confidentiality features.
+- **Devnet Ready**: Pre-configured for risk-free demonstration on Solana Devnet.
 
 ### 🛡️ **Industrial Hardening**
 - **Atomic Sequential Numbering**: Prevents race conditions in invoice generation via Postgres row-level locking.

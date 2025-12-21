@@ -760,11 +760,11 @@ export function registerInvoiceRoutes(app: Express): void {
 
         const verification = await verifyStablecoinPayment(
           connection,
-          validatedData.txSignature || "", // Add null check
-          parseFloat(recipientAmount),
-          validatedData.toAddress || "", // Add null check
-          validatedData.currency || "", // Add null check
-          feeAmount ? parseFloat(feeAmount) : 0, // String
+          validatedData.txSignature || "",
+          recipientAmount, // Pass as string
+          validatedData.toAddress || "",
+          validatedData.currency || "",
+          feeAmount || "0", // Pass as string
           TREASURY_WALLET_ADDRESS
         );
 

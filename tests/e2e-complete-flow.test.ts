@@ -26,7 +26,7 @@ app.use(session({
 app.use((req, res, next) => {
     const testWallet = req.headers['x-test-wallet'];
     if (testWallet && req.session) {
-        req.session.walletAddress = testWallet;
+        req.session.walletAddress = Array.isArray(testWallet) ? testWallet[0] : testWallet;
     }
     next();
 });
@@ -42,6 +42,20 @@ describe("E2E Complete Flow", () => {
     const MOCK_WALLET_2 = "H3G8l0j9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r";
 
     beforeAll(async () => {
+        // Ensure DB is properly initialized for SQLite tests using push (schema sync)
+        // avoiding Postgres-specific migrations (extensions).
+        const { execSync } = await import("child_process");
+        try {
+            console.log("🔄 Syncing SQLite schema via drizzle-kit push...");
+            // Use explicit params to avoid reading drizzle.config.ts which targets Postgres
+            execSync("npx drizzle-kit push --dialect=sqlite --schema=shared/invoice-schema-sqlite.ts --url=file:data/invoices.db", {
+                stdio: 'inherit'
+            });
+            console.log("✅ SQLite Schema Synced");
+        } catch (e) {
+            console.error("❌ Failed to push schema:", e);
+            throw e;
+        }
         await registerRoutes(app);
     });
 
@@ -64,8 +78,8 @@ describe("E2E Complete Flow", () => {
 
         if (res.status !== 201) {
             const fs = require('fs');
-            fs.writeFileSync('tests/error_log.json', JSON.stringify(res.body, null, 2));
-            console.error("Create Invoice Phase Failed BODY LOGGED TO FILE");
+            fs.writeFileSync('tests/error_log_step1.json', JSON.stringify(res.body, null, 2));
+            console.error("Create Invoice Phase Failed BODY LOGGED TO STEP1 FILE");
             throw new Error("Create Invoice Phase Failed");
         }
         expect(res.status).toBe(201);

@@ -11,8 +11,9 @@ import * as pgSchema from "@shared/invoice-schema";
 import * as sqliteSchema from "@shared/invoice-schema-sqlite";
 
 const isSQLite = !process.env.DATABASE_URL;
-// Force cast to any to avoid complex union type issues, logic relies on shared structure
-const schema: any = isSQLite ? sqliteSchema : pgSchema;
+// Force cast to Postgres schema type to align with AppDatabase definition in db.ts
+// This ensures strict type checking against the production schema structure.
+const schema: typeof pgSchema = (isSQLite ? sqliteSchema : pgSchema) as unknown as typeof pgSchema;
 
 const {
   invoices,
@@ -44,8 +45,10 @@ import type {
   InsertCustomerProfile,
   InvoiceTemplate,
   InsertInvoiceTemplate,
-  InsertInvoiceTemplate,
 } from "@shared/invoice-schema";
+
+// Re-export types for use in consumers (like routes)
+export type { Invoice, InvoiceLineItem, Payment, BusinessProfile, CustomerProfile };
 import { db, runTransaction } from "./db";
 import { eq, and, or, ne, desc, asc, sql, isNotNull } from "drizzle-orm";
 import { safeAdd, safeSubtract, safeMultiply } from "@shared/math";
@@ -102,7 +105,7 @@ export interface IInvoiceStorage {
     totalInvoices: number;
     totalUsers: number;
     encryptedInvoices: number;
-    totalVolume: number;
+    totalVolume: string;
   }>;
 
   // Signature check
@@ -214,7 +217,7 @@ class InvoiceStorage implements IInvoiceStorage {
     return (await query) as Invoice[];
   }
 
-  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+  async createInvoice(invoice: InsertInvoice & { invoiceNumber?: string }): Promise<Invoice> {
     // Ensure strict type compatibility for Postgres
     const insertData: any = { ...invoice };
     if (typeof insertData.dueDate === 'string') {
@@ -224,7 +227,7 @@ class InvoiceStorage implements IInvoiceStorage {
     return newInvoice as Invoice;
   }
 
-  async createInvoiceWithItems(invoice: InsertInvoice, lineItems?: Omit<InsertLineItem, 'invoiceId'>[]): Promise<Invoice> {
+  async createInvoiceWithItems(invoice: InsertInvoice & { invoiceNumber?: string }, lineItems?: Omit<InsertLineItem, 'invoiceId'>[]): Promise<Invoice> {
     return await runTransaction(async (tx) => {
       let finalInvoiceNumber = invoice.invoiceNumber;
 
@@ -233,10 +236,18 @@ class InvoiceStorage implements IInvoiceStorage {
       if (!finalInvoiceNumber) {
         // Lock the business profile row for the invoicer
         // Note: .for('update') is specific to Postgres and ensures sequential access
-        const [profile] = await tx.select()
+        // We skip this for SQLite (tests/dev)
+        let query = tx.select()
           .from(businessProfiles)
           .where(eq(businessProfiles.ownerWalletAddress, invoice.invoicerWalletAddress))
-          .for('update');
+          .$dynamic(); // Enable dynamic query building
+
+        if (process.env.DATABASE_URL) {
+          // Only apply lock if using Postgres (indicated by DATABASE_URL presence)
+          query = query.for('update');
+        }
+
+        const [profile] = await query;
 
         if (profile) {
           const nextNum = profile.nextInvoiceNumber;
@@ -330,7 +341,24 @@ class InvoiceStorage implements IInvoiceStorage {
   }
 
   async createLineItem(lineItem: InsertLineItem): Promise<InvoiceLineItem> {
-    const [newItem] = await db.insert(invoiceLineItems).values(lineItem).returning();
+    // Calculate derived fields
+    const lineTotal = safeMultiply(lineItem.quantity, lineItem.unitPrice);
+
+    // Get next line number
+    const [lastItem] = await db.select({ lineNumber: invoiceLineItems.lineNumber })
+      .from(invoiceLineItems)
+      .where(eq(invoiceLineItems.invoiceId, lineItem.invoiceId))
+      .orderBy(desc(invoiceLineItems.lineNumber))
+      .limit(1);
+
+    const lineNumber = (lastItem?.lineNumber || 0) + 1;
+
+    const [newItem] = await db.insert(invoiceLineItems).values({
+      ...lineItem,
+      lineNumber,
+      lineTotal
+    }).returning();
+
     return newItem;
   }
 
@@ -400,8 +428,13 @@ class InvoiceStorage implements IInvoiceStorage {
 
     // Use a transaction to ensure atomicity between payment and invoice updates
     const result = await runTransaction(async (tx) => {
-      // Insert the payment
-      const [newPayment] = await tx.insert(payments).values(payment).returning();
+      // Insert the payment with generated number
+      const paymentToInsert = {
+        ...payment,
+        paymentNumber: `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+      };
+
+      const [newPayment] = await tx.insert(payments).values(paymentToInsert).returning();
 
       // Get invoice INSIDE transaction to prevent race conditions
       const [invoice] = await tx.select()
@@ -869,7 +902,7 @@ class InvoiceStorage implements IInvoiceStorage {
   /**
    * Get global system statistics (Public)
    */
-  async getGlobalStats() {
+  async getGlobalStats(): Promise<{ totalInvoices: number; totalUsers: number; encryptedInvoices: number; totalVolume: string }> {
     try {
       // 1. Total Invoices
       const [invResult] = await db.select({ count: sql<string>`count(*)` }).from(invoices);
@@ -888,9 +921,7 @@ class InvoiceStorage implements IInvoiceStorage {
 
       // 4. Total Platform Volume (Sum of all invoices)
       const [volumeResult] = await db.select({ total: sql<string>`sum(${invoices.totalAmount})` }).from(invoices);
-      const totalVolume = volumeResult?.total ? parseFloat(volumeResult.total) : 0;
-
-      // log("Global Stats Computed:", { totalInvoices, totalUsers, encryptedInvoices, totalVolume });
+      const totalVolume = volumeResult?.total || "0";
 
       return {
         totalInvoices,
@@ -901,7 +932,7 @@ class InvoiceStorage implements IInvoiceStorage {
     } catch (error) {
       console.error("Error computing global stats:", error);
       // Return zeros on error to prevent crash
-      return { totalInvoices: 0, totalUsers: 0, encryptedInvoices: 0, totalVolume: 0 };
+      return { totalInvoices: 0, totalUsers: 0, encryptedInvoices: 0, totalVolume: "0" };
     }
   }
 }

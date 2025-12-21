@@ -17,9 +17,13 @@ import {
   Globe,
   Monitor,
   ShieldCheck,
-  Copy
+  ShieldCheck,
+  Copy,
+  Menu,
+  X
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import { useTokenStats } from "@/hooks/use-token-stats";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,6 +33,16 @@ export default function InvoiceLanding() {
   const { data: tokenStats, isLoading: isStatsLoading } = useTokenStats();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  }, [mobileMenuOpen]);
 
   const copyAddress = async () => {
     await navigator.clipboard.writeText(TOKEN_ADDRESS);
@@ -97,11 +111,69 @@ export default function InvoiceLanding() {
             </div>
 
             <div className="flex items-center gap-4">
-              <WalletButton />
+              <div className="hidden md:block">
+                <WalletButton />
+              </div>
+
+              {/* Mobile Menu Toggle */}
+              <button
+                className="md:hidden w-10 h-10 flex items-center justify-center rounded-full glass hover:bg-white/10 transition-colors"
+                onClick={() => setMobileMenuOpen(true)}
+              >
+                <Menu className="w-5 h-5 text-white" />
+              </button>
             </div>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl md:hidden flex flex-col pt-24 px-6"
+          >
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <nav className="flex flex-col gap-6 text-2xl font-heading font-bold text-center">
+              {[
+                { label: "Features", id: "features" },
+                { label: "Rewards", id: "rewards" },
+                { label: "Pricing", id: "pricing" }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setTimeout(() => scrollToSection(item.id), 300);
+                  }}
+                  className="text-white hover:text-primary transition-colors py-2"
+                >
+                  {item.label}
+                </button>
+              ))}
+              <Link href="/invoices">
+                <a className="text-primary mt-4 py-2" onClick={() => setMobileMenuOpen(false)}>
+                  Launch Dashboard
+                </a>
+              </Link>
+            </nav>
+
+            <div className="mt-12 flex justify-center">
+              <WalletButton />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-32 md:pt-48 md:pb-40 overflow-hidden">
@@ -319,8 +391,57 @@ export default function InvoiceLanding() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 container mx-auto px-6">
+        <motion.div className="text-center mb-16" {...fadeInUp}>
+          <h2 className="font-heading font-bold text-4xl md:text-5xl mb-6">Fair Launch Pricing</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            No subscriptions. No hidden fees. Just pay for network costs.
+          </p>
+        </motion.div>
+
+        <div className="max-w-md mx-auto relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-3xl blur p-[2px] opacity-75 group-hover:opacity-100 transition-opacity" />
+          <div className="relative glass-card rounded-3xl p-8 overflow-hidden h-full flex flex-col">
+            <div className="absolute top-0 right-0 px-4 py-2 bg-primary text-white text-xs font-bold rounded-bl-2xl">
+              COMMUNITY
+            </div>
+
+            <h3 className="text-2xl font-bold font-heading mb-2">Protocol Access</h3>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-4xl font-bold text-white">$0</span>
+              <span className="text-muted-foreground">/ month</span>
+            </div>
+
+            <div className="space-y-4 flex-1 mb-8">
+              {[
+                "Unlimited Invoices",
+                "Unlimited Clients",
+                "USDC, USDT, & SOL Payments",
+                "Compressed NFT Receipts",
+                "Basic Analytics",
+                "Community Support"
+              ].map((feature, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
+                    <Check className="w-3 h-3" />
+                  </div>
+                  <span className="text-sm text-gray-300">{feature}</span>
+                </div>
+              ))}
+            </div>
+
+            <Link href="/invoices/create">
+              <button className="w-full btn-primary h-12 rounded-xl text-lg font-medium">
+                Start Now
+              </button>
+            </Link>
+          </div>
+        </div>
+      </section >
+
       {/* Pricing / Rewards CTA (Combined for impact) */}
-      <section id="rewards" className="py-32 relative">
+      < section id="rewards" className="py-32 relative" >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <div className="glass-strong rounded-[3rem] p-12 md:p-20 border border-white/10 overflow-hidden relative">
@@ -379,10 +500,10 @@ export default function InvoiceLanding() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Footer */}
-      <footer className="border-t border-white/10 bg-black/40 py-20 backdrop-blur-lg">
+      < footer className="border-t border-white/10 bg-black/40 py-20 backdrop-blur-lg" >
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-12 text-sm">
             <div className="col-span-1 md:col-span-2">
@@ -439,7 +560,7 @@ export default function InvoiceLanding() {
             <p>Designed with <span className="text-primary">Stellar UI</span> on Solana.</p>
           </div>
         </div>
-      </footer>
-    </div>
+      </footer >
+    </div >
   );
 }

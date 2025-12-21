@@ -12,7 +12,8 @@ import * as schemaSqlite from "@shared/invoice-schema-sqlite";
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 const useSQLite = isDevelopment && !process.env.DATABASE_URL;
 
-const schema = useSQLite ? schemaSqlite : schemaPg;
+// Export the schema so other files can use the correct one (SQLite vs Postgres)
+export const schema = useSQLite ? schemaSqlite : schemaPg;
 
 // Export strictly typed DB instance using Postgres schema (Production Priority)
 export type AppDatabase = NodePgDatabase<typeof schemaPg>;
@@ -26,6 +27,13 @@ export let pool: pg.Pool | undefined;
 // INITIALIZATION LOGIC
 if (useSQLite) {
   // SQLite setup for local development
+  const fs = await import("fs");
+  const path = await import("path");
+  const dataDir = path.resolve(process.cwd(), "data");
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
   const sqlite = new Database('./data/invoices.db');
   sqlite.pragma('foreign_keys = ON');
   sqlite.function('gen_random_uuid', () => crypto.randomUUID());
@@ -72,13 +80,22 @@ if (useSQLite) {
 // ------------
 
 export async function runMigrations() {
-  if (useSQLite) return;
-
   try {
     console.log('⏳ Running database migrations...');
-    const { migrate } = await import("drizzle-orm/node-postgres/migrator");
     const fs = await import("fs");
     const path = await import("path");
+
+    if (useSQLite) {
+      const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
+      let migrationsFolder = path.resolve(process.cwd(), "migrations");
+      console.log(`Using SQLite migrations folder: ${migrationsFolder}`);
+      // Cast db to any because better-sqlite3 migrator expects BetterSQLite3Database
+      await migrate(db as any, { migrationsFolder });
+      console.log('✅ SQLite Migrations completed successfully');
+      return;
+    }
+
+    const { migrate } = await import("drizzle-orm/node-postgres/migrator");
 
     let migrationsFolder = path.resolve(process.cwd(), "migrations");
     if (process.env.NODE_ENV === "production") {

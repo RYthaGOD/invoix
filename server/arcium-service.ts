@@ -116,15 +116,22 @@ export class ArciumService {
 
       try {
         // Use our local IDL-based program instance to fetch the metadata
-        // @ts-ignore
-        const mxeAccount = await this.program.account.mxeAccount.fetch(mxeAccountPda);
+        // We define the expected shape to avoid @ts-ignore
+        type MxeAccountData = {
+          utilityPubkeys: {
+            set?: Array<{ x25519Pubkey?: number[], x25519_pubkey?: number[] }> | { x25519Pubkey?: number[], x25519_pubkey?: number[] };
+          }
+        };
+
+        const mxeAccount = (await (this.program.account as any).mxeAccount.fetch(mxeAccountPda)) as unknown as MxeAccountData;
 
         // Extract Utility Keys from SetUnset enum
         // Anchor transforms Rust enum SetUnset::Set(T) into { set: T }
         // Tuple variants are indexed: Set(T) -> set: { "0": T }
         if (mxeAccount.utilityPubkeys && mxeAccount.utilityPubkeys.set) {
           const keys = mxeAccount.utilityPubkeys.set;
-          const target = keys[0] || keys;
+          // Handle both array (tuple) or direct object structure depending on anchor version
+          const target = Array.isArray(keys) ? keys[0] : keys;
           const x25519Pub = target.x25519Pubkey || target.x25519_pubkey;
 
           if (!x25519Pub) {
@@ -210,10 +217,10 @@ export class ArciumService {
     try {
       const packedData = Buffer.from(encryptedData, "base64");
       const senderPublicKey = Buffer.from(encryptionKey, "base64");
-      const nonce = packedData.subarray(0, 16);
+      const nonce = Array.from(packedData.subarray(0, 16)); // Convert to array
       const ciphertextFlat = packedData.subarray(16);
-      const receiverSecret = decryptorKeypair.secretKey.subarray(0, 32);
-      const sharedSecret = x25519.getSharedSecret(receiverSecret, senderPublicKey);
+      const receiverSecret = Array.from(decryptorKeypair.secretKey.subarray(0, 32)); // Convert to array
+      const sharedSecret = x25519.getSharedSecret(Uint8Array.from(receiverSecret), Uint8Array.from(senderPublicKey)); // Ensure Uint8Array for x25519
       const cipher = new RescueCipher(sharedSecret);
 
       const CHUNK_SIZE = 32;

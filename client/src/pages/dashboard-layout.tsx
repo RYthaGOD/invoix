@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Server
 } from "lucide-react";
+import { TourGuide } from "@/components/tour-guide";
 import {
   DropdownMenu,
   DropdownMenuContent,

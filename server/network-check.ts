@@ -19,7 +19,7 @@ async function check() {
         hostname = u.hostname;
         port = u.port || '5432';
         console.log(`Parsed: Host=${hostname}, Port=${port}`);
-    } catch (e) {
+    } catch (e: any) {
         console.error("❌ URL Parsing Failed:", e.message);
         // Try manual regex extraction if URL class fails
         const match = dbUrl.match(/@([^:/]+)(?::(\d+))?/);

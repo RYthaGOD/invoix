@@ -14,41 +14,31 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   plugins: [
     react(),
+    runtimeErrorOverlay(),
     nodePolyfills({
-      include: ["buffer", "process", "util", "stream", "events"],
-      globals: {
-        Buffer: true,
-        global: true,
-        process: true,
-      },
+      protocolImports: true,
     }),
-    ...(process.env.NODE_ENV !== "production"
-      ? [
-        runtimeErrorOverlay(),
-        process.env.REPL_ID !== undefined
-          ? await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          )
-          : null,
-        process.env.REPL_ID !== undefined
-          ? await import("@replit/vite-plugin-dev-banner").then((m) =>
-            m.devBanner(),
-          )
-          : null,
-      ]
-      : []),
-  ].filter(Boolean),
+  ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "client", "src"),
+      "@": path.resolve(__dirname, "client/src"),
       "@shared": path.resolve(__dirname, "shared"),
-      "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: path.resolve(__dirname, "client"),
+  root: "client",
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'wouter'],
+          ui: ['@radix-ui/react-slot', '@radix-ui/react-accordion', 'framer-motion', 'lucide-react', 'clsx', 'tailwind-merge'],
+          solana: ['@solana/web3.js', '@solana/wallet-adapter-base', '@solana/wallet-adapter-react', '@solana/wallet-adapter-react-ui'],
+          utils: ['date-fns', 'zod', 'bs58', 'buffer'],
+        }
+      }
+    }
   },
   server: {
     fs: {
@@ -60,9 +50,6 @@ export default defineConfig({
     // Make global available
     global: 'globalThis',
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-    'process.env.REPL_ID': JSON.stringify(process.env.REPL_ID),
-    'process.env.SOLANA_NETWORK': JSON.stringify(process.env.SOLANA_NETWORK || 'devnet'),
-    'process.env.VITE_SOLANA_RPC_URL': JSON.stringify(process.env.VITE_SOLANA_RPC_URL),
   },
   optimizeDeps: {
     esbuildOptions: {

@@ -16,7 +16,7 @@ if (typeof window !== "undefined") {
 export default function InvoiceCreate() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { walletAddress } = useAuth();
   const wallet = useWallet();
   const { connected } = wallet;
 

@@ -156,6 +156,7 @@
   "devDependencies": {
     "@types/compression": "^1.8.1",
     "@types/connect-redis": "^0.0.23",
+    "@types/json2csv": "^5.0.7",
     "@types/supertest": "^6.0.3",
     "supabase": "^2.67.2",
     "supertest": "^7.1.4",

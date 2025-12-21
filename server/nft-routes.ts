@@ -97,7 +97,7 @@ export function registerNftRoutes(app: Express): void {
                 nftMintedAt: new Date(),
                 nftMerkleTree: merkleTreeAddress,
                 nftLeafIndex: leafIndex,
-            });
+            } as any);
 
             res.json({
                 success: true,

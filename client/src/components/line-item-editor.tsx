@@ -11,7 +11,7 @@ interface LineItem {
 interface LineItemEditorProps {
     register: UseFormRegister<any>;
     control: Control<any>;
-    errors: FieldErrors<any>;
+    errors: FieldErrors<{ lineItems: LineItem[] }>;
     watch: any;
 }
 

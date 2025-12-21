@@ -15,7 +15,7 @@ import compression from "compression";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import fs from "fs";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { createServer, type Server } from "http";
 
 import {
@@ -269,8 +269,8 @@ app.use((req, res, next) => {
 
     // 9. Realtime Systems (WS)
     const wss = new WebSocketServer({ server, path: "/ws" });
-    wss.on("connection", (ws: any) => {
-      invoiceStorage.getGlobalStats().then((stats: any) => {
+    wss.on("connection", (ws: WebSocket) => {
+      invoiceStorage.getGlobalStats().then((stats) => {
         if (ws.readyState === 1) ws.send(JSON.stringify({ type: "global_stats_update", data: stats }));
       }).catch(() => { });
     });

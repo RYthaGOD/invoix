@@ -1,13 +1,23 @@
-import { Router } from "express";
+import { Router, Request } from "express";
 import { invoiceStorage } from "./invoice-storage";
 import { Parser } from "json2csv";
+import type { Invoice } from "./invoice-storage";
 
 const router = Router();
 
+// Helper interface for authenticated requests
+interface AuthenticatedRequest extends Request {
+    isAuthenticated(): boolean;
+    user?: { walletAddress: string };
+}
+
 // Mounted at /api/invoices via routes.ts, so this becomes /api/invoices/export
 router.get("/export", async (req, res) => {
+    // Cast to custom interface
+    const authReq = req as unknown as AuthenticatedRequest;
+
     // 1. Auth Check (Must be logged in)
-    if (!req.isAuthenticated()) {
+    if (!authReq.isAuthenticated()) {
         return res.status(401).send("Unauthorized");
     }
 
@@ -20,7 +30,7 @@ router.get("/export", async (req, res) => {
         // 2. Fetch Invoices (My Invoices)
         // Optimization: In a real "Perfect" app, we would stream this from DB cursor.
         // For MVP/QuickWin, fetching all into memory is acceptable for <10k records.
-        const userWallet = (req.user as any).walletAddress;
+        const userWallet = (authReq.user as any).walletAddress;
 
         // Fetch All (no pagination)
         const invoices = await invoiceStorage.getInvoices(userWallet, {
