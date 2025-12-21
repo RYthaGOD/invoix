@@ -21,6 +21,7 @@
   "dependencies": {
     "@arcium-hq/client": "^0.5.1",
     "@arcium-hq/reader": "^0.5.1",
+    "@coral-xyz/anchor": "^0.32.1",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@metaplex-foundation/mpl-bubblegum": "^5.0.2",

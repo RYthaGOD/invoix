@@ -69,3 +69,5 @@ test-error.log
 stats-output.json
 arcium_idl.json
 env.sh
+.env.temp
+FINAL_SETUP_INSTRUCTIONS.md
