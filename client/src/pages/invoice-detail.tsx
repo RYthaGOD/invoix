@@ -46,6 +46,9 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { serializeInvoiceForHashing } from "@shared/invoice-schema";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
 import { ReceiptNFTDisplay } from "@/components/receipt-nft-display";
+import { encodeURL } from "@solana/pay";
+import QRCode from "qrcode";
+import { ScanLine } from "lucide-react";
 
 interface LineItem {
   id: string;
@@ -126,6 +129,27 @@ export default function InvoiceDetail() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [mintingStatus, setMintingStatus] = useState<string>("");
   const [mintError, setMintError] = useState<string | null>(null);
+
+
+  // Solana Pay Logic
+  const [showSolanaPay, setShowSolanaPay] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState("");
+
+  useEffect(() => {
+    if (showSolanaPay && invoice) {
+      // Construct standard Solana Pay Transaction Request URL
+      // Format: solana:https://<domain>/api/solana-pay/<id>
+      const apiUrl = new URL(`/api/solana-pay/${invoice.id}`, window.location.origin);
+
+      // Encode using SDK to ensure spec compliance
+      const spUrl = encodeURL({ link: apiUrl, label: "Invoix Payment" });
+
+      // Generate QR code
+      QRCode.toDataURL(spUrl.toString(), { width: 300, margin: 2 }, (err, url) => {
+        if (!err) setQrCodeDataUrl(url);
+      });
+    }
+  }, [showSolanaPay, invoice]);
 
   // Integrity Verification
   const [isVerified, setIsVerified] = useState<boolean>(false);
@@ -994,13 +1018,23 @@ export default function InvoiceDetail() {
             <h2 className="text-lg font-semibold text-white mb-4">Record Payment</h2>
 
             {!showPaymentForm ? (
-              <button
-                onClick={() => setShowPaymentForm(true)}
-                className="smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all flex items-center gap-2"
-              >
-                <DollarSign className="w-5 h-5" />
-                Record Payment
-              </button>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowPaymentForm(true)}
+                  className="smoke-shadow flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <DollarSign className="w-5 h-5" />
+                  Record Payment
+                </button>
+
+                <button
+                  onClick={() => setShowSolanaPay(true)}
+                  className="smoke-shadow flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all flex items-center justify-center gap-2 border border-white/10"
+                >
+                  <ScanLine className="w-5 h-5" />
+                  Pay with QR (Mobile)
+                </button>
+              </div>
             ) : (
               <form onSubmit={handleRecordPayment} className="space-y-4">
                 <div>
@@ -1121,6 +1155,38 @@ export default function InvoiceDetail() {
               </button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSolanaPay} onOpenChange={setShowSolanaPay}>
+        <DialogContent className="glass-card border-white/10 text-white sm:max-w-sm text-center">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">Scan to Pay</DialogTitle>
+            <DialogDescription className="text-gray-400 text-center">
+              Scan with your Phantom or Solflare mobile wallet.
+              <br />
+              <span className="text-xs text-purple-400 font-mono mt-2 block">
+                Gasless Relay Active (0 SOL Fee)
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-center py-6 bg-white rounded-xl">
+            {qrCodeDataUrl ? (
+              <img src={qrCodeDataUrl} alt="Solana Pay QR" className="w-64 h-64" />
+            ) : (
+              <div className="w-64 h-64 flex items-center justify-center text-black">Loading QR...</div>
+            )}
+          </div>
+
+          <DialogFooter className="sm:justify-center">
+            <button
+              onClick={() => setShowSolanaPay(false)}
+              className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
+            >
+              Close
+            </button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

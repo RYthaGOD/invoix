@@ -12,6 +12,7 @@ import { paymentRouter } from "./payment-routes";
 import { registerCommunityDropRoutes } from "./community-drop-routes";
 import exportRouter from "./export-routes";
 import { pricingRouter } from "./pricing-routes";
+import { registerSolanaPayRoutes } from "./solana-pay-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
@@ -75,6 +76,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // COMMUNITY DROP ROUTES (Invoice Gated)
   // ================================================
   registerCommunityDropRoutes(app);
+
+  // ================================================
+  // SOLANA PAY ROUTES (Mobile Integration)
+  // ================================================
+  registerSolanaPayRoutes(app);
 
   const server = createServer(app);
   return server;
