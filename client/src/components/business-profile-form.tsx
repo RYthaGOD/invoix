@@ -123,7 +123,7 @@ export function BusinessProfileForm() {
                             control={form.control}
                             name="businessName"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem id="tour-profile-name">
                                     <FormLabel>Business Name *</FormLabel>
                                     <FormControl>
                                         <Input placeholder="Acme Corp" {...field} />
@@ -138,7 +138,7 @@ export function BusinessProfileForm() {
                                 control={form.control}
                                 name="businessEmail"
                                 render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem id="tour-profile-email">
                                         <FormLabel>Email</FormLabel>
                                         <FormControl>
                                             <Input type="email" placeholder="contact@acme.com" {...field} />
@@ -257,7 +257,7 @@ export function BusinessProfileForm() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={mutation.isPending}>
+                    <Button type="submit" disabled={mutation.isPending} id="tour-profile-save">
                         {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         <Save className="mr-2 h-4 w-4" />
                         Save Business Details

@@ -121,7 +121,7 @@ export function InvoiceForm({
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2" id="tour-client-select">
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                             Customer Wallet Address *
                         </label>
@@ -173,7 +173,7 @@ export function InvoiceForm({
                         )}
                     </div>
 
-                    <div>
+                    <div id="tour-currency-select">
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                             Currency *
                         </label>
@@ -234,12 +234,14 @@ export function InvoiceForm({
             </div>
 
             {/* Editor & Calculations */}
-            <LineItemEditor
-                register={register}
-                control={control}
-                errors={errors}
-                watch={watch}
-            />
+            <div id="tour-items-section">
+                <LineItemEditor
+                    register={register}
+                    control={control}
+                    errors={errors}
+                    watch={watch}
+                />
+            </div>
 
             <div className="glass-card p-6">
                 {/* Totals Display */}
@@ -286,7 +288,7 @@ export function InvoiceForm({
             </div>
 
             {/* Privacy & NFT Options */}
-            <div className="glass-card p-6">
+            <div className="glass-card p-6" id="tour-mint-settings">
                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <Lock className="w-5 h-5 text-purple-400" />
                     Privacy & Features

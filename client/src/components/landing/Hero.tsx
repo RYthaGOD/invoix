@@ -29,7 +29,8 @@ export function Hero({ tokenAddress }: HeroProps) {
         <section className="relative pt-32 pb-32 md:pt-48 md:pb-40 overflow-hidden">
             {/* Animated Mesh Gradient Background */}
             <div className="absolute inset-0 gradient-hero opacity-80 pointer-events-none" />
-            <div className="absolute top-20 right-0 w-[800px] h-[800px] bg-primary/20 blur-[150px] rounded-full pointer-events-none -z-10 translate-x-1/3 -translate-y-1/4" />
+            <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] pointer-events-none" />
+            <div className="absolute top-20 right-0 w-[800px] h-[800px] bg-primary/20 blur-[150px] rounded-full pointer-events-none -z-10 translate-x-1/3 -translate-y-1/4 animate-pulse" />
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-accent/10 blur-[120px] rounded-full pointer-events-none -z-10 -translate-x-1/4 translate-y-1/4" />
 
             <div className="container mx-auto px-6 relative z-10 text-center">
@@ -37,10 +38,10 @@ export function Hero({ tokenAddress }: HeroProps) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="inline-flex items-center px-4 py-2 rounded-full glass-card mb-8 border border-primary/20 bg-primary/5 shadow-[0_0_20px_rgba(79,70,229,0.2)]"
+                    className="inline-flex items-center px-4 py-2 rounded-full glass-card mb-8 border border-white/10 bg-white/5 shadow-[0_0_20px_rgba(236,72,153,0.1)]"
                 >
-                    <Sparkles className="w-4 h-4 mr-2 text-primary animate-pulse" />
-                    <span className="text-sm font-semibold font-heading bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent tracking-wide">
+                    <Sparkles className="w-4 h-4 mr-2 text-pink-400 animate-pulse" />
+                    <span className="text-sm font-semibold font-heading bg-clip-text text-transparent bg-gradient-to-r from-pink-300 via-cyan-300 to-violet-300 animate-shimmer tracking-wide bg-[length:200%_auto]">
                         THE FUTURE OF B2B PAYMENTS
                     </span>
                 </motion.div>
@@ -52,7 +53,10 @@ export function Hero({ tokenAddress }: HeroProps) {
                     transition={{ duration: 0.6, delay: 0.1 }}
                 >
                     Invoice with <br className="hidden md:block" />
-                    <span className="gradient-text pb-2 inline-block">Cosmic Speed.</span>
+                    <span className="gradient-text pb-2 inline-block relative">
+                        Cosmic Speed.
+                        <span className="absolute inset-0 blur-2xl opacity-30 bg-gradient-to-r from-primary to-accent pointer-events-none"></span>
+                    </span>
                 </motion.h1>
 
                 <motion.p
@@ -73,29 +77,32 @@ export function Hero({ tokenAddress }: HeroProps) {
                 >
                     <button
                         onClick={copyAddress}
-                        className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-xs text-muted-foreground hover:text-white font-mono"
+                        className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all text-xs text-muted-foreground hover:text-white font-mono backdrop-blur-sm"
                     >
                         <span className="text-primary/70 group-hover:text-primary">CA:</span>
                         {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-6)}
-                        {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                        {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3 group-hover:text-primary transition-colors" />}
                     </button>
                 </motion.div>
 
                 <motion.div
-                    className="flex flex-col sm:flex-row gap-5 justify-center"
+                    className="flex flex-col sm:flex-row gap-5 justify-center items-center"
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.3 }}
                 >
                     <Link href="/invoices/create">
-                        <button className="btn-primary smoke-shadow h-14 px-10 text-lg flex items-center justify-center group" id="hero-create-invoice">
-                            Start Invoicing Free
-                            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        <button className="btn-primary smoke-shadow h-14 px-10 text-lg flex items-center justify-center group relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(236,72,153,0.3)]" id="hero-create-invoice">
+                            <div className="absolute inset-0 animate-shimmer opacity-30"></div>
+                            <span className="relative flex items-center">
+                                Start Invoicing Free
+                                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </span>
                         </button>
                     </Link>
 
                     <Link href="/invoices">
-                        <button className="btn-secondary h-14 px-10 text-lg flex items-center justify-center" id="hero-dashboard">
+                        <button className="btn-secondary h-14 px-10 text-lg flex items-center justify-center hover:bg-white/10" id="hero-dashboard">
                             Launch Dashboard
                         </button>
                     </Link>

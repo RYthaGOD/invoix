@@ -24,7 +24,7 @@ export function Features() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
                 {/* Main Feature - Large */}
                 <motion.div
-                    className="md:col-span-2 feature-card group"
+                    className="md:col-span-2 feature-card group hover:border-primary/40 transition-colors duration-500"
                     variants={fadeInUp}
                     initial="initial"
                     whileInView="whileInView"
@@ -32,20 +32,21 @@ export function Features() {
                 >
                     <div className="flex flex-col h-full justify-between relative z-10">
                         <div>
-                            <div className="icon-wrapper">
+                            <div className="icon-wrapper group-hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]">
                                 <Zap className="w-6 h-6 text-primary" />
                             </div>
                             <h3 className="text-2xl font-bold font-heading mb-3">Lightning Fast Settlements</h3>
                             <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
-                                Say goodbye to Net-30. With Solana, funds settle in your wallet in 400ms.
+                                Say goodbye to Net-30. With Solana, funds settle in your wallet in <span className="text-primary font-semibold">400ms</span>.
                                 Better cash flow, zero waiting.
                             </p>
                         </div>
-                        <div className="mt-8 relative h-32 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                        <div className="mt-8 relative h-32 overflow-hidden rounded-xl border border-white/10 bg-black/20 group-hover:border-primary/20 transition-colors">
                             {/* Abstract visualization of speed/blocks */}
-                            <div className="absolute inset-0 flex items-center gap-4 px-4">
+                            <div className="absolute inset-0 flex items-center gap-4 px-4 overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer" />
                                 {[1, 2, 3, 4, 5].map(i => (
-                                    <div key={i} className="h-16 w-24 rounded-lg bg-primary/20 border border-primary/30 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
+                                    <div key={i} className="h-16 w-24 rounded-lg bg-primary/20 border border-primary/30 animate-pulse" style={{ animationDelay: `${i * 0.15}s` }} />
                                 ))}
                             </div>
                         </div>
@@ -54,50 +55,50 @@ export function Features() {
 
                 {/* Feature 2 - Vertical */}
                 <motion.div
-                    className="md:col-span-1 feature-card group bg-gradient-to-b from-white/5 to-transparent"
+                    className="md:col-span-1 feature-card group bg-gradient-to-b from-white/5 to-transparent hover:border-accent/40 transition-colors duration-500"
                     variants={fadeInUp}
                     initial="initial"
                     whileInView="whileInView"
                     viewport={{ once: true }}
                 >
-                    <div className="icon-wrapper">
-                        <Receipt className="w-6 h-6 text-accent" />
+                    <div className="icon-wrapper group-hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+                        <Receipt className="w-6 h-6 text-cyan-300" />
                     </div>
                     <h3 className="text-xl font-bold font-heading mb-3">NFT Receipts</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                        Automatically mint compressed NFTs as immutable proof of payment for every invoice.
+                        Automatically mint <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-violet-300 font-semibold">compressed NFTs</span> as immutable proof of payment for every invoice.
                     </p>
                 </motion.div>
 
                 {/* Feature 3 */}
                 <motion.div
-                    className="md:col-span-1 feature-card group"
+                    className="md:col-span-1 feature-card group hover:border-pink-500/40 transition-colors duration-500"
                     variants={fadeInUp}
                     initial="initial"
                     whileInView="whileInView"
                     viewport={{ once: true }}
                 >
-                    <div className="icon-wrapper">
-                        <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                    <div className="icon-wrapper group-hover:shadow-[0_0_20px_rgba(236,72,153,0.3)]">
+                        <ShieldCheck className="w-6 h-6 text-pink-400" />
                     </div>
                     <h3 className="text-xl font-bold font-heading mb-3">Revenue Preserved</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                        Strict on-chain analysis ensures every payment is verified in atomic units. Zero revenue leakage.
+                        Strict on-chain analysis ensures every payment is verified in atomic units. <span className="text-pink-400 font-semibold">Zero revenue leakage</span>.
                     </p>
                 </motion.div>
 
                 {/* Feature 4 - Large */}
                 <motion.div
-                    className="md:col-span-2 feature-card group overflow-hidden"
+                    className="md:col-span-2 feature-card group overflow-hidden hover:border-white/20 transition-colors duration-500"
                     variants={fadeInUp}
                     initial="initial"
                     whileInView="whileInView"
                     viewport={{ once: true }}
                 >
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 blur-[80px] rounded-full -z-10" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-accent/10 blur-[80px] rounded-full -z-10 group-hover:bg-accent/20 transition-colors duration-700" />
                     <div className="grid md:grid-cols-2 gap-8 items-center">
                         <div>
-                            <div className="icon-wrapper">
+                            <div className="icon-wrapper group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                                 <CreditCard className="w-6 h-6 text-white" />
                             </div>
                             <h3 className="text-2xl font-bold font-heading mb-3">Multi-Currency Support</h3>
@@ -106,13 +107,13 @@ export function Features() {
                             </p>
                         </div>
                         <div className="relative">
-                            <div className="glass-card p-4 rounded-xl border border-white/10 rotate-3 hover:rotate-0 transition-transform duration-500">
+                            <div className="glass-card p-4 rounded-xl border border-white/10 rotate-3 group-hover:rotate-0 transition-transform duration-500 animate-float">
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="text-sm font-mono text-muted-foreground">Amount Due</span>
                                     <span className="text-sm font-bold text-white">12.50 SOL</span>
                                 </div>
                                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full w-2/3 bg-gradient-to-r from-primary to-accent" />
+                                    <div className="h-full w-2/3 bg-gradient-to-r from-primary to-accent animate-shimmer" />
                                 </div>
                             </div>
                         </div>

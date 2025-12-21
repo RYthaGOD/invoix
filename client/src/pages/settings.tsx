@@ -89,7 +89,7 @@ export default function SettingsPage() {
             </div>
 
             <Tabs defaultValue="exports" className="space-y-6">
-                <TabsList className="bg-muted/50 p-1 border border-border/50">
+                <TabsList className="bg-muted/50 p-1 border border-border/50" id="tour-profile-settings">
                     <TabsTrigger value="exports" className="gap-2">
                         <Database className="w-4 h-4" />
                         Data & Exports
@@ -305,7 +305,7 @@ export default function SettingsPage() {
                             <Separator />
 
                             {/* IDENTITY MINTING SECTION */}
-                            <div className="space-y-4">
+                            <div className="space-y-4" id="tour-identity-verification">
                                 <div>
                                     <h3 className="font-semibold text-lg">Verified Business Identity</h3>
                                     <p className="text-sm text-muted-foreground">
@@ -328,6 +328,7 @@ export default function SettingsPage() {
                                             </div>
                                         </div>
                                         <Button
+                                            id="tour-identity-mint-btn"
                                             className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                                             disabled={!hasProfile}
                                             onClick={async () => {

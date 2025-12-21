@@ -219,7 +219,7 @@ export default function InvoiceList() {
 
       <div>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="tour-stats-overview">
           <div className="glass-card p-4">
             <div className="text-gray-400 text-sm mb-1">Total Invoices</div>
             <div className="text-2xl font-bold text-white">{filteredInvoices.length}</div>
@@ -326,7 +326,7 @@ export default function InvoiceList() {
 
         {/* Invoice Table */}
         {!loading && !error && filteredInvoices.length > 0 && (
-          <div className="glass-card overflow-hidden">
+          <div className="glass-card overflow-hidden" id="tour-invoice-table">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
