@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+// @ts-ignore
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { Button } from "@/components/ui/button";

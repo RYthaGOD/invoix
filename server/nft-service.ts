@@ -26,6 +26,7 @@ import {
 import {
   createNft,
   TokenStandard,
+  mplTokenMetadata,
 } from "@metaplex-foundation/mpl-token-metadata";
 import {
   createGenericFile,
@@ -118,7 +119,7 @@ export class InvoiceNFTService {
     config: Partial<NFTMintConfig> = {}
   ) {
     const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-    this.umi = createUmi(endpoint);
+    this.umi = createUmi(endpoint).use(mplTokenMetadata());
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 

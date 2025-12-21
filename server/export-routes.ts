@@ -1,5 +1,6 @@
 import { Router, Request } from "express";
 import { invoiceStorage } from "./invoice-storage";
+// @ts-ignore
 import { Parser } from "json2csv";
 import type { Invoice } from "./invoice-storage";
 

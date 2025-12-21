@@ -170,6 +170,20 @@ app.use((req, res, next) => {
       }
     }
 
+    // Initialize Arcium Service (Non-Critical)
+    try {
+      if (process.env.ENABLE_ARCIUM_ENCRYPTION === 'true') {
+        const arciumSuccess = await initializeArciumService();
+        if (arciumSuccess) {
+          console.log("✅ Arcium Service initialized");
+        }
+      } else {
+        console.log("ℹ️  Arcium Encryption Disabled (ENABLE_ARCIUM_ENCRYPTION != true)");
+      }
+    } catch (arciumError) {
+      console.error("⚠️  Arcium Service Initialization Failed:", arciumError);
+    }
+
     // 2. Load Modules
     startupPhase = "module_loading";
     const dbModule = await import("./db");
