@@ -392,8 +392,7 @@ export async function requireWalletAuth(
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
     });
 
-    // 3. Optional: Prune old nonces (could be moved to a cron job)
-    // await db.delete(authNonces).where(lt(authNonces.expiresAt, new Date()));
+
 
     // Attach verified wallet address to request for use in route handler
     (req as any).authenticatedWallet = ownerWalletAddress;
