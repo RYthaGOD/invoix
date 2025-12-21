@@ -11,8 +11,11 @@ interface SolanaWalletProviderProps {
 }
 
 export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }) => {
-  // Mainnet for production
-  const endpoint = useMemo(() => clusterApiUrl('mainnet-beta'), []);
+  // Devnet for demo/arcium integration
+  const network = import.meta.env.VITE_SOLANA_NETWORK === 'mainnet-beta'
+    ? 'mainnet-beta'
+    : 'devnet';
+  const endpoint = useMemo(() => clusterApiUrl(network as any), [network]);
 
   // Browser wallets auto-detected (Phantom, Solflare, etc.)
   const wallets = useMemo(() => [], []);

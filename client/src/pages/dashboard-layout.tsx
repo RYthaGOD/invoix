@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-all group">
+                  <button id="tour-system-status" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-all group">
                     <Activity className="w-3.5 h-3.5 animate-pulse" />
                     <span>System Secure</span>
                     <ChevronDown className="w-3 h-3 text-emerald-500/50 group-hover:text-emerald-500 transition-colors" />
@@ -147,8 +147,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              <TourGuide />
               <ThemeToggle />
-              <WalletButton />
+              <div id="tour-wallet-connect">
+                <WalletButton />
+              </div>
             </div>
           </header>
 

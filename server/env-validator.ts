@@ -33,13 +33,13 @@ const ENVIRONMENT_VARIABLES: EnvVar[] = [
     key: "SOLANA_RPC_URL",
     required: false, // Changed to false to prevent crash
     description: "Solana RPC endpoint URL",
-    defaultValue: "https://api.mainnet-beta.solana.com",
+    defaultValue: "https://api.devnet.solana.com",
   },
   {
     key: "SOLANA_NETWORK",
     required: false,
     description: "Solana network (mainnet-beta, devnet, testnet)",
-    defaultValue: "mainnet-beta",
+    defaultValue: "devnet",
   },
   {
     key: "PAYER_PRIVATE_KEY",
@@ -165,7 +165,7 @@ export function getEnvInfo(): Record<string, any> {
   return {
     nodeVersion: process.version,
     nodeEnv: process.env.NODE_ENV || "development",
-    solanaNetwork: process.env.SOLANA_NETWORK || "mainnet-beta",
+    solanaNetwork: process.env.SOLANA_NETWORK || "devnet",
     nftMintingEnabled: process.env.ENABLE_NFT_MINTING === "true",
     arciumEnabled: process.env.ENABLE_ARCIUM_ENCRYPTION === "true",
     hasBundlr: !!process.env.BUNDLR_PRIVATE_KEY,
