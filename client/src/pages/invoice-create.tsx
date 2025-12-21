@@ -242,11 +242,19 @@ export default function InvoiceCreate() {
 
     } catch (err: any) {
       console.error("Submission error:", err);
-      setError(err.message || "An unexpected error occurred.");
+      let errorMessage = err.message || "An unexpected error occurred.";
+
+      // Improve error message for common Devnet issues
+      if (errorMessage.includes("Attempt to debit an account but found no record of a prior credit") ||
+        errorMessage.includes("0x1")) {
+        errorMessage = "Insufficient Devnet SOL. Please claim free SOL from the top banner to pay the transaction fee.";
+      }
+
+      setError(errorMessage);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: err.message,
+        title: "Transaction Failed",
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);

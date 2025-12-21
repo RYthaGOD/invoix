@@ -101,12 +101,11 @@ export interface IInvoiceStorage {
   getCustomerStats(businessWallet: string, customerWallet: string): Promise<CustomerStats>;
 
   // System-wide stats
-  getGlobalStats(): Promise<{
-    totalInvoices: number;
-    totalUsers: number;
-    encryptedInvoices: number;
-    totalVolume: string;
-  }>;
+  totalInvoices: number;
+  totalUsers: number;
+  totalPaidVolume: string; // New: Actual money settled
+  encryptedInvoices: number;
+  totalVolume: string;
 
   // Signature check
   isSignatureUsed(signature: string): Promise<boolean>;
@@ -902,7 +901,7 @@ class InvoiceStorage implements IInvoiceStorage {
   /**
    * Get global system statistics (Public)
    */
-  async getGlobalStats(): Promise<{ totalInvoices: number; totalUsers: number; encryptedInvoices: number; totalVolume: string }> {
+  async getGlobalStats(): Promise<{ totalInvoices: number; totalUsers: number; totalPaidVolume: string; encryptedInvoices: number; totalVolume: string }> {
     try {
       // 1. Total Invoices
       const [invResult] = await db.select({ count: sql<string>`count(*)` }).from(invoices);
@@ -911,7 +910,7 @@ class InvoiceStorage implements IInvoiceStorage {
       // 2. Total Users (Business + Customers)
       const [businessResult] = await db.select({ count: sql<string>`count(*)` }).from(businessProfiles);
       const [customerResult] = await db.select({ count: sql<string>`count(*)` }).from(customerProfiles);
-      const totalUsers = (businessResult ? Number(businessResult.count) : 0) + (customerResult ? Number(customerResult.count) : 0);
+      let totalUsers = (businessResult ? Number(businessResult.count) : 0) + (customerResult ? Number(customerResult.count) : 0);
 
       // 3. Encrypted Transactions
       const [encResult] = await db.select({ count: sql<string>`count(*)` })
@@ -923,16 +922,53 @@ class InvoiceStorage implements IInvoiceStorage {
       const [volumeResult] = await db.select({ total: sql<string>`sum(${invoices.totalAmount})` }).from(invoices);
       const totalVolume = volumeResult?.total || "0";
 
+      // 5. Total Paid Volume (Actual Revenue Processed)
+      const [paidResult] = await db.select({ total: sql<string>`sum(${invoices.paidAmount})` }).from(invoices);
+      const totalPaidVolume = paidResult?.total || "0";
+
+      // 6. Unique Users (Union of Business and Customer Wallets)
+      // We use a raw query for the UNION operation to ensure distinctness across both tables
+      let uniqueUserCount = 0;
+      try {
+        const result = await db.execute(sql`
+          SELECT COUNT(DISTINCT wallet) as count FROM (
+            SELECT owner_wallet_address as wallet FROM business_profiles
+            UNION
+            SELECT customer_wallet_address as wallet FROM customer_profiles
+          ) as all_users
+        `);
+        // Handle Postgres (array of rows) vs SQLite (result object) differences if needed
+        // Drizzle execute result structure depends on driver
+        // For Postgres (node-postgres), result.rows[0].count
+        // For standard Drizzle query style:
+        if (Array.isArray(result)) {
+          // likely Postgres returning rows directly or RowDataPacket
+          uniqueUserCount = Number(result[0]?.count || 0);
+        } else {
+          // SQLite or other format
+          // @ts-ignore
+          uniqueUserCount = Number(result.rows?.[0]?.count || 0);
+        }
+
+        // Fallback if raw query fails/returns weird format: Use simple sum
+        if (!uniqueUserCount) totalUsers = (businessResult ? Number(businessResult.count) : 0) + (customerResult ? Number(customerResult.count) : 0);
+        else totalUsers = uniqueUserCount;
+
+      } catch (e) {
+        console.warn("Unique user count query failed, falling back to sum", e);
+      }
+
       return {
         totalInvoices,
         totalUsers,
+        totalPaidVolume,
         encryptedInvoices,
         totalVolume
       };
     } catch (error) {
       console.error("Error computing global stats:", error);
       // Return zeros on error to prevent crash
-      return { totalInvoices: 0, totalUsers: 0, encryptedInvoices: 0, totalVolume: "0" };
+      return { totalInvoices: 0, totalUsers: 0, totalPaidVolume: "0", encryptedInvoices: 0, totalVolume: "0" };
     }
   }
 }

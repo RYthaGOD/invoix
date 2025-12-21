@@ -18,7 +18,9 @@ export default function Stats() {
     const isTokenVolumeValid = tokenStats?.volume24h && Number(tokenStats.volume24h) > 0;
     const displayVolume = isTokenVolumeValid
         ? `$${(Number(tokenStats?.volume24h || 0) / 1000).toFixed(1)}K+`
-        : `$${(globalStats?.totalVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        : `$${Number(globalStats?.totalVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const displayPaidVolume = `$${Number(globalStats?.totalPaidVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     const stats = [
         {
@@ -34,16 +36,22 @@ export default function Stats() {
             icon: <Zap className="w-5 h-5 text-primary" />
         },
         {
-            label: "Total Invoices Sent",
+            label: "Total Invoices Created", // Updated label
             value: (globalStats?.totalInvoices || 0).toLocaleString(),
             change: isConnected ? "Live" : "Connecting...",
             icon: <Activity className={`w-5 h-5 ${isConnected ? "text-green-500 animate-pulse" : "text-primary"}`} />
         },
         {
-            label: "Total Users (Biz + Cust)",
+            label: "Unique Wallets (Users)", // Updated label
             value: (globalStats?.totalUsers || 0).toLocaleString(),
             change: isConnected ? "Live" : "Connecting...",
             icon: <Users className="w-5 h-5 text-primary" />
+        },
+        {
+            label: "Total Settled Volume", // New Card
+            value: displayPaidVolume,
+            change: isConnected ? "Live" : "Connecting...",
+            icon: <Shield className="w-5 h-5 text-green-400" />
         },
         {
             label: "Network Uptime",
