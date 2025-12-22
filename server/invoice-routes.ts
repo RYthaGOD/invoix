@@ -183,41 +183,54 @@ export function registerInvoiceRoutes(app: Express): void {
       if (req.body.encryptWithArcium && req.body.allowedParties) {
         try {
           const arciumService = getArciumService();
-          if (arciumService.isAvailable()) {
-            const encryptedResult = await arciumService.encryptTransaction(
-              {
-                amount: invoice.totalAmount,
-                tokenAmount: invoice.totalAmount,
-                fromAddress: invoice.invoicerWalletAddress,
-                toAddress: invoice.invoiceeWalletAddress,
-                txSignature: invoice.invoiceNumber,
-                timestamp: Date.now(),
-                items: (lineItems || []).map((item: any) => ({
-                  description: item.description,
-                  quantity: parseFloat(item.quantity),
-                  price: parseFloat(item.unitPrice)
-                })),
-              },
-              req.body.allowedParties
-            );
 
-            if (encryptedResult.success) {
-              await invoiceStorage.updateInvoice(invoice.id, {
-                isArciumEncrypted: true,
-                arciumEncryptedData: encryptedResult.encryptedData,
-                arciumEncryptionKey: encryptedResult.encryptionKey,
-                arciumComputationId: encryptedResult.mxeComputationId,
-                arciumAllowedParties: req.body.allowedParties,
-              });
-              // Update local invoice object for response
-              invoice.isArciumEncrypted = true;
-            } else {
-              console.warn("Arcium encryption failed, processing as standard invoice:", encryptedResult.error);
-            }
+          if (!arciumService.isAvailable()) {
+            throw new Error("Arcium Confidential Computing service is unavailable");
+          }
+
+          const encryptedResult = await arciumService.encryptTransaction(
+            {
+              amount: invoice.totalAmount,
+              tokenAmount: invoice.totalAmount,
+              fromAddress: invoice.invoicerWalletAddress,
+              toAddress: invoice.invoiceeWalletAddress,
+              txSignature: invoice.invoiceNumber,
+              timestamp: Date.now(),
+              items: (lineItems || []).map((item: any) => ({
+                description: item.description,
+                quantity: parseFloat(item.quantity),
+                price: parseFloat(item.unitPrice)
+              })),
+            },
+            req.body.allowedParties
+          );
+
+          if (encryptedResult.success) {
+            await invoiceStorage.updateInvoice(invoice.id, {
+              isArciumEncrypted: true,
+              arciumEncryptedData: encryptedResult.encryptedData,
+              arciumEncryptionKey: encryptedResult.encryptionKey,
+              arciumComputationId: encryptedResult.mxeComputationId,
+              arciumAllowedParties: req.body.allowedParties,
+            });
+            // Update local invoice object for response
+            invoice.isArciumEncrypted = true;
+          } else {
+            throw new Error(`Encryption failed: ${encryptedResult.error}`);
           }
         } catch (arciumError: any) {
           console.error("Arcium service error:", arciumError);
-          // Fail gracefully - continue as standard invoice
+          // FAIL CLOSED: Delete the invoice to prevent plaintext leak if user requested encryption
+          try {
+            await invoiceStorage.deleteInvoice(invoice.id);
+          } catch (delErr) {
+            console.error("Failed to cleanup invoice after encryption failure:", delErr);
+          }
+
+          return res.status(500).json({
+            message: "Failed to encrypt invoice data with Arcium. Invoice creation aborted to prevent data leak.",
+            details: arciumError.message
+          });
         }
       }
 

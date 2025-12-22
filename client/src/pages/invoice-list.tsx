@@ -308,19 +308,59 @@ export default function InvoiceList() {
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Empty State / Getting Started Guide */}
         {!loading && !error && filteredInvoices.length === 0 && (
-          <div className="glass-card p-12 text-center">
-            <div className="text-6xl mb-4">📄</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No invoices yet</h3>
-            <p className="text-gray-400 mb-6">Create your first invoice to get started</p>
-            <button
-              onClick={() => navigate("/invoices/create")}
-              className="smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all inline-flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Create Invoice
-            </button>
+          <div className="glass-card p-12 ">
+            <div className="max-w-2xl mx-auto text-center space-y-8">
+
+              <div className="space-y-2">
+                <div className="text-6xl mb-4">👋</div>
+                <h3 className="text-2xl font-bold text-white">Welcome to Invoix!</h3>
+                <p className="text-gray-400">Let's get you set up to receive your first crypto payment.</p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6 text-left">
+                {/* Step 1 */}
+                <div className="bg-white/5 p-6 rounded-xl border border-white/10 hover:border-purple-500/50 transition-colors">
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 font-bold mb-4">1</div>
+                  <h4 className="text-white font-semibold mb-2">Setup Profile</h4>
+                  <p className="text-sm text-gray-400 mb-4">Add your business logo and details so you look professional.</p>
+                  <button
+                    onClick={() => navigate("/settings")}
+                    className="text-sm text-blue-400 hover:text-blue-300 font-medium"
+                  >
+                    Go to Settings &rarr;
+                  </button>
+                </div>
+
+                {/* Step 2 */}
+                <div className="bg-white/5 p-6 rounded-xl border border-white/10 hover:border-purple-500/50 transition-colors">
+                  <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center text-purple-400 font-bold mb-4">2</div>
+                  <h4 className="text-white font-semibold mb-2">Add Customer</h4>
+                  <p className="text-sm text-gray-400 mb-4">Save your client's wallet address to your address book.</p>
+                  <button
+                    onClick={() => navigate("/customers")}
+                    className="text-sm text-purple-400 hover:text-purple-300 font-medium"
+                  >
+                    Add Customer &rarr;
+                  </button>
+                </div>
+
+                {/* Step 3 */}
+                <div className="bg-white/5 p-6 rounded-xl border border-white/10 hover:border-purple-500/50 transition-colors">
+                  <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 font-bold mb-4">3</div>
+                  <h4 className="text-white font-semibold mb-2">Create Invoice</h4>
+                  <p className="text-sm text-gray-400 mb-4">Send your first bill and get paid in seconds.</p>
+                  <button
+                    onClick={() => navigate("/invoices/create")}
+                    className="text-sm text-green-400 hover:text-green-300 font-medium"
+                  >
+                    Draft Invoice &rarr;
+                  </button>
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
 

@@ -32,6 +32,15 @@ export function DevnetBanner() {
                             Get Test SOL
                             <ExternalLink className="w-3 h-3" />
                         </a>
+                        <a
+                            href="https://faucet.circle.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-yellow-500 hover:text-yellow-400 transition-colors font-medium hover:underline"
+                        >
+                            Get Test USDC
+                            <ExternalLink className="w-3 h-3" />
+                        </a>
                         <button
                             onClick={() => setIsVisible(false)}
                             className="p-1 hover:bg-yellow-500/10 rounded-full transition-colors text-muted-foreground hover:text-foreground"

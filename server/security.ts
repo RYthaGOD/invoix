@@ -26,7 +26,9 @@ export function securityHeaders() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Required for Vite in dev
+        scriptSrc: process.env.NODE_ENV === 'production'
+          ? ["'self'"]
+          : ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Required for Vite in dev
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: ["'self'", "wss:", "https:"],

@@ -100,6 +100,8 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                 } catch (mintError) {
                     console.error("[NFT] Failed to mint special NFT:", mintError);
                 }
+            } else {
+                console.warn(`[NFT] Skipped Special NFT mint for ${invoiceId} - NFT Service not ready (Merkle Tree not loaded)`);
             }
             return;
         }
@@ -122,6 +124,8 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             // Save to DB
             // DB Insertion is handled inside nftService.mintPaymentReceiptNFT
             // to ensure Asset ID and Merkle indices are captured correctly.
+        } else {
+            console.warn(`[NFT] Skipped Receipt NFT mint for payment ${paymentId} - NFT Service not ready`);
         }
 
     } catch (error) {

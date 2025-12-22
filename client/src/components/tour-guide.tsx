@@ -25,8 +25,8 @@ export function TourGuide() {
         {
             element: '#tour-welcome',
             popover: {
-                title: 'Welcome to Invoix Protocol ⚡',
-                description: 'The world\'s first Confidential B2B Invoicing Platform on Solana. Fast, secure, and rewarding.',
+                title: 'Welcome to Invoix 👋',
+                description: 'The easiest way to send invoices and get paid in Crypto (USDC, SOL). Safe, fast, and private.',
                 side: "bottom",
                 align: 'start'
             }
@@ -34,24 +34,24 @@ export function TourGuide() {
         {
             element: '#hero-create-invoice',
             popover: {
-                title: 'Start Invoicing Now 🚀',
-                description: 'Ready to go? Click here to launch the app and create your first invoice in seconds.',
+                title: 'Get Started Here 🚀',
+                description: 'Click here to launch the app. You\'ll need a "Wallet" (like a digital bank account) to sign in.',
                 side: "bottom"
             }
         },
         {
             element: '#tour-create-invoice',
             popover: {
-                title: 'Create Your First Invoice 📝',
-                description: 'Click here to start. You can invoice in SOL, USDC, or USDT. Fees are just 0.0001 SOL (network cost).',
+                title: 'Send an Invoice 📝',
+                description: 'Click here to bill a client. It takes less than a minute.',
                 side: "right"
             }
         },
         {
             element: '#tour-wallet-connect',
             popover: {
-                title: 'Connect Wallet to Access 💳',
-                description: 'You must connect your Solana wallet (Phantom, Solflare) to view encrypted invoices and sign transactions.',
+                title: 'Connect Your Wallet 💳',
+                description: 'This is your login key. Use Phantom or Solflare to securely sign in and receive payments.',
                 side: "left"
             }
         }
@@ -107,32 +107,32 @@ export function TourGuide() {
         {
             element: '#tour-client-select',
             popover: {
-                title: 'Customer Details 👤',
-                description: 'Enter the Customer\'s Solana Wallet Address here. This is who will receive the invoice.',
+                title: 'Who is this for? 👤',
+                description: 'Paste your Client\'s "Wallet Address" here. \n(Think of this like their email address or bank account number for Crypto).',
                 side: "right"
             }
         },
         {
             element: '#tour-currency-select',
             popover: {
-                title: 'Select Currency 💰',
-                description: 'Choose payment token (USDC, SOL, EURC). The exchange rate is locked at time of creation.',
+                title: 'How do you want to get paid? 💰',
+                description: 'Select USDC (Digital Dollar) or SOL. The price is locked when you create the invoice.',
                 side: "right"
             }
         },
         {
             element: '#tour-items-section',
             popover: {
-                title: 'Line Items 📋',
-                description: 'Add products or services here. We automatically calculate totals and taxes.',
+                title: 'What are you billing for? 📋',
+                description: 'List your services or products here. We\'ll do the math for you.',
                 side: "top"
             }
         },
         {
             element: '#tour-mint-settings',
             popover: {
-                title: 'Privacy & NFTs 🔐',
-                description: 'Toggle "Private Invoice" to mask data on-chain, or "Mint NFT" to create a permanent invoice record.',
+                title: 'Privacy Settings 🔐',
+                description: 'Turn on "Private Invoice" to keep details secret, or "Mint NFT" to create a permanent receipt on the blockchain.',
                 side: "top"
             }
         }

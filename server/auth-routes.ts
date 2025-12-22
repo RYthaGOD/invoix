@@ -52,6 +52,7 @@ export function registerAuthRoutes(app: Express): void {
             // Extract timestamp from message (format: "Sign in to SolanaInvoice at {timestamp}")
             const timestampMatch = message.match(/at (\d+)$/);
             if (!timestampMatch) {
+                console.warn(`[AUTH] Invalid message format received: "${message}"`);
                 return res.status(400).json({
                     message: "Invalid message format: timestamp required"
                 });
@@ -59,12 +60,20 @@ export function registerAuthRoutes(app: Express): void {
 
             const messageTimestamp = parseInt(timestampMatch[1], 10);
             const now = Date.now();
-            const fiveMinutesInMs = 5 * 60 * 1000;
+            const fifteenMinutesInMs = 15 * 60 * 1000;
 
-            // Check message is not expired (5 minute window)
-            if (now - messageTimestamp > fiveMinutesInMs) {
+            // Check message is not expired (15 minute window)
+            // We also check if it's too far in the future (> 5 mins) to prevent weirdness
+            if (now - messageTimestamp > fifteenMinutesInMs) {
+                console.warn(`[AUTH] Expired timestamp: Server ${now} vs Msg ${messageTimestamp} (Diff: ${now - messageTimestamp}ms)`);
                 return res.status(400).json({
                     message: "Message expired: Please sign a new message"
+                });
+            }
+            if (messageTimestamp - now > (5 * 60 * 1000)) {
+                console.warn(`[AUTH] Future timestamp detected: Server ${now} vs Msg ${messageTimestamp}`);
+                return res.status(400).json({
+                    message: "Invalid timestamp: Your clock appears to be significantly ahead"
                 });
             }
 
@@ -90,15 +99,23 @@ export function registerAuthRoutes(app: Express): void {
             req.session.walletAddress = walletAddress;
             req.session.authenticatedAt = now;
 
-            auditLog("login_success", {
-                walletAddress,
-                ip: req.ip,
-            });
+            // Explicitly save session before response to ensure persistence
+            req.session.save((err) => {
+                if (err) {
+                    console.error("Session save error:", err);
+                    return res.status(500).json({ message: "Session creation failed" });
+                }
 
-            res.json({
-                success: true,
-                walletAddress,
-                message: "Authentication successful"
+                auditLog("login_success", {
+                    walletAddress,
+                    ip: req.ip,
+                });
+
+                res.json({
+                    success: true,
+                    walletAddress,
+                    message: "Authentication successful"
+                });
             });
         } catch (error: any) {
             console.error("Login error:", error);
