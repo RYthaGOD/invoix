@@ -361,11 +361,19 @@ export async function requireWalletAuth(
 
     const messageTimestamp = parseInt(timestampMatch[1], 10);
     const now = Date.now();
-    const fiveMinutesInMs = 5 * 60 * 1000;
+    const fifteenMinutesInMs = 15 * 60 * 1000;
 
-    if (now - messageTimestamp > fiveMinutesInMs) {
+    if (now - messageTimestamp > fifteenMinutesInMs) {
+      console.warn(`[AUTH] Expired timestamp in middleware: Server ${now} vs Msg ${messageTimestamp}`);
       return res.status(400).json({
         message: "Message expired: Please sign a new message"
+      });
+    }
+
+    if (messageTimestamp - now > (5 * 60 * 1000)) {
+      console.warn(`[AUTH] Future timestamp in middleware: Server ${now} vs Msg ${messageTimestamp}`);
+      return res.status(400).json({
+        message: "Invalid timestamp: Clock skew detected"
       });
     }
 
