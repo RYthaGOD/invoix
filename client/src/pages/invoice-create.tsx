@@ -16,7 +16,7 @@ if (typeof window !== "undefined") {
 export default function InvoiceCreate() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { walletAddress } = useAuth();
+  const { walletAddress, isAuthenticated, login } = useAuth();
   const wallet = useWallet();
   const { connected } = wallet;
 
@@ -86,6 +86,7 @@ export default function InvoiceCreate() {
   }, [selectedTemplateId, templates, toast]);
 
   const onSubmit = async (data: InvoiceFormData) => {
+    // 1. Connection Check
     if (!connected || !wallet?.publicKey) {
       toast({
         variant: "destructive",
@@ -93,6 +94,26 @@ export default function InvoiceCreate() {
         description: "Please connect your wallet to create an invoice.",
       });
       return;
+    }
+
+    // 2. Auth Session Check (Prevent "Pay but Fail" scenario)
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign the login message to verify your identity before creation.",
+        variant: "default",
+      });
+
+      try {
+        await login(); // Attempt auto-login
+        // We can't easily wait for state update here since it's async hook state.
+        // But login() promise resolves when flow complete.
+        // We re-check authenticated state, but since we are in a closure, 'isAuthenticated' is stale.
+        // However, if login() throws, we fall to catch. 
+        // If it succeeds, we *assume* we are good (cookie set).
+      } catch (e) {
+        return; // User rejected login
+      }
     }
 
     setIsSubmitting(true);
