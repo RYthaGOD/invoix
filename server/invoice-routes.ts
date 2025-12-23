@@ -103,11 +103,12 @@ export function registerInvoiceRoutes(app: Express): void {
         const network = process.env.SOLANA_NETWORK === 'devnet' ? 'devnet' : 'mainnet-beta';
         const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl(network);
         console.log(`[x402] Connecting to ${network} via ${rpcUrl}`);
-        const connection = new Connection(rpcUrl);
+        const connection = new Connection(rpcUrl, 'confirmed');
 
-        // Retry loop for propagation delay
+        // Retry loop for propagation delay (Increased to 15s total)
+        // Public RPCs on Devnet can be very slow to index
         let verification;
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        for (let attempt = 1; attempt <= 5; attempt++) {
           verification = await verifyStablecoinPayment(
             connection,
             invoiceData.x402PaymentSignature || "",
@@ -118,9 +119,9 @@ export function registerInvoiceRoutes(app: Express): void {
 
           if (verification.verified) break;
 
-          if (attempt < 3) {
-            console.log(`[x402] Attempt ${attempt} failed (Tx not found?), retrying in 2s...`);
-            await new Promise(r => setTimeout(r, 2000));
+          if (attempt < 5) {
+            console.log(`[x402] Attempt ${attempt} failed (Tx not found?), retrying in 3s...`);
+            await new Promise(r => setTimeout(r, 3000));
           }
         }
 
@@ -128,7 +129,11 @@ export function registerInvoiceRoutes(app: Express): void {
           console.warn("x402 Verification Failed:", verification?.error);
           return res.status(400).json({
             message: `Service fee verification failed: ${verification?.error || "Transaction not found on chain"}`,
-            code: "x402_VERIFICATION_FAILED"
+            code: "x402_VERIFICATION_FAILED",
+            debug: {
+              checkedNetwork: network,
+              signature: invoiceData.x402PaymentSignature
+            }
           });
         }
 
