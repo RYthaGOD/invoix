@@ -63,8 +63,12 @@ export class ArciumService {
   private program: anchor.Program<any> | null = null;
 
   constructor(rpcEndpoint?: string) {
-    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-    this.connection = new Connection(endpoint, "confirmed");
+    // Arcium is currently DEVNET ONLY.
+    // We must force a Devnet connection for this service, regardless of the main app's network.
+    // Using the mainnet RPC (process.env.SOLANA_RPC_URL) causes "Account Not Found" errors.
+    const arciumEndpoint = rpcEndpoint || "https://api.devnet.solana.com";
+    console.log(`🔒 ArciumService connecting to: ${arciumEndpoint} (Devnet Required)`);
+    this.connection = new Connection(arciumEndpoint, "confirmed");
   }
 
   /**
