@@ -149,11 +149,28 @@ export class InvoiceNFTService {
         // 2. Check Database for persisted tree
         const storedTree = await db.select().from(systemSettings).where(eq(systemSettings.key, "merkle_tree_address")).limit(1);
 
+        let validPersistedTree = false;
+
         if (storedTree.length > 0) {
-          this.merkleTree = storedTree[0].value;
-          console.log(`✅ Loaded Merkle Tree from DB: ${this.merkleTree}`);
-        } else {
-          // 3. Create new tree if none exists
+          const candidateTree = storedTree[0].value;
+          // Validate if this tree actually exists on the current network
+          try {
+            const exists = await this.umi.rpc.accountExists(toPublicKey(candidateTree));
+            if (exists) {
+              this.merkleTree = candidateTree;
+              validPersistedTree = true;
+              console.log(`✅ Loaded Merkle Tree from DB: ${this.merkleTree}`);
+            } else {
+              console.warn(`⚠️  Persisted Merkle Tree (${candidateTree}) not found on current network. Invalidating...`);
+              // Will fall through to creation
+            }
+          } catch (err) {
+            console.warn("⚠️  Error checking Merkle tree existence, assuming invalid.", err);
+          }
+        }
+
+        if (!validPersistedTree) {
+          // 3. Create new tree if none exists or previous was invalid
 
           // SAFETY CHECK: Ensure we have funds before creating tree (Cost ~0.005 SOL)
           const walletAddr = this.umi.identity.publicKey.toString();
@@ -173,12 +190,18 @@ export class InvoiceNFTService {
 
           await this.createMerkleTree();
 
-          // Persist to DB
-          await db.insert(systemSettings).values({
-            key: "merkle_tree_address",
-            value: this.merkleTree!,
-            description: "Compressed NFT Merkle Tree Address",
-          });
+          // Persist to DB (Update if exists, Insert if new)
+          if (storedTree.length > 0) {
+            await db.update(systemSettings)
+              .set({ value: this.merkleTree!, description: `Merkle Tree (${process.env.SOLANA_NETWORK || 'unknown'})` })
+              .where(eq(systemSettings.key, "merkle_tree_address"));
+          } else {
+            await db.insert(systemSettings).values({
+              key: "merkle_tree_address",
+              value: this.merkleTree!,
+              description: "Compressed NFT Merkle Tree Address",
+            });
+          }
           console.log(`💾 Persisted Merkle Tree to DB`);
         }
       }
