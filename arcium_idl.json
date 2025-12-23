@@ -1,0 +1,171 @@
+{
+    "version": "0.1.0",
+    "name": "arcium_mxe",
+    "instructions": [
+        {
+            "name": "initialize",
+            "accounts": [
+                {
+                    "name": "mxeAccount",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "bump",
+                    "type": "u8"
+                }
+            ]
+        }
+    ],
+    "accounts": [
+        {
+            "name": "MXEAccount",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "cluster",
+                        "type": {
+                            "option": "u32"
+                        }
+                    },
+                    {
+                        "name": "mxeProgramId",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "authority",
+                        "type": {
+                            "option": "publicKey"
+                        }
+                    },
+                    {
+                        "name": "utilityPubkeys",
+                        "type": {
+                            "defined": "SetUnset"
+                        }
+                    },
+                    {
+                        "name": "fallbackClusters",
+                        "type": {
+                            "vec": "u32"
+                        }
+                    },
+                    {
+                        "name": "rejectedClusters",
+                        "type": {
+                            "vec": "u32"
+                        }
+                    },
+                    {
+                        "name": "computationDefinitions",
+                        "type": {
+                            "vec": "u32"
+                        }
+                    },
+                    {
+                        "name": "bump",
+                        "type": "u8"
+                    }
+                ]
+            }
+        }
+    ],
+    "types": [
+        {
+            "name": "UtilityPubkeys",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "x25519Pubkey",
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ]
+                        }
+                    },
+                    {
+                        "name": "ed25519VerifyingKey",
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ]
+                        }
+                    },
+                    {
+                        "name": "elgamalPubkey",
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ]
+                        }
+                    },
+                    {
+                        "name": "pubkeyValidityProof",
+                        "type": {
+                            "array": [
+                                "u8",
+                                64
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "SetUnset",
+            "type": {
+                "kind": "enum",
+                "variants": [
+                    {
+                        "name": "Set",
+                        "fields": [
+                            {
+                                "name": "0",
+                                "type": {
+                                    "defined": "UtilityPubkeys"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Unset",
+                        "fields": [
+                            {
+                                "name": "0",
+                                "type": {
+                                    "defined": "UtilityPubkeys"
+                                }
+                            },
+                            {
+                                "name": "1",
+                                "type": {
+                                    "vec": "bool"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "address": "GSu3xPJNeyG2sVbn9GbZg4CHfzzUwLbYLaxzN7cbS3x"
+    }
+}
