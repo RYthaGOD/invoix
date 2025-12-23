@@ -57,28 +57,26 @@ export function registerInvoiceRoutes(app: Express): void {
       // Get authenticated wallet from session
       const authenticatedWallet = (req as any).authenticatedWallet;
 
-      // START HOTFIX: Inject missing fields if frontend is cached/outdated
-      if (!req.body.invoicerWalletAddress) {
-        console.log(`[HOTFIX] Injecting invoicerWalletAddress from session: ${authenticatedWallet}`);
-        req.body.invoicerWalletAddress = authenticatedWallet;
-      }
+      // --- NORMALIZATION & DEFAULTS ---
+      // Apply backend defaults for fields that might be missing from the frontend
 
+      // 1. Force Invoicer Address from Session (Security)
+      req.body.invoicerWalletAddress = authenticatedWallet;
+
+      // 2. Default Token Mint if missing
       if (!req.body.tokenMintAddress) {
-        // Default to USDC if missing (safe fallback for 99% of cases)
         const DEFAULT_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
         const currency = req.body.currency || "USDC";
-        // Simple map for robustness
+
         const mintMap: Record<string, string> = {
           "USDC": DEFAULT_USDC_MINT,
           "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
           "EURC": "HzwqbKZw8HzsXB8dfLenzhf6j31qAvjfb5hEM9yr22yu"
         };
 
-        const inferredMint = mintMap[currency] || DEFAULT_USDC_MINT;
-        console.log(`[HOTFIX] Injecting tokenMintAddress for ${currency}: ${inferredMint}`);
-        req.body.tokenMintAddress = inferredMint;
+        req.body.tokenMintAddress = mintMap[currency] || DEFAULT_USDC_MINT;
       }
-      // END HOTFIX
+      // -------------------------------
 
       console.log(`[INVOICE_CREATE_DEBUG] Received body from ${authenticatedWallet}:`, JSON.stringify(req.body, null, 2));
 
@@ -99,24 +97,37 @@ export function registerInvoiceRoutes(app: Express): void {
             treasuryAddress: TREASURY_WALLET_ADDRESS
           });
         }
-
         console.log(`Verifying x402 Service Fee: ${invoiceData.x402PaymentSignature}`);
-        const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
 
-        const verification = await verifyStablecoinPayment(
-          connection,
-          invoiceData.x402PaymentSignature || "", // Add null check
-          INVOICE_SERVICE_FEE_SOL,
-          TREASURY_WALLET_ADDRESS,
-          "SOL",
-          undefined, // No split fee
-          undefined
-        );
+        // Use consistent network
+        const network = process.env.SOLANA_NETWORK === 'devnet' ? 'devnet' : 'mainnet-beta';
+        const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl(network);
+        console.log(`[x402] Connecting to ${network} via ${rpcUrl}`);
+        const connection = new Connection(rpcUrl);
 
-        if (!verification.verified) {
-          console.warn("x402 Verification Failed:", verification.error);
+        // Retry loop for propagation delay
+        let verification;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          verification = await verifyStablecoinPayment(
+            connection,
+            invoiceData.x402PaymentSignature || "",
+            INVOICE_SERVICE_FEE_SOL,
+            TREASURY_WALLET_ADDRESS,
+            "SOL"
+          );
+
+          if (verification.verified) break;
+
+          if (attempt < 3) {
+            console.log(`[x402] Attempt ${attempt} failed (Tx not found?), retrying in 2s...`);
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+
+        if (!verification?.verified) {
+          console.warn("x402 Verification Failed:", verification?.error);
           return res.status(400).json({
-            message: `Service fee verification failed: ${verification.error || "Invalid signature"}`,
+            message: `Service fee verification failed: ${verification?.error || "Transaction not found on chain"}`,
             code: "x402_VERIFICATION_FAILED"
           });
         }
@@ -826,9 +837,7 @@ export function registerInvoiceRoutes(app: Express): void {
         // We need to check authentication manually here since the route is public for crypto payments.
 
         // Check session (assuming logic from requireWalletOwnership or similar)
-        // note: req.isAuthenticated() is not standard express, dependent on passport or similar, 
-        // but here we likely use session.walletAddress based on prior context.
-        const session = (req as any).session;
+        const session = req.session;
         if (!session || !session.walletAddress) {
           return res.status(401).json({ message: "Authentication required for manual payments" });
         }
