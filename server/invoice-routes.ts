@@ -260,18 +260,33 @@ export function registerInvoiceRoutes(app: Express): void {
             throw new Error(`Encryption failed: ${encryptedResult.error}`);
           }
         } catch (arciumError: any) {
-          console.error("Arcium service error:", arciumError);
-          // FAIL CLOSED: Delete the invoice to prevent plaintext leak if user requested encryption
+          console.error("⚠️ Arcium Encryption Failed (Soft Fallback Active):", arciumError.message);
+
+          // SOFT FALLBACK:
+          // Instead of failing, we update the invoice to reflect it is NOT encrypted but saved successfully.
+          // This prevents "Business Stoppage" due to external privacy network downtime.
+
           try {
-            await invoiceStorage.deleteInvoice(invoice.id);
-          } catch (delErr) {
-            console.error("Failed to cleanup invoice after encryption failure:", delErr);
+            await invoiceStorage.updateInvoice(invoice.id, {
+              isArciumEncrypted: false,
+              arciumEncryptedData: null,
+              arciumEncryptionKey: null
+            });
+            invoice.isArciumEncrypted = false;
+          } catch (updateErr) {
+            console.error("Failed to update invoice state after encryption failure:", updateErr);
           }
 
-          return res.status(500).json({
-            message: "Failed to encrypt invoice data with Arcium. Invoice creation aborted to prevent data leak.",
-            details: arciumError.message
+          // Return success but with a warning
+          res.status(201).json({
+            success: true,
+            invoice,
+            lineItems: lineItems || [],
+            nftMinted: !!invoice.nftMint,
+            message: "Invoice created (Privacy Network unavailable - Saved in standard mode)",
+            warning: "Arcium Encryption Failed: " + arciumError.message
           });
+          return;
         }
       }
 
