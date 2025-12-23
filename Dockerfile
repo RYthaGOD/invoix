@@ -12,7 +12,9 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install NPM dependencies
-RUN npm ci
+# using 'install' instead of 'ci' because package-lock.json is out of sync
+# using '--legacy-peer-deps' to resolve metaplex version conflicts
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
