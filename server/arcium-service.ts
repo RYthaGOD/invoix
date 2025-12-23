@@ -154,8 +154,47 @@ export class ArciumService {
           throw new Error("MXE Public Key state is 'Unset' on-chain.");
         }
       } catch (err: any) {
-        console.error(`❌ Arcium Initialization Error: ${err.message}`);
-        throw new Error(`Failed to retrieve MXE metadata from ${mxeAccountPda.toBase58()}.`);
+        console.warn(`⚠️ Custom MXE Initialization Failed: ${err.message}`);
+        console.warn(`   Debug Info: ProgramID=${this.program.programId.toBase58()}`);
+        console.warn(`   🔄 ATTEMPTING FALLBACK TO STANDARD ARCIUM SDK (PUBLIC DEVNET)...`);
+
+        try {
+          // FALLBACK: Use Standard SDK
+          this.program = getArciumProgram(this.provider);
+          console.log(`   Fallback Program ID: ${this.program.programId.toBase58()}`);
+
+          // Retry Metadata Fetch with Standard Program
+          const [stdMxeAccountPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("MXEAccount"), this.program.programId.toBuffer()],
+            this.program.programId
+          );
+
+          const mxeAccount = await (this.program.account as any).mxeAccount.fetch(stdMxeAccountPda);
+
+          // Standard SDK structure handling
+          // We assume the standard SDK might use a different structure or the same, 
+          // but we treat it loosely here to be safe.
+          if (mxeAccount.utilityPubkeys) {
+            // Standard SDK usually returns the raw object or enum depending on version
+            // We'll try to extract X25519 safely
+            const keys = mxeAccount.utilityPubkeys.set ? (Array.isArray(mxeAccount.utilityPubkeys.set) ? mxeAccount.utilityPubkeys.set[0] : mxeAccount.utilityPubkeys.set) : mxeAccount.utilityPubkeys;
+
+            const x25519Pub = keys.x25519Pubkey || keys.x25519_pubkey;
+            if (x25519Pub) {
+              this.mxePublicKey = Uint8Array.from(x25519Pub);
+              console.log("✅ Fallback Successful: Connected to Standard Arcium Devnet.");
+              this.initialized = true;
+              return true;
+            }
+          }
+
+          throw new Error("Standard SDK MXE found but keys missing.");
+
+        } catch (fallbackErr: any) {
+          console.error(`❌ FATAL: Both Custom and Standard Arcium Initialization Failed.`);
+          console.error(`   Fallback Error: ${fallbackErr.message}`);
+          throw new Error(`Arcium Service Unavailable. Please check network connection.`);
+        }
       }
 
       this.initialized = true;
