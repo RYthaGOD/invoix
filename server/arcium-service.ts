@@ -83,124 +83,39 @@ export class ArciumService {
       console.log(`   Cluster Offset: ${env.arciumClusterOffset}`);
 
       // Initialize Program via local IDL for consistency
-      const idlPath = path.resolve(__dirname, "../arcium_idl.json");
-      if (!fs.existsSync(idlPath)) {
-        throw new Error(`Critical: Arcium IDL not found at ${idlPath}`);
-      }
-      const idl = JSON.parse(fs.readFileSync(idlPath, "utf-8"));
-
-      const envProgramId = process.env.ARCIUM_PROGRAM_ID ? new PublicKey(process.env.ARCIUM_PROGRAM_ID) : undefined;
-      let programIdToUse = envProgramId;
-
-      // Fallback to IDL address if Env var is missing
-      if (!programIdToUse && idl.metadata && idl.metadata.address) {
-        try {
-          programIdToUse = new PublicKey(idl.metadata.address);
-          console.log(`   Found Program ID in IDL: ${programIdToUse.toBase58()}`);
-        } catch (e) {
-          console.warn("   Invalid address in IDL metadata, ignoring.");
-        }
-      }
-
-      if (programIdToUse) {
-        console.log(`   Using Program ID: ${programIdToUse.toBase58()}`);
-        idl.address = programIdToUse.toBase58();
-        if (idl.metadata) idl.metadata.address = programIdToUse.toBase58();
-        this.program = new anchor.Program(idl, this.provider);
-      } else {
-        console.log("   ⚠️ No Program ID found in Env or IDL. Using default SDK Program (May cause mismatch).");
-        this.program = getArciumProgram(this.provider);
-      }
-
-      console.log(`   Program ID: ${this.program.programId.toBase58()}`);
-
-      // 3. Manually Fetch MXE Public Key
-      // We do this manually because the SDK helper 'getMXEPublicKey' is hardcoded 
-      // to derivation base 'BpaW2Zm...', while our deployment is user-defined.
-      console.log("   Fetching MXE Metadata Account...");
-
-      const [mxeAccountPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("MXEAccount"), this.program.programId.toBuffer()],
-        this.program.programId
-      );
-      console.log(`   MXE PDA: ${mxeAccountPda.toBase58()}`);
+      console.log("   🔄 USING STANDARD ARCIUM SDK (PUBLIC DEVNET) - FORCED BY CONFIG");
 
       try {
-        // Use our local IDL-based program instance to fetch the metadata
-        // We define the expected shape to avoid @ts-ignore
-        type MxeAccountData = {
-          utilityPubkeys: {
-            set?: Array<{ x25519Pubkey?: number[], x25519_pubkey?: number[] }> | { x25519Pubkey?: number[], x25519_pubkey?: number[] };
-          }
-        };
+        // DIRECT: Use Standard SDK
+        this.program = getArciumProgram(this.provider);
+        console.log(`   Program ID: ${this.program.programId.toBase58()}`);
 
-        const mxeAccount = (await (this.program.account as any).mxeAccount.fetch(mxeAccountPda)) as unknown as MxeAccountData;
+        // Fetch Metadata for Standard Program
+        const [stdMxeAccountPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("MXEAccount"), this.program.programId.toBuffer()],
+          this.program.programId
+        );
 
-        // Extract Utility Keys from SetUnset enum
-        // Anchor transforms Rust enum SetUnset::Set(T) into { set: T }
-        // Tuple variants are indexed: Set(T) -> set: { "0": T }
-        if (mxeAccount.utilityPubkeys && mxeAccount.utilityPubkeys.set) {
-          const keys = mxeAccount.utilityPubkeys.set;
-          // Handle both array (tuple) or direct object structure depending on anchor version
-          const target = Array.isArray(keys) ? keys[0] : keys;
-          const x25519Pub = target.x25519Pubkey || target.x25519_pubkey;
+        console.log(`   MXE PDA: ${stdMxeAccountPda.toBase58()}`);
+        const mxeAccount = await (this.program.account as any).mxeAccount.fetch(stdMxeAccountPda);
 
-          if (!x25519Pub) {
-            throw new Error("X25519 Key not found in utility keys metadata.");
-          }
+        if (mxeAccount.utilityPubkeys) {
+          const keys = mxeAccount.utilityPubkeys.set ? (Array.isArray(mxeAccount.utilityPubkeys.set) ? mxeAccount.utilityPubkeys.set[0] : mxeAccount.utilityPubkeys.set) : mxeAccount.utilityPubkeys;
+
+          const x25519Pub = keys.x25519Pubkey || keys.x25519_pubkey;
+          if (!x25519Pub) throw new Error("MXE Public Key missing in Standard SDK metadata.");
 
           this.mxePublicKey = Uint8Array.from(x25519Pub);
-        } else {
-          throw new Error("MXE Public Key state is 'Unset' on-chain.");
+          console.log("✅ Arcium SDK Initialized Successfully (Standard Devnet).");
+          this.initialized = true;
+          return true;
         }
+        throw new Error("Standard SDK MXE found but keys missing.");
+
       } catch (err: any) {
-        console.warn(`⚠️ Custom MXE Initialization Failed: ${err.message}`);
-        console.warn(`   Debug Info: ProgramID=${this.program.programId.toBase58()}`);
-        console.warn(`   🔄 ATTEMPTING FALLBACK TO STANDARD ARCIUM SDK (PUBLIC DEVNET)...`);
-
-        try {
-          // FALLBACK: Use Standard SDK
-          this.program = getArciumProgram(this.provider);
-          console.log(`   Fallback Program ID: ${this.program.programId.toBase58()}`);
-
-          // Retry Metadata Fetch with Standard Program
-          const [stdMxeAccountPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("MXEAccount"), this.program.programId.toBuffer()],
-            this.program.programId
-          );
-
-          const mxeAccount = await (this.program.account as any).mxeAccount.fetch(stdMxeAccountPda);
-
-          // Standard SDK structure handling
-          // We assume the standard SDK might use a different structure or the same, 
-          // but we treat it loosely here to be safe.
-          if (mxeAccount.utilityPubkeys) {
-            // Standard SDK usually returns the raw object or enum depending on version
-            // We'll try to extract X25519 safely
-            const keys = mxeAccount.utilityPubkeys.set ? (Array.isArray(mxeAccount.utilityPubkeys.set) ? mxeAccount.utilityPubkeys.set[0] : mxeAccount.utilityPubkeys.set) : mxeAccount.utilityPubkeys;
-
-            const x25519Pub = keys.x25519Pubkey || keys.x25519_pubkey;
-            if (x25519Pub) {
-              this.mxePublicKey = Uint8Array.from(x25519Pub);
-              console.log("✅ Fallback Successful: Connected to Standard Arcium Devnet.");
-              this.initialized = true;
-              return true;
-            }
-          }
-
-          throw new Error("Standard SDK MXE found but keys missing.");
-
-        } catch (fallbackErr: any) {
-          console.error(`❌ FATAL: Both Custom and Standard Arcium Initialization Failed.`);
-          console.error(`   Fallback Error: ${fallbackErr.message}`);
-          throw new Error(`Arcium Service Unavailable. Please check network connection.`);
-        }
+        console.error(`❌ FATAL: Standard Arcium Initialization Failed: ${err.message}`);
+        throw new Error(`Arcium Service Unavailable. Connection Refused.`);
       }
-
-      this.initialized = true;
-      console.log("✅ Arcium SDK Initialized Successfully.");
-      return true;
-
     } catch (error) {
       console.error("❌ Failed to initialize Arcium SDK:", error);
       this.initialized = false;
