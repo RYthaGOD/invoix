@@ -90,30 +90,25 @@ export class ArciumService {
         this.program = getArciumProgram(this.provider);
         console.log(`   Program ID: ${this.program.programId.toBase58()}`);
 
-        // Fetch Metadata for Standard Program
-        const [stdMxeAccountPda] = PublicKey.findProgramAddressSync(
-          [Buffer.from("MXEAccount"), this.program.programId.toBuffer()],
-          this.program.programId
-        );
+        // Fetch Metadata using SDK Helper
+        // Requires (Provider, ProgramID) signature
+        const mxeKey = await getMXEPublicKey(this.provider, this.program.programId);
 
-        console.log(`   MXE PDA: ${stdMxeAccountPda.toBase58()}`);
-        const mxeAccount = await (this.program.account as any).mxeAccount.fetch(stdMxeAccountPda);
-
-        if (mxeAccount.utilityPubkeys) {
-          const keys = mxeAccount.utilityPubkeys.set ? (Array.isArray(mxeAccount.utilityPubkeys.set) ? mxeAccount.utilityPubkeys.set[0] : mxeAccount.utilityPubkeys.set) : mxeAccount.utilityPubkeys;
-
-          const x25519Pub = keys.x25519Pubkey || keys.x25519_pubkey;
-          if (!x25519Pub) throw new Error("MXE Public Key missing in Standard SDK metadata.");
-
-          this.mxePublicKey = Uint8Array.from(x25519Pub);
-          console.log("✅ Arcium SDK Initialized Successfully (Standard Devnet).");
-          this.initialized = true;
-          return true;
+        if (!mxeKey) {
+          throw new Error("MXE Public Key not found (null returned from SDK).");
         }
-        throw new Error("Standard SDK MXE found but keys missing.");
+
+        console.log(`   Fetched MXE Public Key via SDK Helper`);
+
+        // mxeKey is likely Uint8Array or array, ensure it's Uint8Array
+        this.mxePublicKey = mxeKey instanceof Uint8Array ? mxeKey : Uint8Array.from(mxeKey);
+        console.log("✅ Arcium SDK Initialized Successfully (Standard Devnet).");
+        this.initialized = true;
+        return true;
 
       } catch (err: any) {
         console.error(`❌ FATAL: Standard Arcium Initialization Failed: ${err.message}`);
+        console.error("   (Is the Devnet node healthy?)");
         throw new Error(`Arcium Service Unavailable. Connection Refused.`);
       }
     } catch (error) {
