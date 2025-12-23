@@ -128,8 +128,26 @@ export default function InvoiceCreate() {
       const discount = parseFloat(data.discountAmount || "0");
       const total = subtotal + fee - discount;
 
+      // Resolve Token Mint (Default to USDC if not found)
+      // Note: In a real app, importing from @shared/stablecoin-config would be ideal, 
+      // but simplistic mapping is fine given we only support a few.
+      // Better: let the server handle it? No, Zod requires it.
+      const currencyMints: Record<string, string> = {
+        "USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // Mainnet USDC
+        "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+        "PYUSD": "2b1kV6DkPAnxd5ixfnhKpGTg1nPT4XVgS6s84TmX0gqg", // Devnet/Mainnet placeholders
+        "EURC": "HzwqbKZw8HzsXB8dfLenzhf6j31qAvjfb5hEM9yr22yu",
+      };
+      // Devnet overrides if needed, or just send a valid string if server re-checks.
+      // Since server overrides it anyway, we just need to pass Zod validation with a valid-looking string.
+      // But let's try to be accurate.
+
+      const tokenMintAddress = currencyMints[data.currency || "USDC"] || currencyMints["USDC"];
+
       const finalPayload = {
         ...data,
+        invoicerWalletAddress: wallet.publicKey.toBase58(),
+        tokenMintAddress: tokenMintAddress,
         totalAmount: total.toFixed(2),
         paidAmount: "0",
         status: "draft",

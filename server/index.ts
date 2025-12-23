@@ -35,6 +35,7 @@ import { logger } from "./logger";
 
 // Validate environment variables on startup (before security check)
 validateEnvironment();
+console.log("[SYSTEM] Config reload trigger: " + Date.now());
 
 // Check security environment variables on startup
 checkSecurityEnvVars();

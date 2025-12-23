@@ -437,8 +437,14 @@ export async function requireWalletOwnership(
   next: NextFunction
 ) {
   try {
+    // DEBUG LOGGING
+    console.log(`[AUTH_DEBUG] Checking ownership for ${req.method} ${req.path}`);
+    console.log(`[AUTH_DEBUG] Session ID: ${req.sessionID}`);
+    console.log(`[AUTH_DEBUG] Session Data:`, req.session);
+
     // Check if user has an active session
     if (!req.session.walletAddress) {
+      console.warn(`[AUTH_FAIL] No walletAddress in session. SessionID: ${req.sessionID}`);
       return res.status(401).json({
         message: "Authentication required: Please login with your wallet",
         code: "NOT_AUTHENTICATED"
@@ -451,6 +457,7 @@ export async function requireWalletOwnership(
     const requestedWallet = req.params.walletAddress || req.query.wallet as string;
 
     if (requestedWallet && requestedWallet !== authenticatedWallet) {
+      console.warn(`[AUTH_FAIL] Wallet Mismatch. Authenticated: ${authenticatedWallet}, Requested: ${requestedWallet}`);
       return res.status(403).json({
         message: "Unauthorized: You can only access your own data",
         code: "WALLET_MISMATCH"

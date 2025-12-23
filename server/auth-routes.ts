@@ -85,6 +85,7 @@ export function registerAuthRoutes(app: Express): void {
             );
 
             if (!isValid) {
+                console.warn(`[AUTH_FAIL] Invalid signature for wallet ${walletAddress}`);
                 auditLog("login_failed_invalid_signature", {
                     walletAddress,
                     ip: req.ip,
@@ -95,6 +96,8 @@ export function registerAuthRoutes(app: Express): void {
                 });
             }
 
+            console.log(`[AUTH_SUCCESS] Signature verified for ${walletAddress}. Creating session...`);
+
             // Create session
             req.session.walletAddress = walletAddress;
             req.session.authenticatedAt = now;
@@ -102,9 +105,12 @@ export function registerAuthRoutes(app: Express): void {
             // Explicitly save session before response to ensure persistence
             req.session.save((err) => {
                 if (err) {
-                    console.error("Session save error:", err);
+                    console.error("[AUTH_ERROR] Session save error:", err);
                     return res.status(500).json({ message: "Session creation failed" });
                 }
+
+                console.log(`[AUTH_SUCCESS] Session saved. SessionID: ${req.sessionID}`);
+                console.log(`[AUTH_DEBUG] Session Data:`, req.session);
 
                 auditLog("login_success", {
                     walletAddress,

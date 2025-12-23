@@ -57,6 +57,31 @@ export function registerInvoiceRoutes(app: Express): void {
       // Get authenticated wallet from session
       const authenticatedWallet = (req as any).authenticatedWallet;
 
+      // START HOTFIX: Inject missing fields if frontend is cached/outdated
+      if (!req.body.invoicerWalletAddress) {
+        console.log(`[HOTFIX] Injecting invoicerWalletAddress from session: ${authenticatedWallet}`);
+        req.body.invoicerWalletAddress = authenticatedWallet;
+      }
+
+      if (!req.body.tokenMintAddress) {
+        // Default to USDC if missing (safe fallback for 99% of cases)
+        const DEFAULT_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+        const currency = req.body.currency || "USDC";
+        // Simple map for robustness
+        const mintMap: Record<string, string> = {
+          "USDC": DEFAULT_USDC_MINT,
+          "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+          "EURC": "HzwqbKZw8HzsXB8dfLenzhf6j31qAvjfb5hEM9yr22yu"
+        };
+
+        const inferredMint = mintMap[currency] || DEFAULT_USDC_MINT;
+        console.log(`[HOTFIX] Injecting tokenMintAddress for ${currency}: ${inferredMint}`);
+        req.body.tokenMintAddress = inferredMint;
+      }
+      // END HOTFIX
+
+      console.log(`[INVOICE_CREATE_DEBUG] Received body from ${authenticatedWallet}:`, JSON.stringify(req.body, null, 2));
+
       const validatedData = insertInvoiceWithItemsSchema.parse(req.body);
       const { lineItems, ...invoiceData } = validatedData;
 

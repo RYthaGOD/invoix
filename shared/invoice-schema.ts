@@ -501,9 +501,9 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   nftTransferredTo: true,
   nftBurnedAt: true,
 }).extend({
-  invoicerWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
+  invoicerWalletAddress: z.string().min(32, "Invalid Solana wallet address").optional(), // Backend injects this from Session
   invoiceeWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
-  tokenMintAddress: z.string().min(32, "Invalid token mint address"),
+  tokenMintAddress: z.string().min(32, "Invalid token mint address").optional(), // Backend defaults this if missing
   totalAmount: z.string().refine(val => parseFloat(val) > 0, "Total amount must be positive"),
   dueDate: z.date().or(z.string()),
   x402PaymentSignature: z.string().optional(), // Spam control payment signature
