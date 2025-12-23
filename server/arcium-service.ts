@@ -90,14 +90,25 @@ export class ArciumService {
       const idl = JSON.parse(fs.readFileSync(idlPath, "utf-8"));
 
       const envProgramId = process.env.ARCIUM_PROGRAM_ID ? new PublicKey(process.env.ARCIUM_PROGRAM_ID) : undefined;
+      let programIdToUse = envProgramId;
 
-      if (envProgramId) {
-        console.log(`   Using Program ID: ${envProgramId.toBase58()}`);
-        idl.address = envProgramId.toBase58();
-        if (idl.metadata) idl.metadata.address = envProgramId.toBase58();
+      // Fallback to IDL address if Env var is missing
+      if (!programIdToUse && idl.metadata && idl.metadata.address) {
+        try {
+          programIdToUse = new PublicKey(idl.metadata.address);
+          console.log(`   Found Program ID in IDL: ${programIdToUse.toBase58()}`);
+        } catch (e) {
+          console.warn("   Invalid address in IDL metadata, ignoring.");
+        }
+      }
+
+      if (programIdToUse) {
+        console.log(`   Using Program ID: ${programIdToUse.toBase58()}`);
+        idl.address = programIdToUse.toBase58();
+        if (idl.metadata) idl.metadata.address = programIdToUse.toBase58();
         this.program = new anchor.Program(idl, this.provider);
       } else {
-        console.log("   Using default SDK Program.");
+        console.log("   ⚠️ No Program ID found in Env or IDL. Using default SDK Program (May cause mismatch).");
         this.program = getArciumProgram(this.provider);
       }
 
