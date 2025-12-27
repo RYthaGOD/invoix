@@ -6,12 +6,12 @@ export function HowItWorks() {
         {
             icon: UserPlus,
             title: "Connect Wallet",
-            description: "Sign in with Phantom or Solflare. No email or password required."
+            description: "Sign in with any Solana wallet. No email or password required."
         },
         {
             icon: FileText,
             title: "Create Invoice",
-            description: "Fill in client details and amount. We support SOL, USDC, and USDT."
+            description: "Fill in client details and amount. We support SOL, USDC, USDT, and EURC."
         },
         {
             icon: CreditCard,
@@ -21,7 +21,7 @@ export function HowItWorks() {
         {
             icon: CheckCircle,
             title: "Automated Receipt",
-            description: "A compressed NFT receipt is minted automatically as proof of payment."
+            description: "An NFT receipt is minted automatically as immutable proof of payment."
         }
     ];
 

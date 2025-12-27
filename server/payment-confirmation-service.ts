@@ -3,6 +3,7 @@ import { db } from "./db";
 import { payments, paymentReceiptNFTs, invoices, specialNFTMints } from "@shared/invoice-schema";
 import { eq } from "drizzle-orm";
 import { getInvoiceNFTService } from "./nft-service";
+import { invoiceStorage } from "./invoice-storage";
 import { Connection } from "@solana/web3.js";
 import crypto from "crypto";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
@@ -51,12 +52,10 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
 
         console.log(`[PAYMENT] Verified amount: ${verification.amount} ${verification.currency}`);
 
-        // 3. Insert Payment Record
-        const paymentId = crypto.randomUUID();
+        // 3. Insert Payment Record with idempotent duplicate detection
+        // FIX R2-1: Use invoiceStorage.createPayment which checks for duplicate signatures
         const paymentData = {
-            id: paymentId,
             invoiceId: invoiceId,
-            paymentNumber: `PAY-${Date.now().toString().slice(-6)}`,
             amount: invoice.remainingAmount, // Assuming full payment
             currency: invoice.currency,
             txSignature: signature,
@@ -66,19 +65,33 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             confirmedAt: new Date(),
         };
 
-        await db.insert(payments).values(paymentData);
+        try {
+            await invoiceStorage.createPayment(paymentData as any);
+        } catch (e: any) {
+            if (e.message?.includes("already")) {
+                console.log(`[PAYMENT] Duplicate payment detected for ${signature}, skipping`);
+                return; // Idempotent - already processed
+            }
+            throw e;
+        }
 
-        // 4. Update Invoice Status
-        await db.update(invoices).set({
-            status: "paid",
-            paidAmount: invoice.totalAmount,
-            remainingAmount: "0",
-            paidAt: new Date(),
-        }).where(eq(invoices.id, invoiceId));
+        // Note: invoiceStorage.createPayment automatically updates invoice status
 
         // 5. Special Logic: Community NFT Drop
         if (invoice.description === "Exclusive Community NFT Mint") {
-            console.log(`[PAYMENT] Community Drop Payment Detected! Minting Standard NFT...`);
+            console.log(`[PAYMENT] Community Drop Payment Detected! Checking for existing mint...`);
+
+            // FIX R2-3: Check if NFT already minted for this invoice
+            const existingMint = await db.select()
+                .from(specialNFTMints)
+                .where(eq(specialNFTMints.invoiceId, invoiceId))
+                .limit(1);
+
+            if (existingMint.length > 0) {
+                console.log(`[NFT] NFT already minted for invoice ${invoiceId}, skipping`);
+                return;
+            }
+
             const nftService = getInvoiceNFTService();
             if (nftService.isReady()) {
                 try {
@@ -125,7 +138,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             // DB Insertion is handled inside nftService.mintPaymentReceiptNFT
             // to ensure Asset ID and Merkle indices are captured correctly.
         } else {
-            console.warn(`[NFT] Skipped Receipt NFT mint for payment ${paymentId} - NFT Service not ready`);
+            console.warn(`[NFT] Skipped Receipt NFT mint for invoice ${invoiceId} - NFT Service not ready`);
         }
 
     } catch (error) {

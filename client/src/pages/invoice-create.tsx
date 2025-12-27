@@ -166,6 +166,18 @@ export default function InvoiceCreate() {
         ];
       }
 
+      // --- WALLET MISMATCH CHECK ---
+      // Ensure connected wallet matches authenticated wallet
+      if (walletAddress && wallet.publicKey.toBase58() !== walletAddress) {
+        toast({
+          title: "Wallet Mismatch",
+          description: `You're connected with ${wallet.publicKey.toBase58().slice(0, 8)}... but authenticated as ${walletAddress.slice(0, 8)}... Please disconnect and reconnect with the correct wallet.`,
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       // --- x402 SPAM CONTROL ---
       // Pay 0.0001 SOL Service Fee
       setMintingStatus("Paying Service Fee (0.0001 SOL)... 🛡️");

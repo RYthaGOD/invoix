@@ -295,17 +295,15 @@ export function InvoiceForm({
                 </h2>
 
                 <div className="space-y-6">
-                    {/* x402 Service Fee Info */}
+                    {/* Service Fee Info */}
                     <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-3">
-                        <Zap className="w-5 h-5 text-indigo-400 mt-1 flex-shrink-0" />
+                        <Info className="w-5 h-5 text-indigo-400 mt-1 flex-shrink-0" />
                         <div>
-                            <div className="text-white text-sm font-semibold flex items-center gap-2">
-                                Spam Prevention ACTIVE ⚓
-                                <span className="bg-indigo-500/20 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-tighter border border-indigo-500/30">x402 protocol</span>
+                            <div className="text-white text-sm font-semibold">
+                                Service Fee Required
                             </div>
-                            <p className="text-xs text-indigo-300/70 mt-1">
-                                Creating an invoice requires a non-refundable service fee of <strong>0.0001 SOL</strong> to prevent network spam.
-                                <span className="block mt-0.5 text-[10px]">Atomic ledger signature protection is active for this transaction.</span>
+                            <p className="text-xs text-gray-400 mt-1">
+                                Creating an invoice requires a small service fee of <strong className="text-white">0.0001 SOL</strong> (~$0.02) to prevent spam.
                             </p>
                         </div>
                     </div>
@@ -360,9 +358,8 @@ export function InvoiceForm({
                                 />
                             </div>
                             <div className="flex-1">
-                                <div className="text-white font-medium group-hover:text-cyan-300 transition-colors flex items-center justify-between">
-                                    <span>Arcium MXE Encryption 🔐</span>
-                                    <span className="text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-2 py-0.5 rounded uppercase font-bold tracking-widest">TEE SECURED</span>
+                                <div className="text-white font-medium group-hover:text-cyan-300 transition-colors">
+                                    Arcium MXE Encryption 🔐
                                 </div>
                                 <div className="text-gray-400 text-sm">
                                     End-to-end encryption using Arcium Confidential Computing.

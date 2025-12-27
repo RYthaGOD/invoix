@@ -169,7 +169,11 @@ export function registerProfileRoutes(app: Express) {
 
             // 4. Generate Transaction (Server pays rent, User pays 0.008 fee + gas)
             console.log(`Creating Identity NFT Tx for ${profile.businessName}...`);
-            const treasuryAddress = process.env.PLATFORM_TREASURY_WALLET || "B4ReZfuB8WSJMepHAu9WnV6sHPChJsD9BtwbMwSuLzkS"; // Fallback to current
+            // FIX R3-5: Require treasury wallet from env, no hardcoded fallback
+            const treasuryAddress = process.env.PLATFORM_TREASURY_WALLET;
+            if (!treasuryAddress) {
+                return res.status(503).json({ success: false, message: "Treasury wallet not configured" });
+            }
             const { transaction, mint } = await nftService.createBusinessIdentityMintTransaction(
                 profile,
                 walletAddress,

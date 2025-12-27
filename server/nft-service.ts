@@ -98,7 +98,7 @@ interface NFTMintConfig {
 const DEFAULT_CONFIG: NFTMintConfig = {
   autoMint: true,
   merkleTreeAddress: process.env.MERKLE_TREE_ADDRESS || undefined,
-  maxDepth: 14, // Supports 16,384 NFTs
+  maxDepth: 20, // Supports 1,048,576 NFTs (Production Ready)
   maxBufferSize: 64,
   canopyDepth: 11, // Cheaper transfers
 };
@@ -113,6 +113,8 @@ export class InvoiceNFTService {
   private merkleTree: string | null = null;
   private collectionMint: string | null = null; // Collection NFT for marketplace visibility
   private initialized: boolean = false;
+  // FIX R2-5: Mutex to prevent concurrent initialization race conditions
+  private initPromise: Promise<boolean> | null = null;
 
   constructor(
     rpcEndpoint?: string,
@@ -126,8 +128,21 @@ export class InvoiceNFTService {
   /**
    * Initialize the NFT service
    * Creates merkle tree if needed
+   * FIX R2-5: Uses mutex to prevent concurrent initialization
    */
   async initialize(payerKeypair?: Keypair): Promise<boolean> {
+    // Return existing result if already initialized
+    if (this.initialized) return true;
+
+    // Return existing promise if initialization is in progress
+    if (this.initPromise) return this.initPromise;
+
+    // Start initialization with mutex
+    this.initPromise = this.doInitialize(payerKeypair);
+    return this.initPromise;
+  }
+
+  private async doInitialize(payerKeypair?: Keypair): Promise<boolean> {
     try {
       // Set up UMI with payer if provided
       if (payerKeypair) {
@@ -399,7 +414,7 @@ export class InvoiceNFTService {
       // b. OR better: Use setFeePayer with a dummy signer, then serialize.
 
       // Let's use the explicit builder approach which is more robust
-      const builder = mintV1(this.umi, {
+      let builder = mintV1(this.umi, {
         leafOwner,
         merkleTree: merkleTreePubkey,
         metadata: {
@@ -407,7 +422,10 @@ export class InvoiceNFTService {
           symbol: metadata.symbol,
           uri: metadataUri,
           sellerFeeBasisPoints: 0,
-          collection: none(),
+          collection: this.collectionMint ? {
+            key: toPublicKey(this.collectionMint),
+            verified: true, // Server is Collection Authority and signs this tx
+          } : none(),
           creators: [
             {
               address: toPublicKey(invoice.invoicerWalletAddress),
@@ -417,6 +435,17 @@ export class InvoiceNFTService {
           ],
         },
       });
+
+      // Add Priority Fees (Crucial for Reliability)
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 })
+      );
+      const priorityFeeIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 5000 }) // 0.000005 SOL
+      );
+
+      builder = builder.prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
+        .prepend({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] });
 
       // We need to construct a transaction where:
       // - Payer = User
@@ -493,7 +522,10 @@ export class InvoiceNFTService {
           symbol: metadata.symbol,
           uri: metadataUri,
           sellerFeeBasisPoints: 0,
-          collection: none(),
+          collection: this.collectionMint ? {
+            key: toPublicKey(this.collectionMint),
+            verified: true, // Server is Collection Authority and signs this tx
+          } : none(),
           creators: [
             {
               // We list the Payer as creator but they cannot sign (server is minting)
@@ -506,7 +538,18 @@ export class InvoiceNFTService {
         },
       });
 
-      const result = await mintIx.sendAndConfirm(this.umi);
+      // Add Priority Fees
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })
+      );
+      const priorityFeeIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 5000 })
+      );
+
+      const mintIxWithBudget = mintIx.prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
+        .prepend({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] });
+
+      const result = await mintIxWithBudget.sendAndConfirm(this.umi);
       const signature = result.signature.toString();
 
       console.log(`✅ Minted cNFT Payment Receipt. Sig: ${signature}`);

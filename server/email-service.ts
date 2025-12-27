@@ -233,6 +233,45 @@ export class EmailService {
         console.log("==================================================\n");
         return true;
     }
+
+    /**
+     * Generic send method for arbitrary emails (e.g. Waitlist, Alerts)
+     */
+    async sendEmail(data: { to: string; subject: string; html: string }): Promise<{ success: boolean; id?: string }> {
+        if (!data.to || !data.to.includes("@")) {
+            console.warn(`[Email] Invalid 'to' address: ${data.to}`);
+            return { success: false };
+        }
+
+        try {
+            if (this.isReady && this.resend) {
+                const { data: resendData, error } = await this.resend.emails.send({
+                    from: `Invoix <${this.config.fromAddress}>`,
+                    to: [data.to],
+                    subject: data.subject,
+                    html: data.html,
+                });
+
+                if (error) {
+                    console.error("Resend API Generic Error:", error);
+                    return { success: false };
+                }
+                return { success: true, id: resendData?.id };
+
+            } else {
+                // Mock send
+                console.log("\n[MOCK EMAIL] ----------------------------");
+                console.log(`To: ${data.to}`);
+                console.log(`Subject: ${data.subject}`);
+                console.log(`Body (Truncated): ${data.html.substring(0, 50)}...`);
+                console.log("-----------------------------------------\n");
+                return { success: true, id: "mock-id" };
+            }
+        } catch (error) {
+            console.error("Generic send error:", error);
+            return { success: false };
+        }
+    }
 }
 
 // Singleton instance

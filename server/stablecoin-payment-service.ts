@@ -148,7 +148,10 @@ export async function verifyStablecoinPayment(
         // Exact match check
         const diff = receivedAmount > expectedAmountBigInt ? receivedAmount - expectedAmountBigInt : expectedAmountBigInt - receivedAmount;
 
-        // Allow max 100 atomic units difference
+        // FIX R2-6: TOLERANCE DOCUMENTATION
+        // Allow max 100 atomic units difference (~0.0001 USDC or ~0.0000001 SOL)
+        // This tolerance accounts for potential rounding in UI or wallet calculations
+        // For high-security/high-value payments, consider tightening to 0 in future
         if (diff > BigInt(100)) {
             return {
                 verified: false,

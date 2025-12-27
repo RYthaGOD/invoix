@@ -286,6 +286,9 @@
   .dark .gradient-text {
     background: linear-gradient(to right, #22d3ee, #e879f9, #818cf8);
     /* Cyan -> Pink -> Indigo */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   /* ============================================
@@ -469,11 +472,12 @@
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    /* Increased from 0.03 */
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    /* Increased from 0.08 */
     color: white !important;
     border-radius: 0.75rem !important;
-    /* Larger radius */
     backdrop-filter: blur(10px);
     transition: all 0.2s ease;
   }
@@ -481,17 +485,18 @@
   input:not([type="checkbox"]):not([type="radio"])::placeholder,
   textarea::placeholder {
     color: rgba(255, 255, 255, 0.5) !important;
-    /* Increased from 0.4 */
   }
 
   input:not([type="checkbox"]):not([type="radio"]):focus,
   select:focus,
   textarea:focus {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border-color: rgba(6, 182, 212, 0.5) !important;
-    /* Cyan border */
+    background: rgba(255, 255, 255, 0.12) !important;
+    /* Increased from 0.05 */
+    border-color: rgba(6, 182, 212, 0.6) !important;
+    /* Increased from 0.5 */
     outline: none !important;
-    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.15) !important;
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2) !important;
+    /* Increased ring size and opacity */
   }
 
   /* ============================================

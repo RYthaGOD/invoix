@@ -36,9 +36,9 @@ export function Pricing() {
                         {[
                             "Unlimited Invoices",
                             "Unlimited Clients",
-                            "USDC, USDT, & SOL Payments",
-                            "Compressed NFT Receipts",
-                            "Basic Analytics",
+                            "SOL, USDC, USDT & EURC Payments",
+                            "NFT Payment Receipts",
+                            "Real-time Analytics",
                             "Community Support"
                         ].map((feature, i) => (
                             <div key={i} className="flex items-center gap-3">

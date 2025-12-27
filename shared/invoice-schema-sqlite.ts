@@ -251,6 +251,27 @@ export const x402Micropayments = sqliteTable("x402_micropayments", {
 });
 
 /**
+ * Waitlist Users
+ */
+export const waitlistUsers = sqliteTable("waitlist_users", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    walletAddress: text("wallet_address").notNull().unique(),
+    email: text("email").notNull(),
+    projectName: text("project_name").notNull(),
+    useCaseDescription: text("use_case_description"),
+
+    status: text("status").notNull().default("pending"),
+    apiKeyHash: text("api_key_hash"),
+
+    rateLimitTier: text("rate_limit_tier").notNull().default("standard"),
+    requestsCount: integer("requests_count").notNull().default(0),
+    lastActiveAt: integer("last_active_at", { mode: "timestamp" }),
+
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+/**
  * Payment Receipt NFTs
  */
 export const paymentReceiptNFTs = sqliteTable("payment_receipt_nfts", {
@@ -525,4 +546,22 @@ export type SelectInvoice = Invoice;
 export type SelectPayment = Payment;
 export type SelectBusinessProfile = BusinessProfile;
 export type X402Micropayment = typeof x402Micropayments.$inferSelect;
+
+export const insertWaitlistUserSchema = createInsertSchema(waitlistUsers).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    status: true,
+    apiKeyHash: true,
+    requestsCount: true,
+    lastActiveAt: true,
+}).extend({
+    walletAddress: z.string().min(32, "Invalid Solana wallet address"),
+    email: z.string().email("Invalid email address"),
+    projectName: z.string().min(3, "Project name must be at least 3 characters"),
+    useCaseDescription: z.string().min(10, "Please provide a brief description"),
+});
+
+export type WaitlistUser = typeof waitlistUsers.$inferSelect;
+export type InsertWaitlistUser = z.infer<typeof insertWaitlistUserSchema>;
 

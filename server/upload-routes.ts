@@ -46,18 +46,22 @@ export function registerUploadRoutes(app: Express): void {
             }
 
             // SECURITY: Force extension based on MIME type to prevent masking execs
+            // FIX #5: Removed SVG to prevent XSS injection attacks
             const extMap: Record<string, string> = {
                 'image/png': '.png',
                 'image/jpeg': '.jpg',
                 'image/jpg': '.jpg',
                 'image/gif': '.gif',
-                'image/svg+xml': '.svg',
+                // 'image/svg+xml': '.svg', // REMOVED - SVG can contain JavaScript (XSS risk)
                 'image/webp': '.webp'
             };
 
-            const ext = extMap[type] || '.bin'; // Default to bin if unknown image type
-            if (ext === '.bin') {
-                console.warn(`Upload with unknown image type: ${type}`);
+            const ext = extMap[type];
+            if (!ext) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Unsupported image type: ${type}. Allowed: PNG, JPG, GIF, WebP`
+                });
             }
             const uniqueName = `${crypto.randomBytes(16).toString('hex')}${ext}`;
             const filePath = path.join(uploadsDir, uniqueName);

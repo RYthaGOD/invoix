@@ -55,9 +55,9 @@ export function Footer() {
                     </div>
                 </div>
 
-                <div className="border-t border-white/5 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-muted-foreground">
-                    <p>&copy; 2025 Invoix Protocol. All rights reserved.</p>
-                    <p>Designed with <span className="text-primary">Stellar UI</span> on Solana.</p>
+                <div className="border-t border-white/5 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
+                    <p>&copy; {new Date().getFullYear()} Invoix Protocol. All rights reserved.</p>
+                    <p>Built on Solana blockchain.</p>
                 </div>
             </div>
         </footer>

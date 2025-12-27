@@ -412,25 +412,32 @@ class InvoiceStorage implements IInvoiceStorage {
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
-    // Check for duplicate transaction signature to ensure idempotency
-    if (payment.txSignature) {
-      const existingPayment = await db.select()
-        .from(payments)
-        .where(eq(payments.txSignature, payment.txSignature))
-        .limit(1);
-
-      if (existingPayment.length > 0) {
-        // Payment with this transaction signature already exists
-        throw new Error(`Payment already processed: transaction ${payment.txSignature} has already been recorded`);
-      }
-    }
-
+    // FIX R2-2: Move duplicate check INSIDE transaction with row lock to prevent race conditions
     // Use a transaction to ensure atomicity between payment and invoice updates
     const result = await runTransaction(async (tx) => {
-      // Insert the payment with generated number
+      // Check for duplicate INSIDE transaction with Postgres lock
+      if (payment.txSignature) {
+        let query = tx.select()
+          .from(payments)
+          .where(eq(payments.txSignature, payment.txSignature))
+          .$dynamic();
+
+        // Apply FOR UPDATE lock on Postgres to prevent concurrent inserts
+        if (process.env.DATABASE_URL) {
+          query = query.for('update');
+        }
+
+        const existingPayment = await query.limit(1);
+
+        if (existingPayment.length > 0) {
+          throw new Error(`Payment already processed: transaction ${payment.txSignature} has already been recorded`);
+        }
+      }
+
+      // Insert the payment with generated number (FIX R2-8: Use crypto for uniqueness)
       const paymentToInsert = {
         ...payment,
-        paymentNumber: `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+        paymentNumber: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
       };
 
       const [newPayment] = await tx.insert(payments).values(paymentToInsert).returning();
@@ -448,6 +455,14 @@ class InvoiceStorage implements IInvoiceStorage {
 
         const isPaid = parseFloat(remainingAmount) <= 0;
         const isPartial = parseFloat(newPaidAmount) > 0;
+
+        // FIX R2-4: Track and log overpayments
+        const overpaymentAmount = parseFloat(remainingAmount) < 0
+          ? Math.abs(parseFloat(remainingAmount)).toFixed(6)
+          : null;
+        if (overpaymentAmount) {
+          console.warn(`[PAYMENT] Overpayment detected on invoice ${invoice.id}: ${overpaymentAmount} ${invoice.currency}`);
+        }
 
         let newStatus = invoice.status;
         if (isPaid) {

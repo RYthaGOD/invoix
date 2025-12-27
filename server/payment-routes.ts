@@ -139,16 +139,19 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             }
         }
 
-        // Logic Checks
-        // Allow small rounding tolerance if needed, but atomic should be precise
-        if (Number(treasuryPaidAmount) < requiredTreasuryAmount) {
+        // FIX #4: Logic Checks - Use BigInt for precision
+        // Convert requiredAmounts to BigInt for proper comparison
+        const requiredTreasuryBigInt = BigInt(requiredTreasuryAmount);
+        const requiredSellerBigInt = BigInt(requiredSellerAmount);
+
+        if (treasuryPaidAmount < requiredTreasuryBigInt) {
             return res.status(400).json({
                 success: false,
                 message: `Insufficient Treasury Payment. Expected ${platformFee + gasFee} (1% + 0.15 Gas). Got ${Number(treasuryPaidAmount) / Math.pow(10, decimals)}`
             });
         }
 
-        if (Number(sellerPaidAmount) < requiredSellerAmount) {
+        if (sellerPaidAmount < requiredSellerBigInt) {
             return res.status(400).json({
                 success: false,
                 message: `Insufficient Seller Payment. Expected ${invoiceTotal - platformFee}. Got ${Number(sellerPaidAmount) / Math.pow(10, decimals)}`

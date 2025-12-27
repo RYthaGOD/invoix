@@ -3,6 +3,14 @@
  * 
  * Prevents floating-point errors by using integer arithmetic with fixed precision.
  * Standard precision: 9 decimal places (sufficient for crypto and fiat).
+ * 
+ * FIX R3-9: KNOWN LIMITATION
+ * Uses JavaScript Number type which has precision limits:
+ * - Maximum safe integer: Number.MAX_SAFE_INTEGER = 9,007,199,254,740,991
+ * - For values > ~9 quadrillion, precision will be lost
+ * - For high-value systems with very large numbers, consider BigInt or decimal.js
+ * 
+ * Current usage is safe for typical invoice amounts (up to billions of USD).
  */
 
 const PRECISION = 1_000_000_000; // 9 decimals

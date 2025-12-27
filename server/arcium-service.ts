@@ -16,7 +16,7 @@ import {
   deserializeLE,
   getArciumProgram
 } from "@arcium-hq/client";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -177,10 +177,22 @@ export class ArciumService {
     try {
       const packedData = Buffer.from(encryptedData, "base64");
       const senderPublicKey = Buffer.from(encryptionKey, "base64");
-      const nonce = Array.from(packedData.subarray(0, 16)); // Convert to array
+      const nonce = Array.from(packedData.subarray(0, 16));
       const ciphertextFlat = packedData.subarray(16);
-      const receiverSecret = Array.from(decryptorKeypair.secretKey.subarray(0, 32)); // Convert to array
-      const sharedSecret = x25519.getSharedSecret(Uint8Array.from(receiverSecret), Uint8Array.from(senderPublicKey)); // Ensure Uint8Array for x25519
+
+      // FIX: Convert Ed25519 Secret Key -> X25519 Secret Key (Standard RFC 8032)
+      // 1. Hash the 32-byte private key with SHA-512
+      // 2. Clamp the first 32 bytes to make it a valid Scalar
+      const edSecretKey = decryptorKeypair.secretKey.subarray(0, 32);
+      const hash = createHash("sha512").update(edSecretKey).digest();
+      const xSecretKey = hash.subarray(0, 32);
+
+      // Clamp (Pruning)
+      xSecretKey[0] &= 248;
+      xSecretKey[31] &= 127;
+      xSecretKey[31] |= 64;
+
+      const sharedSecret = x25519.getSharedSecret(xSecretKey, Uint8Array.from(senderPublicKey));
       const cipher = new RescueCipher(sharedSecret);
 
       const CHUNK_SIZE = 32;
@@ -190,7 +202,6 @@ export class ArciumService {
         chunks.push(ciphertextFlat.subarray(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE));
       }
 
-      // Fix: cipher.decrypt expects number[][] but chunks is Uint8Array[]
       const chunksAsNumbers = chunks.map(chunk => Array.from(chunk));
       const decryptedBigInts = cipher.decrypt(chunksAsNumbers, Uint8Array.from(nonce));
       const decryptedBytes = decryptedBigInts.map(bi => Number(bi));

@@ -6,21 +6,35 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Loader2, Zap, ShieldCheck } from "lucide-react";
+import { Loader2, Zap, ShieldCheck, Copy, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 
 import { Connection, VersionedTransaction } from "@solana/web3.js";
 import { Buffer } from "buffer"; // Ensure buffer is available
 
+const TOKEN_ADDRESS = "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
+
+
 export default function CommunityNFTDrop() {
     const { publicKey, signTransaction } = useWallet();
     const { toast } = useToast();
     const [, setLocation] = useLocation();
     const [isLoading, setIsLoading] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     // BLOCKER: Set to false to enable minting
     const BLOCK_MINT = true;
+
+    const copyAddress = async () => {
+        await navigator.clipboard.writeText(TOKEN_ADDRESS);
+        setCopied(true);
+        toast({
+            title: "Address Copied",
+            description: "Token contract address copied to clipboard",
+        });
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     const handlePurchase = async () => {
         if (!publicKey) {
@@ -169,10 +183,21 @@ export default function CommunityNFTDrop() {
                             </Button>
                         )}
 
-                        <p className="text-xs text-center text-muted-foreground opacity-60">
-                            Processed via secure on-chain SOL Invoice. <br />
-                            NFT airdropped immediately upon payment.
-                        </p>
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={copyAddress}
+                                className="group flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all text-xs text-muted-foreground hover:text-white font-mono"
+                            >
+                                <span className="text-primary/70 group-hover:text-primary">CA:</span>
+                                {TOKEN_ADDRESS.slice(0, 6)}...{TOKEN_ADDRESS.slice(-6)}
+                                {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3 group-hover:text-primary transition-colors" />}
+                            </button>
+
+                            <p className="text-xs text-center text-muted-foreground opacity-60">
+                                Processed via secure on-chain SOL Invoice. <br />
+                                NFT airdropped immediately upon payment.
+                            </p>
+                        </div>
                     </CardFooter>
                 </Card>
             </motion.div>

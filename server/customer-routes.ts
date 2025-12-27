@@ -2,7 +2,9 @@
 import type { Express } from "express";
 import { invoiceStorage } from "./invoice-storage";
 import { strictRateLimit, requireWalletOwnership } from "./security";
-import { InsertCustomerProfile } from "@shared/invoice-schema";
+import { InsertCustomerProfile, customerProfiles } from "@shared/invoice-schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export function registerCustomerRoutes(app: Express): void {
 
@@ -23,8 +25,12 @@ export function registerCustomerRoutes(app: Express): void {
         try {
             const customerData: InsertCustomerProfile = req.body;
 
+            // FIX R3-11: Force businessWalletAddress from authenticated session
+            // Prevents users from creating customers under someone else's wallet
+            customerData.businessWalletAddress = req.session.walletAddress!;
+
             // Basic validation
-            if (!customerData.businessWalletAddress || !customerData.customerWalletAddress || !customerData.customerName) {
+            if (!customerData.customerWalletAddress || !customerData.customerName) {
                 return res.status(400).json({ success: false, message: "Missing required fields" });
             }
 
@@ -40,17 +46,27 @@ export function registerCustomerRoutes(app: Express): void {
     app.patch("/api/customers/:id", requireWalletOwnership, async (req, res) => {
         try {
             const { id } = req.params;
-            const updates = req.body;
-            // Prevent updating wallet ownership via this route effectively
-            delete updates.id;
-            delete updates.businessWalletAddress; // Cannot change owner
+            const sessionWallet = req.session.walletAddress!;
 
-            const updatedCustomer = await invoiceStorage.updateCustomerProfile(id, updates);
+            // FIX R3-3: Verify session wallet owns this customer before updating
+            const customer = await db.query.customerProfiles.findFirst({
+                where: eq(customerProfiles.id, id)
+            });
 
-            if (!updatedCustomer) {
+            if (!customer) {
                 return res.status(404).json({ success: false, message: "Customer not found" });
             }
 
+            if (customer.businessWalletAddress !== sessionWallet) {
+                return res.status(403).json({ success: false, message: "Not authorized to update this customer" });
+            }
+
+            const updates = req.body;
+            // Prevent updating wallet ownership via this route
+            delete updates.id;
+            delete updates.businessWalletAddress;
+
+            const updatedCustomer = await invoiceStorage.updateCustomerProfile(id, updates);
             res.json({ success: true, customer: updatedCustomer });
         } catch (error: any) {
             console.error("Error updating customer:", error);
@@ -62,12 +78,22 @@ export function registerCustomerRoutes(app: Express): void {
     app.delete("/api/customers/:id", requireWalletOwnership, async (req, res) => {
         try {
             const { id } = req.params;
-            const success = await invoiceStorage.deleteCustomerProfile(id);
+            const sessionWallet = req.session.walletAddress!;
 
-            if (!success) {
+            // FIX R3-3: Verify session wallet owns this customer before deleting
+            const customer = await db.query.customerProfiles.findFirst({
+                where: eq(customerProfiles.id, id)
+            });
+
+            if (!customer) {
                 return res.status(404).json({ success: false, message: "Customer not found" });
             }
 
+            if (customer.businessWalletAddress !== sessionWallet) {
+                return res.status(403).json({ success: false, message: "Not authorized to delete this customer" });
+            }
+
+            const success = await invoiceStorage.deleteCustomerProfile(id);
             res.json({ success: true, message: "Customer deleted" });
         } catch (error: any) {
             console.error("Error deleting customer:", error);

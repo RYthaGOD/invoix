@@ -50,6 +50,10 @@ export default defineConfig({
     // Make global available
     global: 'globalThis',
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+    // Explicitly define Solana RPC URL for client
+    'import.meta.env.VITE_SOLANA_RPC_URL': JSON.stringify(
+      process.env.VITE_SOLANA_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=f901ea4c-bd09-48be-9e7c-43f35d35bcf5'
+    ),
   },
   optimizeDeps: {
     esbuildOptions: {

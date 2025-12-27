@@ -437,14 +437,17 @@ export async function requireWalletOwnership(
   next: NextFunction
 ) {
   try {
-    // DEBUG LOGGING
-    console.log(`[AUTH_DEBUG] Checking ownership for ${req.method} ${req.path}`);
-    console.log(`[AUTH_DEBUG] Session ID: ${req.sessionID}`);
-    console.log(`[AUTH_DEBUG] Session Data:`, req.session);
+    // FIX #12: Only log in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[AUTH_DEBUG] Checking ownership for ${req.method} ${req.path}`);
+      console.log(`[AUTH_DEBUG] Session ID: ${req.sessionID}`);
+    }
 
     // Check if user has an active session
     if (!req.session.walletAddress) {
-      console.warn(`[AUTH_FAIL] No walletAddress in session. SessionID: ${req.sessionID}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[AUTH_FAIL] No walletAddress in session. SessionID: ${req.sessionID}`);
+      }
       return res.status(401).json({
         message: "Authentication required: Please login with your wallet",
         code: "NOT_AUTHENTICATED"
@@ -456,11 +459,19 @@ export async function requireWalletOwnership(
     // For routes that specify a wallet address in params/query, verify it matches the session
     const requestedWallet = req.params.walletAddress || req.query.wallet as string;
 
+    // FIX #3: Improved stale session handling
     if (requestedWallet && requestedWallet !== authenticatedWallet) {
-      console.warn(`[AUTH_FAIL] Wallet Mismatch. Authenticated: ${authenticatedWallet}, Requested: ${requestedWallet}`);
-      return res.status(403).json({
-        message: "Unauthorized: You can only access your own data",
-        code: "WALLET_MISMATCH"
+      console.warn(`[AUTH_FAIL] Wallet Mismatch. Session: ${authenticatedWallet.slice(0, 8)}..., Requested: ${requestedWallet.slice(0, 8)}...`);
+
+      // FIX #3: Destroy stale session to force re-authentication
+      req.session.destroy((err) => {
+        if (err) console.error("Session destroy error:", err);
+      });
+
+      return res.status(401).json({
+        message: "Session expired: Your wallet has changed. Please reconnect to continue.",
+        code: "STALE_SESSION",
+        hint: "Disconnect and reconnect your wallet to refresh your session."
       });
     }
 

@@ -44,9 +44,9 @@ export function Features() {
                         <div className="mt-8 relative h-32 overflow-hidden rounded-xl border border-white/10 bg-black/20 group-hover:border-primary/20 transition-colors">
                             {/* Abstract visualization of speed/blocks */}
                             <div className="absolute inset-0 flex items-center gap-4 px-4 overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent animate-shimmer" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/15 to-transparent animate-shimmer" />
                                 {[1, 2, 3, 4, 5].map(i => (
-                                    <div key={i} className="h-16 w-24 rounded-lg bg-primary/20 border border-primary/30 animate-pulse" style={{ animationDelay: `${i * 0.15}s` }} />
+                                    <div key={i} className="h-16 w-24 rounded-lg bg-primary/40 border border-primary/50 animate-pulse" style={{ animationDelay: `${i * 0.15}s` }} />
                                 ))}
                             </div>
                         </div>
@@ -66,7 +66,7 @@ export function Features() {
                     </div>
                     <h3 className="text-xl font-bold font-heading mb-3">NFT Receipts</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                        Automatically mint <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-violet-300 font-semibold">compressed NFTs</span> as immutable proof of payment for every invoice.
+                        Automatically mint <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-violet-300 font-semibold">digital receipts</span> as immutable proof of payment for every invoice.
                     </p>
                 </motion.div>
 

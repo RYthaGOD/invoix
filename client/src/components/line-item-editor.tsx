@@ -40,6 +40,25 @@ export function LineItemEditor({ register, control, errors, watch }: LineItemEdi
                 </button>
             </div>
 
+            {/* Column Headers */}
+            <div className="grid grid-cols-12 gap-3 items-center mb-2 px-1">
+                <div className="col-span-12 md:col-span-5">
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Description</label>
+                </div>
+                <div className="col-span-6 md:col-span-2">
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Quantity</label>
+                </div>
+                <div className="col-span-6 md:col-span-2">
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Unit Price</label>
+                </div>
+                <div className="col-span-10 md:col-span-2 text-right">
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</label>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                    {/* Actions column - no label */}
+                </div>
+            </div>
+
             <div className="space-y-3">
                 {fields.map((field, index) => (
                     <div key={field.id} className="grid grid-cols-12 gap-3 items-start">

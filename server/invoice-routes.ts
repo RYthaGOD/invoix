@@ -147,9 +147,14 @@ export function registerInvoiceRoutes(app: Express): void {
 
         // Ensure the sender is the authenticated user (prevent using someone else's tx)
         if (verification.fromAddress && verification.fromAddress !== authenticatedWallet) {
+          console.error(`[x402] Wallet Mismatch: Payment from ${verification.fromAddress}, but authenticated as ${authenticatedWallet}`);
           return res.status(403).json({
-            message: "Unauthorized: The service fee must be paid by your authenticated wallet.",
-            code: "WALLET_MISMATCH"
+            message: `Unauthorized: The service fee must be paid by your authenticated wallet (${authenticatedWallet.slice(0, 8)}...). The payment was sent from ${verification.fromAddress.slice(0, 8)}...`,
+            code: "WALLET_MISMATCH",
+            debug: {
+              authenticatedWallet: authenticatedWallet,
+              paymentFromWallet: verification.fromAddress
+            }
           });
         }
       }

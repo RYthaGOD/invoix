@@ -53,6 +53,9 @@ export const invoices = pgTable("invoices", {
   paymentInstructions: text("payment_instructions"), // Instructions for customer
 
   // Privacy Settings (leveraging our privacy implementation)
+  // FIX R3-6: isPrivate=true by DEFAULT for security
+  // This means all invoices are private unless explicitly made public
+  // Public invoices (isPrivate=false) can be viewed by anyone with the link if status != draft
   isPrivate: boolean("is_private").notNull().default(true),
   hideAmounts: boolean("hide_amounts").notNull().default(true), // Hide amounts from public view
   hideParties: boolean("hide_parties").notNull().default(true), // Hide wallet addresses
@@ -67,7 +70,8 @@ export const invoices = pgTable("invoices", {
   // x402 Micropayment Fee (for using invoice service)
   x402ServiceFeeUSD: decimal("x402_service_fee_usd", { precision: 18, scale: 6 }).notNull().default("0.01"), // $0.01 per invoice
   x402FeePaid: boolean("x402_fee_paid").notNull().default(false),
-  x402PaymentSignature: text("x402_payment_signature"),
+  // FIX #10: Added unique constraint to prevent signature replay at database level
+  x402PaymentSignature: text("x402_payment_signature").unique(),
 
   // NFT Integration (pNFT for tradeable invoices)
   nftMint: text("nft_mint"), // NFT mint address
@@ -616,6 +620,29 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+/**
+ * Waitlist Users - For developer access control
+ */
+export const waitlistUsers = pgTable("waitlist_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull().unique(), // The developer's wallet
+  email: text("email").notNull(),
+  projectName: text("project_name").notNull(),
+  useCaseDescription: text("use_case_description"),
+
+  // Access Control
+  status: text("status").notNull().default("pending"), // pending, approved, rejected, revoked
+  apiKeyHash: text("api_key_hash"), // Stored as SCRYPT hash not plaintext
+
+  // Limits & Analytics
+  rateLimitTier: text("rate_limit_tier").notNull().default("standard"), // standard, premium
+  requestsCount: integer("requests_count").notNull().default(0),
+  lastActiveAt: timestamp("last_active_at"),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // ============================================
 // SECURITY TABLES
 // ============================================
@@ -697,3 +724,21 @@ export type SelectBusinessProfile = BusinessProfile;
 
 
 export type X402Micropayment = typeof x402Micropayments.$inferSelect;
+
+export const insertWaitlistUserSchema = createInsertSchema(waitlistUsers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  status: true, // Backend managed
+  apiKeyHash: true, // Backend generated
+  requestsCount: true,
+  lastActiveAt: true,
+}).extend({
+  walletAddress: z.string().min(32, "Invalid Solana wallet address"),
+  email: z.string().email("Invalid email address"),
+  projectName: z.string().min(3, "Project name must be at least 3 characters"),
+  useCaseDescription: z.string().min(10, "Please provide a brief description"),
+});
+
+export type WaitlistUser = typeof waitlistUsers.$inferSelect;
+export type InsertWaitlistUser = z.infer<typeof insertWaitlistUserSchema>;

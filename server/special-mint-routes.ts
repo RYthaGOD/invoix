@@ -1,11 +1,12 @@
 
-// @ts-nocheck
-
 import type { Express, Request, Response } from "express";
 import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { getInvoiceNFTService } from "./nft-service";
-import { getTokenBalance } from "./stablecoin-payment-service";
 import { z } from "zod";
+import { strictRateLimit, requireWalletOwnership } from "./security";
+
+// Session type is extended in auth-routes.ts
+
 
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
@@ -13,8 +14,13 @@ const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.s
 const GATEKEEPER_TOKEN_MINT = "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
 const DISCOUNTED_PRICE_USD = 0.50;
 const STANDARD_PRICE_USD = 5.00;
-// Treasury Wallet to receive the fee
-const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET || "H8sMJqjq9yRa9qKz7BwFvbKkYj3ZzV8zL8zZ8zL8zZ8z";
+
+// FIX #11: Require treasury wallet
+const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET;
+if (!TREASURY_WALLET) {
+    console.error("❌ PLATFORM_TREASURY_WALLET environment variable is required for special mints");
+}
+
 // Admin wallet for reserved NFT minting (set in .env for privacy)
 const ADMIN_WALLET = process.env.ADMIN_WALLET;
 
@@ -27,19 +33,63 @@ const mintSchema = z.object({
     walletAddress: z.string().min(1, "Wallet Address is required"),
 });
 
+// FIX #7: Cache SOL price to avoid CoinGecko rate limits
+let solPriceCache: { price: number; timestamp: number } | null = null;
+const SOL_PRICE_CACHE_TTL = 60000; // 1 minute
+
 /**
- * Fetch current SOL Price in USD
- * Uses CoinGecko API with a fallback or simple cache in a real app.
- * For this implementation, we will fetch live.
+ * Fetch current SOL Price in USD with caching
  */
 async function getSolPrice(): Promise<number> {
+    // Return cached price if still valid
+    if (solPriceCache && Date.now() - solPriceCache.timestamp < SOL_PRICE_CACHE_TTL) {
+        return solPriceCache.price;
+    }
+
     try {
         const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd");
         const data = await response.json();
-        return data.solana.usd;
+        const price = data.solana.usd;
+
+        // Update cache
+        solPriceCache = { price, timestamp: Date.now() };
+
+        return price;
     } catch (error) {
         console.error("Error fetching SOL price, using fallback $150", error);
-        return 150; // Safety fallback
+        return solPriceCache?.price || 150; // Use cached value or fallback
+    }
+}
+
+// FIX #9: Custom function to get token balance for arbitrary mints
+async function getCustomTokenBalance(
+    connection: Connection,
+    walletAddress: string,
+    mintAddress: string
+): Promise<number> {
+    try {
+        const walletPubkey = new PublicKey(walletAddress);
+        const mintPubkey = new PublicKey(mintAddress);
+
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+            walletPubkey,
+            { mint: mintPubkey }
+        );
+
+        if (tokenAccounts.value.length === 0) {
+            return 0;
+        }
+
+        let totalBalance = 0;
+        for (const account of tokenAccounts.value) {
+            const parsedInfo = (account.account.data as any).parsed.info; // Cast as any because parsed type is standard json
+            totalBalance += parsedInfo.tokenAmount.uiAmount || 0;
+        }
+
+        return totalBalance;
+    } catch (error) {
+        console.error("Error getting custom token balance:", error);
+        return 0;
     }
 }
 
@@ -50,7 +100,8 @@ export function registerSpecialMintRoutes(app: Express) {
      * Checks token balance and returns the applicable price in USD and SOL
      * POST /api/special/quote
      */
-    app.post("/api/special/quote", async (req: Request, res: Response) => {
+    // FIX #6: Added rate limiting
+    app.post("/api/special/quote", strictRateLimit, async (req: Request, res: Response) => {
         try {
             // Validate Input
             const parsed = quoteSchema.safeParse(req.body);
@@ -62,7 +113,8 @@ export function registerSpecialMintRoutes(app: Express) {
             const connection = new Connection(SOLANA_RPC_URL);
 
             // Check Balance
-            const balance = await getTokenBalance(connection, walletAddress, GATEKEEPER_TOKEN_MINT);
+            // FIX #9: Use correct token balance function
+            const balance = await getCustomTokenBalance(connection, walletAddress, GATEKEEPER_TOKEN_MINT);
             const isHolder = balance > 0;
 
             // Determine Price
@@ -101,7 +153,8 @@ export function registerSpecialMintRoutes(app: Express) {
      * 2. Mints the Special NFT
      * POST /api/special/mint
      */
-    app.post("/api/special/mint", async (req: Request, res: Response) => {
+    // FIX #6: Added rate limiting and wallet ownership
+    app.post("/api/special/mint", requireWalletOwnership, strictRateLimit, async (req: Request, res: Response) => {
         try {
             // Validate Input
             const parsed = mintSchema.safeParse(req.body);
@@ -115,7 +168,7 @@ export function registerSpecialMintRoutes(app: Express) {
             const { businessProfiles } = await import("@shared/invoice-schema");
             const { eq } = await import("drizzle-orm");
 
-            const profiles = await db.select().from(businessProfiles).where(eq(businessProfiles.wallet, walletAddress));
+            const profiles = await db.select().from(businessProfiles).where(eq(businessProfiles.ownerWalletAddress, walletAddress));
             if (profiles.length === 0) {
                 return res.status(404).json({ success: false, message: "No business profile found. Please create one first." });
             }
@@ -124,7 +177,8 @@ export function registerSpecialMintRoutes(app: Express) {
             const connection = new Connection(SOLANA_RPC_URL);
 
             // 1. Re-Verify Logic (Trusted Pricing)
-            const balance = await getTokenBalance(connection, walletAddress, GATEKEEPER_TOKEN_MINT);
+            // FIX #9: Use correct token balance function
+            const balance = await getCustomTokenBalance(connection, walletAddress, GATEKEEPER_TOKEN_MINT);
             const isHolder = balance > 0;
             const priceUsd = isHolder ? DISCOUNTED_PRICE_USD : STANDARD_PRICE_USD;
 
@@ -132,11 +186,14 @@ export function registerSpecialMintRoutes(app: Express) {
             const priceSol = Number((priceUsd / solPrice).toFixed(9));
             const lamports = Math.ceil(priceSol * LAMPORTS_PER_SOL);
 
-            // 2. Identify Treasury
-            if (!process.env.PLATFORM_TREASURY_WALLET) {
-                console.warn("Using default testing treasury wallet. Please set PLATFORM_TREASURY_WALLET env.");
+            // FIX #11: Require treasury wallet
+            if (!TREASURY_WALLET) {
+                return res.status(503).json({
+                    success: false,
+                    message: "Special mints are temporarily unavailable."
+                });
             }
-            const treasuryPubkey = new PublicKey(process.env.PLATFORM_TREASURY_WALLET || TREASURY_WALLET);
+            const treasuryPubkey = new PublicKey(TREASURY_WALLET);
 
             // 3. Create Mint Transaction
             const nftService = getInvoiceNFTService();
@@ -157,7 +214,7 @@ export function registerSpecialMintRoutes(app: Express) {
             res.json({
                 success: true,
                 transaction: finalTxBase64,
-                message: `Mint Transaction Created. Price: $${priceUsd} (${priceSol} SOL)`,
+                message: `Mint Transaction Created.Price: $${priceUsd} (${priceSol} SOL)`,
                 priceUsd,
                 priceSol,
                 mint
@@ -196,11 +253,11 @@ export function registerSpecialMintRoutes(app: Express) {
             if (!selectedNFT) {
                 return res.status(400).json({
                     success: false,
-                    message: `NFT not found: ${nftId}. Available: ${NFT_COLLECTION.map(n => n.id).join(', ')}`
+                    message: `NFT not found: ${nftId}.Available: ${NFT_COLLECTION.map(n => n.id).join(', ')} `
                 });
             }
 
-            console.log(`[ADMIN] Minting reserved ${selectedNFT.name} (${selectedNFT.rarity}) to ${recipientAddress}`);
+            console.log(`[ADMIN] Minting reserved ${selectedNFT.name} (${selectedNFT.rarity}) to ${recipientAddress} `);
 
             // Initialize NFT service
             const nftService = getInvoiceNFTService();
@@ -267,7 +324,7 @@ export function registerSpecialMintRoutes(app: Express) {
                 return res.status(404).json({ success: false, message: "Not found" });
             }
 
-            console.log(`[ADMIN] Batch minting 6 reserved NFTs to ${ADMIN_WALLET}`);
+            console.log(`[ADMIN] Batch minting 6 reserved NFTs to ${ADMIN_WALLET} `);
 
             // Import collection config
             const { NFT_COLLECTION } = await import("@shared/nft-collection");
@@ -307,7 +364,7 @@ export function registerSpecialMintRoutes(app: Express) {
                     // Use a unique identifier to bypass the unique wallet constraint for admin
                     try {
                         await db.insert(specialNFTMints).values({
-                            walletAddress: `${ADMIN_WALLET}-reserve-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            walletAddress: `${ADMIN_WALLET} -reserve - ${Date.now()} -${Math.random().toString(36).substr(2, 9)} `,
                             nftId: nftVariant!.id,
                             nftName: nftVariant!.name,
                             nftRarity: nftVariant!.rarity,

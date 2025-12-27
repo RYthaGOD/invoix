@@ -220,21 +220,21 @@ export default function InvoiceList() {
       <div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="tour-stats-overview">
-          <div className="glass-card p-4">
-            <div className="text-gray-400 text-sm mb-1">Total Invoices</div>
-            <div className="text-2xl font-bold text-white">{filteredInvoices.length}</div>
+          <div className="glass-card p-6">
+            <div className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Total Invoices</div>
+            <div className="text-4xl font-bold text-white">{filteredInvoices.length}</div>
           </div>
-          <div className="glass-card p-4">
-            <div className="text-gray-400 text-sm mb-1">Sent</div>
-            <div className="text-2xl font-bold text-blue-400">{sentInvoices.length}</div>
+          <div className="glass-card p-6">
+            <div className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Sent</div>
+            <div className="text-4xl font-bold text-blue-400">{sentInvoices.length}</div>
           </div>
-          <div className="glass-card p-4">
-            <div className="text-gray-400 text-sm mb-1">Received</div>
-            <div className="text-2xl font-bold text-purple-400">{receivedInvoices.length}</div>
+          <div className="glass-card p-6">
+            <div className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Received</div>
+            <div className="text-4xl font-bold text-purple-400">{receivedInvoices.length}</div>
           </div>
-          <div className="glass-card p-4">
-            <div className="text-gray-400 text-sm mb-1">Overdue</div>
-            <div className="text-2xl font-bold text-red-400">
+          <div className="glass-card p-6">
+            <div className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Overdue</div>
+            <div className="text-4xl font-bold text-red-400">
               {filteredInvoices.filter(
                 (inv) => inv.status !== "paid" && new Date(inv.dueDate) < new Date()
               ).length}
