@@ -79,83 +79,116 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             return res.status(400).json({ success: false, message: "Transaction fee payer must be the protocol" });
         }
 
-        // 4. Validation: Analyze Instructions
-        // A) Transfer to Invoicee (Seller)
-        // B) Transfer to Treasury (Gas Fee + 1% Platform Fee)
-
-        const feeConfig = getStablecoinConfig(invoice.currency);
-        if (!feeConfig) {
-            return res.status(400).json({ success: false, message: "Unsupported currency for gasless payment" });
-        }
+        // 4. Detect if this is a native SOL payment
+        const isNativeSOL = invoice.currency === "SOL" ||
+            invoice.tokenMint === "So11111111111111111111111111111111111111112";
 
         const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
-        const treasuryAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), treasuryPubkey);
-
-        // Target Recipient (Seller)
         const sellerPubkey = new PublicKey(invoice.invoicerWalletAddress);
-        const sellerAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), sellerPubkey);
 
         // Amounts
         const invoiceTotal = parseFloat(invoice.remainingAmount);
         const platformFee = invoiceTotal * 0.01; // 1%
-        const gasFee = GAS_FEE_USDC; // 0.15
-
-        // Exact Atomic Calculation
-        const decimals = feeConfig.decimals;
-        const toAtomic = (amount: number) => Math.floor(amount * Math.pow(10, decimals));
-
-        const requiredTreasuryAmount = toAtomic(platformFee + gasFee);
-        const requiredSellerAmount = toAtomic(invoiceTotal - platformFee);
 
         let treasuryPaidAmount = BigInt(0);
         let sellerPaidAmount = BigInt(0);
 
-        // Iterate over instructions to sum up transfers
-        for (const ix of transaction.instructions) {
-            // Check if it's a Token Program instruction (Transfer or TransferChecked)
-            if (ix.programId.toString() === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") {
-                // Ensure we have keys
-                if (ix.keys.length >= 2) {
-                    const dest = ix.keys[1].pubkey;
+        if (isNativeSOL) {
+            // ==================== NATIVE SOL VALIDATION ====================
+            const LAMPORTS_PER_SOL = 1_000_000_000;
+            const requiredSellerLamports = BigInt(Math.floor((invoiceTotal - platformFee) * LAMPORTS_PER_SOL));
+            const requiredTreasuryLamports = BigInt(Math.floor(platformFee * LAMPORTS_PER_SOL));
 
-                    let amount = BigInt(0);
-                    // Parse Amount (Transfer: offset 1, 8 bytes; TransferChecked: offset 1, 8 bytes)
-                    if (ix.data.length >= 9) {
-                        try {
-                            // Basic check: Instruction 3 (Transfer) or 12 (TransferChecked)
-                            const type = ix.data[0];
-                            if (type === 3 || type === 12) {
-                                amount = ix.data.subarray(1, 9).readBigUInt64LE(0);
-                            }
-                        } catch (e) { console.error("Parse error", e); }
-                    }
+            const SYSTEM_PROGRAM_ID = "11111111111111111111111111111111";
 
-                    if (dest.equals(treasuryAta)) {
-                        treasuryPaidAmount += amount;
-                    } else if (dest.equals(sellerAta)) {
-                        sellerPaidAmount += amount;
+            // Iterate over instructions to sum up SOL transfers
+            for (const ix of transaction.instructions) {
+                if (ix.programId.toString() === SYSTEM_PROGRAM_ID) {
+                    // Check instruction type (Transfer is type 2)
+                    if (ix.data.length >= 12 && ix.data.readUInt32LE(0) === 2) {
+                        const lamports = ix.data.readBigUInt64LE(4);
+                        const dest = ix.keys[1].pubkey;
+
+                        if (dest.equals(treasuryPubkey)) {
+                            treasuryPaidAmount += lamports;
+                        } else if (dest.equals(sellerPubkey)) {
+                            sellerPaidAmount += lamports;
+                        }
                     }
                 }
             }
-        }
 
-        // FIX #4: Logic Checks - Use BigInt for precision
-        // Convert requiredAmounts to BigInt for proper comparison
-        const requiredTreasuryBigInt = BigInt(requiredTreasuryAmount);
-        const requiredSellerBigInt = BigInt(requiredSellerAmount);
+            if (sellerPaidAmount < requiredSellerLamports) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient SOL to Seller. Expected ${(invoiceTotal - platformFee).toFixed(6)} SOL. Got ${Number(sellerPaidAmount) / LAMPORTS_PER_SOL}`
+                });
+            }
 
-        if (treasuryPaidAmount < requiredTreasuryBigInt) {
-            return res.status(400).json({
-                success: false,
-                message: `Insufficient Treasury Payment. Expected ${platformFee + gasFee} (1% + 0.15 Gas). Got ${Number(treasuryPaidAmount) / Math.pow(10, decimals)}`
-            });
-        }
+            if (treasuryPaidAmount < requiredTreasuryLamports) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient SOL Platform Fee. Expected ${platformFee.toFixed(6)} SOL. Got ${Number(treasuryPaidAmount) / LAMPORTS_PER_SOL}`
+                });
+            }
+        } else {
+            // ==================== SPL TOKEN VALIDATION ====================
+            const feeConfig = getStablecoinConfig(invoice.currency);
+            if (!feeConfig) {
+                return res.status(400).json({ success: false, message: "Unsupported currency for gasless payment" });
+            }
 
-        if (sellerPaidAmount < requiredSellerBigInt) {
-            return res.status(400).json({
-                success: false,
-                message: `Insufficient Seller Payment. Expected ${invoiceTotal - platformFee}. Got ${Number(sellerPaidAmount) / Math.pow(10, decimals)}`
-            });
+            const treasuryAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), treasuryPubkey);
+            const sellerAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), sellerPubkey);
+
+            const gasFee = GAS_FEE_USDC; // 0.15
+            const decimals = feeConfig.decimals;
+            const toAtomic = (amount: number) => Math.floor(amount * Math.pow(10, decimals));
+
+            const requiredTreasuryAmount = toAtomic(platformFee + gasFee);
+            const requiredSellerAmount = toAtomic(invoiceTotal - platformFee);
+
+            // Iterate over instructions to sum up transfers
+            for (const ix of transaction.instructions) {
+                if (ix.programId.toString() === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") {
+                    if (ix.keys.length >= 2) {
+                        const dest = ix.keys[1].pubkey;
+                        let amount = BigInt(0);
+
+                        if (ix.data.length >= 9) {
+                            try {
+                                const type = ix.data[0];
+                                if (type === 3 || type === 12) {
+                                    amount = ix.data.subarray(1, 9).readBigUInt64LE(0);
+                                }
+                            } catch (e) { console.error("Parse error", e); }
+                        }
+
+                        if (dest.equals(treasuryAta)) {
+                            treasuryPaidAmount += amount;
+                        } else if (dest.equals(sellerAta)) {
+                            sellerPaidAmount += amount;
+                        }
+                    }
+                }
+            }
+
+            const requiredTreasuryBigInt = BigInt(requiredTreasuryAmount);
+            const requiredSellerBigInt = BigInt(requiredSellerAmount);
+
+            if (treasuryPaidAmount < requiredTreasuryBigInt) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient Treasury Payment. Expected ${platformFee + gasFee} (1% + 0.15 Gas). Got ${Number(treasuryPaidAmount) / Math.pow(10, decimals)}`
+                });
+            }
+
+            if (sellerPaidAmount < requiredSellerBigInt) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient Seller Payment. Expected ${invoiceTotal - platformFee}. Got ${Number(sellerPaidAmount) / Math.pow(10, decimals)}`
+                });
+            }
         }
 
         // SECURITY CHECK: PREVENT PROTOCOL WALLET DRAIN

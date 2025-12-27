@@ -61,16 +61,22 @@ export function usePaymentConfirmation({ connection, signature, invoiceId }: Use
             return;
         }
 
+        // Don't poll if already in terminal state
+        if (status === 'verified' || status === 'failed') {
+            return;
+        }
+
         const intervalId = setInterval(checkStatus, 2000); // Poll every 2s
 
         return () => clearInterval(intervalId);
-    }, [signature, checkStatus]);
+    }, [signature, checkStatus, status]);
 
-    // Failsafe timeout
+    // Failsafe timeout - stop polling after 60 seconds
     useEffect(() => {
         if (status === 'confirming') {
             const timeoutId = setTimeout(() => {
-                // If this timeout fires, it means validity persists and we haven't unmounted or changed status
+                // Set status to failed so the polling interval gets cleared
+                setStatus('failed');
                 setError("Confirmation timed out. Please check your wallet or Explorer.");
             }, 60000); // 1 minute timeout
             return () => clearTimeout(timeoutId);

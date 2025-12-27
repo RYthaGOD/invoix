@@ -1020,7 +1020,7 @@ export class InvoiceNFTService {
           {
             address: payment.fromAddress,
             share: 100,
-            verified: true,
+            verified: false, // Server mints on behalf of payer, so they can't sign
           },
         ],
       },

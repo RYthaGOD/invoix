@@ -297,7 +297,7 @@ export default function SettingsPage() {
                                                 reader.readAsDataURL(file);
                                             }}
                                         />
-                                        <span className="text-xs text-muted-foreground">Supported: PNG, JPG, SVG</span>
+                                        <span className="text-xs text-muted-foreground">Supported: PNG, JPG (max 2MB)</span>
                                     </div>
                                 </div>
                             </div>

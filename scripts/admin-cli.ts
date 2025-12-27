@@ -14,9 +14,9 @@ function generateApiKey(): { key: string; hash: string } {
     const prefix = "sk_live_";
     const randomBytes = crypto.randomBytes(24).toString("hex");
     const key = `${prefix}${randomBytes}`;
-    const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.scryptSync(key, salt, 64).toString("hex");
-    return { key, hash: `${salt}:${hash}` };
+    // IMPORTANT: Use SHA-256 to match middleware lookup in api-auth.ts
+    const hash = crypto.createHash('sha256').update(key).digest('hex');
+    return { key, hash };
 }
 
 async function listPending() {
@@ -57,10 +57,12 @@ async function approveUser(id: string) {
 
     await emailService.sendEmail({
         to: user.email,
-        subject: "Welcome to PumpLeague API",
+        subject: "Welcome to SolanaInvoice API",
         html: `
             <h1>Your API Key is Ready</h1>
+            <p>Welcome to SolanaInvoice! Your API access has been approved.</p>
             <p>Access Key: <code>${key}</code></p>
+            <p>Documentation: https://solanainvoice.com/developers</p>
             <p>Happy Building!</p>
         `
     });

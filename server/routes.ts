@@ -84,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerSolanaPayRoutes(app);
 
   // ================================================
-  // WAITLEST / DEVELOPER ROUTES
+  // WAITLIST / DEVELOPER ROUTES
   // ================================================
   registerWaitlistRoutes(app);
 

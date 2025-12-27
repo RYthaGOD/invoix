@@ -7,7 +7,7 @@ dotenv.config();
 const RPC_URL = "https://api.devnet.solana.com";
 const connection = new Connection(RPC_URL, "confirmed");
 
-const TREASURY_WALLET = "jawKuQ3xtcYoAuqE9jyG2H35sv2pWJSzsyjoNpsxG38";
+const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET || "jawKuQ3xtcYoAuqE9jyG2H35sv2pWJSzsyjoNpsxG38";
 
 async function airdrop(address: string, label: string) {
     try {
