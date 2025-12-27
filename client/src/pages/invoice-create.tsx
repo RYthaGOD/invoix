@@ -133,6 +133,7 @@ export default function InvoiceCreate() {
       // but simplistic mapping is fine given we only support a few.
       // Better: let the server handle it? No, Zod requires it.
       const currencyMints: Record<string, string> = {
+        "SOL": "So11111111111111111111111111111111111111112", // Native SOL wrapped mint
         "USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // Mainnet USDC
         "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
         "PYUSD": "2b1kV6DkPAnxd5ixfnhKpGTg1nPT4XVgS6s84TmX0gqg", // Devnet/Mainnet placeholders

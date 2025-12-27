@@ -16,6 +16,14 @@ export interface StablecoinConfig {
 
 // Mainnet Stablecoin Mints
 export const STABLECOINS: Record<string, StablecoinConfig> = {
+    SOL: {
+        symbol: 'SOL',
+        name: 'Solana',
+        mint: 'So11111111111111111111111111111111111111112', // Native SOL wrapped mint
+        decimals: 9,
+        icon: '◎',
+        network: 'mainnet-beta',
+    },
     USDC: {
         symbol: 'USDC',
         name: 'USD Coin',

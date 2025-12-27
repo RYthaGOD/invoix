@@ -20,8 +20,14 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-// Stablecoin options
+// Stablecoin options (including SOL)
 const STABLECOINS = [
+    {
+        symbol: "SOL",
+        name: "Solana",
+        icon: "◎",
+        mint: "So11111111111111111111111111111111111111112",
+    },
     {
         symbol: "USDC",
         name: "USD Coin",
