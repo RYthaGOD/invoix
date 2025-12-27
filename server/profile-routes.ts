@@ -235,7 +235,7 @@ export function registerProfileRoutes(app: Express) {
                     businessProfileId: profile.id,
                     nftMint: mint,
                     nftOwner: walletAddress,
-                    nftMetadataUri: `https://api.solanainvoice.com/nft-metadata/business/${profile.id}`,
+                    nftMetadataUri: `${process.env.API_URL || 'https://api.solanainvoice.com'}/nft-metadata/business/${profile.id}`,
                     verificationLevel: "basic",
                     nftMintSignature: signature,
                 });

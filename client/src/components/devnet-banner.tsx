@@ -5,7 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 export function DevnetBanner() {
     const [isVisible, setIsVisible] = useState(true);
 
-    if (!isVisible) return null;
+    // Only show on devnet
+    const isDevnet = import.meta.env.VITE_SOLANA_NETWORK === 'devnet';
+    if (!isDevnet || !isVisible) return null;
 
     return (
         <AnimatePresence>

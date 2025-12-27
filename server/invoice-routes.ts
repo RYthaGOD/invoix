@@ -76,6 +76,7 @@ export function registerInvoiceRoutes(app: Express): void {
         const currency = req.body.currency || "USDC";
 
         const mintMap: Record<string, string> = {
+          "SOL": "So11111111111111111111111111111111111111112", // Native SOL wrapped mint
           "USDC": DEFAULT_USDC_MINT,
           "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
           "EURC": "HzwqbKZw8HzsXB8dfLenzhf6j31qAvjfb5hEM9yr22yu"

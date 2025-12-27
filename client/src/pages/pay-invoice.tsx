@@ -98,93 +98,116 @@ export default function PayInvoice() {
             }
 
             const FEE_PAYER_PUBKEY = new PublicKey(config.feePayer);
-            const GAS_FEE_AMOUNT = config.feeAmount || 0.15;
             const TREASURY_ADDRESS = new PublicKey(config.treasuryAddress || TREASURY_WALLET_ADDRESS);
 
             const amountToPay = parseFloat(invoice.remainingAmount);
 
-            // Fee Logic:
-            // 1. Platform Fee (1%): Deducted from Recipient? Or Added? 
-            //    Standard B2B: Recipient pays fee (Net settlement). 
-            //    So Payer sends 100%. Recipient gets 99%. Treasury gets 1%.
-            // 2. Gas Recovery Fee (0.15 USDC): Added to Payer?
-            //    Usually "Service Fee". So Payer pays 100% + Service Fee.
-
+            // Fee Logic: Platform Fee (1%) - Recipient pays fee (Net settlement)
             const platformFeeRate = 0.01;
             const platformFeeAmount = amountToPay * platformFeeRate; // 1% of invoice
             const recipientAmount = amountToPay - platformFeeAmount; // 99% of invoice
 
-            const gasFeeAmount = GAS_FEE_AMOUNT; // User pays this extra
-
-            // Convert to Atomic Units
-            const decimals = invoice.tokenDecimals;
-            const toAtomic = (val: number) => Math.floor(val * Math.pow(10, decimals));
-
-            const platformFeeLamports = toAtomic(platformFeeAmount);
-            const recipientLamports = toAtomic(recipientAmount);
-            const gasFeeLamports = toAtomic(gasFeeAmount);
-
-            // Get token accounts
             const recipientPubkey = new PublicKey(invoice.invoicerWalletAddress);
-            const mintPubkey = new PublicKey(invoice.tokenMint);
-
-            const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, publicKey);
-            const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey);
-            const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, TREASURY_ADDRESS);
-
             const transaction = new Transaction();
             transaction.feePayer = FEE_PAYER_PUBKEY; // Protocol Pays Gas
 
-            // Import instructions
-            const { createAssociatedTokenAccountInstruction, createTransferInstruction } = await import('@solana/spl-token');
+            // Check if this is a native SOL payment
+            const isNativeSOL = invoice.currency === "SOL" ||
+                invoice.tokenMint === "So11111111111111111111111111111111111111112";
 
-            // 1. Check/Create Recipient ATA
-            const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
-            if (!recipientAccountInfo) {
-                transaction.add(
-                    createAssociatedTokenAccountInstruction(
-                        FEE_PAYER_PUBKEY, // Payer creates account (Protocol pays rent)
-                        recipientTokenAccount, recipientPubkey, mintPubkey
-                    )
-                );
-            }
+            if (isNativeSOL) {
+                // ==================== NATIVE SOL PAYMENT ====================
+                const LAMPORTS_PER_SOL = 1_000_000_000;
+                const recipientLamports = Math.floor(recipientAmount * LAMPORTS_PER_SOL);
+                const platformFeeLamports = Math.floor(platformFeeAmount * LAMPORTS_PER_SOL);
 
-            // 2. Check/Create Treasury ATA
-            const treasuryAccountInfo = await connection.getAccountInfo(treasuryTokenAccount);
-            if (!treasuryAccountInfo) {
-                transaction.add(
-                    createAssociatedTokenAccountInstruction(
-                        FEE_PAYER_PUBKEY,
-                        treasuryTokenAccount, TREASURY_ADDRESS, mintPubkey
-                    )
-                );
-            }
+                // Transfer to Recipient (99%)
+                if (recipientLamports > 0) {
+                    transaction.add(
+                        SystemProgram.transfer({
+                            fromPubkey: publicKey,
+                            toPubkey: recipientPubkey,
+                            lamports: recipientLamports,
+                        })
+                    );
+                }
 
-            // 3. Transfer to Recipient (99%)
-            if (recipientLamports > 0) {
-                transaction.add(
-                    createTransferInstruction(
-                        senderTokenAccount, recipientTokenAccount, publicKey, recipientLamports, [], TOKEN_PROGRAM_ID
-                    )
-                );
-            }
+                // Transfer Platform Fee (1%)
+                if (platformFeeLamports > 0) {
+                    transaction.add(
+                        SystemProgram.transfer({
+                            fromPubkey: publicKey,
+                            toPubkey: TREASURY_ADDRESS,
+                            lamports: platformFeeLamports,
+                        })
+                    );
+                }
+            } else {
+                // ==================== SPL TOKEN PAYMENT ====================
+                const GAS_FEE_AMOUNT = config.feeAmount || 0.15;
+                const decimals = invoice.tokenDecimals;
+                const toAtomic = (val: number) => Math.floor(val * Math.pow(10, decimals));
 
-            // 4. Transfer Platform Fee (1%)
-            if (platformFeeLamports > 0) {
-                transaction.add(
-                    createTransferInstruction(
-                        senderTokenAccount, treasuryTokenAccount, publicKey, platformFeeLamports, [], TOKEN_PROGRAM_ID
-                    )
-                );
-            }
+                const platformFeeLamports = toAtomic(platformFeeAmount);
+                const recipientLamports = toAtomic(recipientAmount);
+                const gasFeeLamports = toAtomic(GAS_FEE_AMOUNT);
 
-            // 5. Transfer Gas Recovery Fee (Service Fee)
-            if (gasFeeLamports > 0) {
-                transaction.add(
-                    createTransferInstruction(
-                        senderTokenAccount, treasuryTokenAccount, publicKey, gasFeeLamports, [], TOKEN_PROGRAM_ID
-                    )
-                );
+                const mintPubkey = new PublicKey(invoice.tokenMint);
+                const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, publicKey);
+                const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey);
+                const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, TREASURY_ADDRESS);
+
+                // Import instructions
+                const { createAssociatedTokenAccountInstruction, createTransferInstruction } = await import('@solana/spl-token');
+
+                // Check/Create Recipient ATA
+                const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
+                if (!recipientAccountInfo) {
+                    transaction.add(
+                        createAssociatedTokenAccountInstruction(
+                            FEE_PAYER_PUBKEY,
+                            recipientTokenAccount, recipientPubkey, mintPubkey
+                        )
+                    );
+                }
+
+                // Check/Create Treasury ATA
+                const treasuryAccountInfo = await connection.getAccountInfo(treasuryTokenAccount);
+                if (!treasuryAccountInfo) {
+                    transaction.add(
+                        createAssociatedTokenAccountInstruction(
+                            FEE_PAYER_PUBKEY,
+                            treasuryTokenAccount, TREASURY_ADDRESS, mintPubkey
+                        )
+                    );
+                }
+
+                // Transfer to Recipient (99%)
+                if (recipientLamports > 0) {
+                    transaction.add(
+                        createTransferInstruction(
+                            senderTokenAccount, recipientTokenAccount, publicKey, recipientLamports, [], TOKEN_PROGRAM_ID
+                        )
+                    );
+                }
+
+                // Transfer Platform Fee (1%)
+                if (platformFeeLamports > 0) {
+                    transaction.add(
+                        createTransferInstruction(
+                            senderTokenAccount, treasuryTokenAccount, publicKey, platformFeeLamports, [], TOKEN_PROGRAM_ID
+                        )
+                    );
+                }
+
+                // Transfer Gas Recovery Fee (Service Fee) - Only for SPL tokens
+                if (gasFeeLamports > 0) {
+                    transaction.add(
+                        createTransferInstruction(
+                            senderTokenAccount, treasuryTokenAccount, publicKey, gasFeeLamports, [], TOKEN_PROGRAM_ID
+                        )
+                    );
+                }
             }
 
             // Get recent blockhash

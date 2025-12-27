@@ -45,7 +45,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_paid_at
 
 -- Business profiles (wallet lookup)
 CREATE INDEX IF NOT EXISTS idx_business_profiles_wallet 
-  ON business_profiles(walletAddress);
+  ON business_profiles(ownerWalletAddress);
 
 -- Customer profiles (wallet lookup)
 CREATE INDEX IF NOT EXISTS idx_customer_profiles_business_wallet 
