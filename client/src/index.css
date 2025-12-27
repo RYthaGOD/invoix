@@ -503,6 +503,10 @@
      Midnight Prism - Glass System 2.0
      ============================================ */
 
+  /* ============================================
+     Midnight Prism - Glass System 2.0 (Refined)
+     ============================================ */
+
   .glass {
     background: rgba(3, 7, 18, 0.75);
     backdrop-filter: blur(24px) saturate(180%);
@@ -520,6 +524,46 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
     transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .glass-card-border {
+    position: relative;
+    border-radius: inherit;
+  }
+
+  .glass-card-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    /* Sub-pixel border width */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 40%, transparent 60%, rgba(255, 255, 255, 0.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Bento Layout Utilities */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(180px, auto);
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 1024px) {
+    .bento-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .bento-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .glass-card:hover {

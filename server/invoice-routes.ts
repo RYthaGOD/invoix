@@ -1370,56 +1370,9 @@ export function registerInvoiceRoutes(app: Express): void {
         return res.status(404).json({ error: "Invoice not found" });
       }
 
-      // Return NFT-compatible metadata
-      res.json({
-        name: `Invoice ${invoice.invoiceNumber}`,
-        symbol: "INV",
-        description: `B2B Invoice from ${invoice.invoicerWalletAddress} to ${invoice.invoiceeWalletAddress}`,
-        image: `${process.env.API_URL || "https://api.solanainvoice.com"}/images/invoice-nft.png`,
-        external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${id}`,
-        attributes: [
-          {
-            trait_type: "Invoice Number",
-            value: invoice.invoiceNumber,
-          },
-          {
-            trait_type: "Status",
-            value: invoice.status,
-          },
-          {
-            trait_type: "Currency",
-            value: invoice.currency,
-          },
-          {
-            trait_type: "Amount",
-            value: invoice.isArciumEncrypted ? "Encrypted" : invoice.totalAmount,
-            display_type: invoice.isArciumEncrypted ? undefined : "number",
-          },
-          {
-            trait_type: "Due Date",
-            value: invoice.dueDate.toISOString(),
-            display_type: "date",
-          },
-          {
-            trait_type: "Privacy",
-            value: invoice.isPrivate ? "Private" : "Public",
-          },
-          {
-            trait_type: "Encrypted",
-            value: invoice.isArciumEncrypted ? "Yes" : "No",
-          },
-        ],
-        properties: {
-          category: "invoice",
-          creators: [
-            {
-              address: invoice.invoicerWalletAddress,
-              share: 100,
-              verified: true,
-            },
-          ],
-        },
-      });
+      const nftService = getInvoiceNFTService();
+      const metadata = nftService.generateInvoiceMetadata(invoice);
+      res.json(metadata);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1440,60 +1393,9 @@ export function registerInvoiceRoutes(app: Express): void {
 
       const invoice = await invoiceStorage.getInvoice(paymentData.invoiceId);
 
-      res.json({
-        name: `Payment Receipt #${id.slice(0, 8)}`,
-        symbol: "RCPT",
-        description: `Payment receipt for Invoice ${invoice?.invoiceNumber || "Unknown"}`,
-        image: `${process.env.API_URL || "https://api.solanainvoice.com"}/images/receipt-nft.png`,
-        external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${paymentData.invoiceId}`,
-        attributes: [
-          {
-            trait_type: "Invoice Number",
-            value: invoice?.invoiceNumber || "Unknown",
-          },
-          {
-            trait_type: "Amount",
-            value: paymentData.amount,
-            display_type: "number",
-          },
-          {
-            trait_type: "Currency",
-            value: paymentData.currency,
-          },
-          {
-            trait_type: "Paid By",
-            value: paymentData.fromAddress,
-          },
-          {
-            trait_type: "Paid To",
-            value: paymentData.toAddress,
-          },
-          {
-            trait_type: "Transaction",
-            value: paymentData.txSignature,
-          },
-          {
-            trait_type: "Payment Date",
-            value: paymentData.paidAt.toISOString(),
-            display_type: "date",
-          },
-          {
-            trait_type: "Tax Year",
-            value: paymentData.paidAt.getFullYear(),
-            display_type: "number",
-          },
-        ],
-        properties: {
-          category: "payment_receipt",
-          creators: [
-            {
-              address: paymentData.fromAddress,
-              share: 100,
-              verified: true,
-            },
-          ],
-        },
-      });
+      const nftService = getInvoiceNFTService();
+      const metadata = nftService.generatePaymentReceiptMetadata(paymentData as any, invoice as any);
+      res.json(metadata);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1519,42 +1421,9 @@ export function registerInvoiceRoutes(app: Express): void {
 
       const verificationLevel = identity?.verificationLevel || "basic";
 
-      res.json({
-        name: `${businessData.businessName} - Verified Business`,
-        symbol: "BIZ",
-        description: `Verified business credentials for ${businessData.businessName}`,
-        image: `${process.env.API_URL || "https://api.solanainvoice.com"}/images/business-${verificationLevel}-nft.png`,
-        external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/business/${businessData.ownerWalletAddress}`,
-        attributes: [
-          {
-            trait_type: "Business Name",
-            value: businessData.businessName,
-          },
-          {
-            trait_type: "Verification Level",
-            value: verificationLevel,
-          },
-          {
-            trait_type: "Wallet",
-            value: businessData.ownerWalletAddress,
-          },
-          {
-            trait_type: "Registration Date",
-            value: businessData.createdAt.toISOString(),
-            display_type: "date",
-          },
-        ],
-        properties: {
-          category: "business_identity",
-          creators: [
-            {
-              address: businessData.ownerWalletAddress,
-              share: 100,
-              verified: true,
-            },
-          ],
-        },
-      });
+      const nftService = getInvoiceNFTService();
+      const metadata = nftService.generateBusinessIdentityMetadata(businessData as any, verificationLevel);
+      res.json(metadata);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

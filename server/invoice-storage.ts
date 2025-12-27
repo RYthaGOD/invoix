@@ -140,7 +140,15 @@ export interface CustomerStats {
   lastPaymentDate: Date | null;
 }
 
+
 class InvoiceStorage implements IInvoiceStorage {
+  // Implement properties for IInvoiceStorage
+  totalInvoices: number = 0;
+  totalUsers: number = 0;
+  totalPaidVolume: string = "0.00";
+  encryptedInvoices: number = 0;
+  totalVolume: string = "0.00";
+
   // ===================================
   // INVOICE OPERATIONS
   // ===================================
@@ -236,9 +244,14 @@ class InvoiceStorage implements IInvoiceStorage {
         // Lock the business profile row for the invoicer
         // Note: .for('update') is specific to Postgres and ensures sequential access
         // We skip this for SQLite (tests/dev)
+        const invoicerWallet = invoice.invoicerWalletAddress;
+        if (!invoicerWallet) {
+          throw new Error("Invoicer wallet address is required for atomic invoice numbering");
+        }
+
         let query = tx.select()
           .from(businessProfiles)
-          .where(eq(businessProfiles.ownerWalletAddress, invoice.invoicerWalletAddress))
+          .where(eq(businessProfiles.ownerWalletAddress, invoicerWallet))
           .$dynamic(); // Enable dynamic query building
 
         if (process.env.DATABASE_URL) {

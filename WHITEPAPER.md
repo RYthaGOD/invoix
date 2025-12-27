@@ -1,101 +1,64 @@
-# INVOIX: The Hybrid B2B Settlement Layer
+# INVOIX: The Industrial B2B Settlement Layer
 
 **Version:** 1.0  
 **Date:** December 2025  
-**Status:** Live Beta
+**Status:** Devnet Protocol Active
+**Standard:** Arcium v0.5.2 Industrial Hardening
 
 ---
 
 ## 1. Executive Summary
 
-**Invoix** is a next-generation B2B invoicing and settlement platform built on Solana. It bridges the gap between traditional business accounting (Web2) and instantaneous, trustless value transfer (Web3).
+**Invoix** is an industrial-grade B2B settlement layer on Solana. It bridges the gap between traditional enterprise accounting (Web2) and the high-velocity, confidential value transfer capabilities of the Solana and Arcium networks.
 
-Current B2B payments are slow, expensive (credit card fees ~2.9%), and opaque. Crypto payments are fast but often lack the professional tooling (invoices, receipts, privacy, recurring billing) businesses require.
-
-Invoix solves this by treating **Invoices as Smart Assets** while maintaining a familiar Web2 user experience.
+Traditional B2B payments suffer from legacy friction: multi-day settlements, opaque fee structures (~2.9%), and a complete lack of verifiable confidentiality. Invoix solves this by treating **Invoices as Smart Assets** protected by Tier-0 Confidentiality.
 
 ---
 
-## 2. The Problem
+## 2. The Solution: Industrial Hybrid Architecture
 
-### 1. The "Net 30" Friction
-Traditional B2B transactions rely on Net 30/60/90 terms because money moves slowly. Wire transfers take days; checks take weeks. This creates cash flow gaps.
+Invoix utilizes a **Hardened Hybrid Infrastructure**:
 
-### 2. Reconciliation Hell
-Sending crypto is easy; knowing *what* a transaction was for is hard. A wallet transaction hash (`8x...abc`) has no semantic context. Accounting teams spend hours matching blockchain hashes to PDF invoices.
-
-### 3. Privacy vs. Transparency
-Public blockchains reveal too much (who paid whom). Traditional systems reveal too little (is the invoice actually valid?). Businesses need a middle ground.
-
----
-
-## 3. The Solution: Hybrid Architecture
-
-Invoix uses a **Hybrid Infrastructure**:
-
-1.  **Web2 Frontend & Database**: A familiar dashboard for creating invoices, managing customers, and tracking status. This ensures a smooth User Experience (UX) without requiring deep crypto knowledge.
-2.  **Web3 Settlement Layer**:
-    *   **Payments**: Instant settlement in USDC, EURC, or SOL.
-    *   **Receipts**: Every payment automatically mints a **Compressed NFT (cNFT)** receipt. This acts as an immutable, on-chain proof of payment linked to the specific invoice ID.
-    *   **Identity**: "Verified Business" Soulbound Tokens (SBTs) allow merchants to build on-chain reputation.
-
-### Key Value Props
-*   **Instant Cash Flow**: Funds arrive in seconds, not days.
-*   **1% Flat Fee**: Significantly cheaper than Stripe/PayPal (2.9% + $0.30).
-*   **Automated Reconciliation**: The payment transaction *is* the receipt.
-*   **Trustless**: The platform cannot freeze funds; settlement is peer-to-peer.
+1.  **Arcium Tier-0 Privacy**: All sensitive invoice data (line items, pricing, parties) is processed within Arcium's Multi-Party Execution (MXE) environment. Data is encrypted at the source using `x25519` and `RescueCipher`.
+2.  **Solana Velocity Settlement**:
+    *   **Payments**: Instant (<400ms) settlement in USDC, EURC, or SOL.
+    *   **Proofs**: Every payment triggers an automatic **Compressed NFT (cNFT)** receipt, providing an immutable on-chain audit trail.
+3.  **Atomic Integrity Layer**: Industrial-grade anti-replay guards and row-level sequential locking prevent all forms of double-counting and financial race conditions.
 
 ---
 
-## 4. Technical Architecture
+## 3. Technical Hardening
 
-### 4.1. Compressed NFTs (cNFTs) for Scalability
-We utilize **Solana's State Compression** technology.
-*   **Traditional NFTs**: Cost ~$0.002 to mint 1 item. Expensive at scale (millions of invoices).
-*   **Compressed NFTs**: We use a **Merkle Tree** structure. We can mint **millions of receipts for fractions of a SOL**.
-    *   *Current Config*: Max Depth 14 (16,384 invoices per tree).
-    *   *Scalability*: Trivial upgrade to Depth 24+ allows for billions of units.
+### 3.1. State Compression (cNFTs)
+We leverage Solana's **State Compression** for infinite scalability.
+*   **Merkle Logic**: Using a global Merkle Tree, Invoix can mint billions of audit-ready receipts for negligible costs.
+*   **Verification**: Each receipt is cryptographically linked to the specific invoice and transaction signature.
 
-### 4.2. Arcium Tier-0 Encryption (Privacy)
-To solve the privacy paradox, we integrate **Arcium Multi-Party Computation (MPC)**.
-*   **Public Data**: Timestamp, Amount (optional).
-*   **Private Data**: Invoice Line Items, Customer Details.
-*   **How it works**: Sensitive data is encrypted before it leaves the browser. Only the authorized parties (Buyer & Seller) can decrypt the invoice details using the Arcium Network. The blockchain sees an encrypted blob, preserving business secrecy while proving existence.
+### 3.2. Confidential Computing (Arcium MXE)
+Privacy is not a toggle; it's the foundation.
+*   **Encrypted-at-Rest**: Line items are never stored in plain-text.
+*   **Authorization**: TEE (Trusted Execution Environment) enforced access ensures that even database administrators cannot view sensitive commercial details.
 
-### 4.3. "Gasless" Design
-We use a **Relayer Pattern**.
-*   Users sign a message ("I approve this invoice").
-*   The Invoix Server pays the SOL gas fees for the transaction.
-*   The outcome: Users don't need to manage SOL balances just to create an invoice.
+### 3.3. REPLAY-GUARD™ Technology
+*   **Industrial Signature Ledger**: Every transaction signature is tracked globally to prevent replay attacks across the payment and NFT services.
+*   **XSS & Injection Shield**: Whitelist-oriented sanitization ensures that shared invoice views remain safe in enterprise environments.
 
 ---
 
-## 5. Business Model
+## 4. Roadmap (Hardened Protocol)
 
-The protocol revenue model is simple and transparent:
+### Phase 1: Institutional Foundation (Completed)
+*   ✅ Invoicing Engine (Atomic Sequential)
+*   ✅ Solana/USDC/EURC Settlement Layer
+*   ✅ Compressed NFT Proof-of-Payment Receipts
+*   ✅ **Arcium v0.5.2** Industrial Privacy Integration
+*   ✅ **REPLAY-GUARD™** & **XSS-SHIELD™** Hardening
+*   ✅ **Midnight Prism 3.0** Aesthetic Overhaul
 
-1.  **Platform Fee (1%)**: Taken automatically from every invoice payment.
-    *   *Example*: Invoice for $1,000 USDC.
-    *   *Settlement*: $990 to Merchant, $10 to Invoix Treasury.
-    *   *Mechanism*: Atomic transaction instruction ensures the fee cannot be bypassed.
+### Phase 2: Recurring Economy (In Progress)
+*   [ ] **Subscription Streams**: Atomic recurring billing via Token Extensions.
+*   [ ] **Enterprise Oracle Support**: Seamless integration with existing ERP systems.
 
-2.  **Identity Verification ($5 - $20)**: One-time fee for businesses to mint their "Verified Merchant" badge.
-
----
-
-## 6. Roadmap
-
-### Phase 1: Foundation (Completed)
-*   ✅ Invoicing Engine
-*   ✅ Solana/USDC Payments
-*   ✅ Compressed NFT Receipts
-*   ✅ Basic Privacy (Private toggle)
-
-### Phase 2: Polish (Completed)
-*   ✅ Email Notifications (Resend Integration)
-*   ✅ UX Improvements & Status Badges
-
-### Phase 3: Growth (Next)
-*   [ ] **Recurring Billing**: Subscription streams using Token Extensions.
-*   [ ] **Mobile App**: React Native mobile experience.
-*   [ ] **Factoring/Lending**: Allow businesses to borrow against unpaid invoices (DeFi integration).
+### Phase 3: Tradeable Debt (Future)
+*   [ ] **Invoice Factoring**: Tokenize accounts receivable as RWA (Real World Asset) NFTs.
+*   [ ] **Liquidity Marketplaces**: Secure, confidential lending against unpaid invoices.

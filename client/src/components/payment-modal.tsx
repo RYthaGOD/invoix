@@ -14,7 +14,7 @@ interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
   projectId: string;
-  tier: "STARTER" | "PRO";
+  tier: "FREE" | "PREMIUM";
   ownerWalletAddress: string;
   onSuccess?: () => void;
 }
@@ -33,12 +33,12 @@ export function PaymentModal({ open, onClose, projectId, tier, ownerWalletAddres
         tier,
         ownerWalletAddress,
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Payment verification failed");
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -97,7 +97,7 @@ export function PaymentModal({ open, onClose, projectId, tier, ownerWalletAddres
               </div>
               <h4 className="font-semibold">Send SOL to Treasury Wallet</h4>
             </div>
-            
+
             <div className="ml-8 space-y-2">
               <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
                 <code className="flex-1 text-sm font-mono break-all" data-testid="text-treasury-address">
@@ -112,7 +112,7 @@ export function PaymentModal({ open, onClose, projectId, tier, ownerWalletAddres
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-sm">
@@ -130,7 +130,7 @@ export function PaymentModal({ open, onClose, projectId, tier, ownerWalletAddres
               </div>
               <h4 className="font-semibold">Enter Transaction Signature</h4>
             </div>
-            
+
             <div className="ml-8 space-y-2">
               <Label htmlFor="txSignature">Transaction Signature</Label>
               <Input

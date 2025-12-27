@@ -7,6 +7,13 @@ import { TourGuide } from "@/components/tour-guide";
 
 export function Navbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     // Lock body scroll when menu is open
     useEffect(() => {
@@ -26,107 +33,124 @@ export function Navbar() {
 
     return (
         <>
-            <nav className="fixed w-full top-0 z-50 transition-all duration-300 glass border-b border-white/5">
-                <div className="container mx-auto px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        {/* Logo */}
-                        <Link href="/">
-                            <a className="flex items-center space-x-3 group">
-                                <div className="relative">
-                                    <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full group-hover:bg-primary/40 transition-colors" />
-                                    <img src="/invoix-logo.jpg" alt="Invoix Logo" className="relative w-10 h-10 object-contain rounded-xl shadow-lg border border-white/10" />
-                                </div>
-                                <span className="text-2xl font-bold font-heading tracking-tight">
-                                    <span className="text-foreground">Inv</span>
-                                    <span className="gradient-text">oix</span>
-                                </span>
-                            </a>
-                        </Link>
+            <div className="fixed w-full top-6 z-50 flex justify-center px-6 pointer-events-none">
+                <nav className={`
+                    pointer-events-auto transition-all duration-500 ease-in-out
+                    flex items-center justify-between gap-8 py-3 px-6 rounded-full
+                    ${scrolled
+                        ? "glass border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] translate-y-0"
+                        : "bg-white/5 border-white/5 translate-y-2"}
+                    border backdrop-blur-xl max-w-7xl w-full
+                `}>
+                    {/* Logo */}
+                    <Link href="/">
+                        <a className="flex items-center space-x-3 group min-w-max">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full group-hover:bg-primary/40 transition-colors" />
+                                <img src="/logo.png" alt="Invoix Logo" className="relative w-10 h-10 object-contain rounded-xl shadow-lg border border-white/10" />
+                            </div>
+                            <span className="text-2xl font-bold font-heading tracking-tight hidden sm:block">
+                                <span className="text-foreground">Inv</span>
+                                <span className="gradient-text">oix</span>
+                            </span>
+                        </a>
+                    </Link>
 
-                        {/* Nav Links - Desktop */}
-                        <div className="hidden md:flex items-center space-x-1 bg-white/5 backdrop-blur-md px-2 py-1.5 rounded-full border border-white/5">
-                            {[
-                                { label: "Features", id: "features" },
-                                { label: "Rewards", id: "rewards" },
-                                { label: "Pricing", id: "pricing" }
-                            ].map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => scrollToSection(item.id)}
-                                    className="px-5 py-2 text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/5 rounded-full transition-all"
-                                >
-                                    {item.label}
-                                </button>
-                            ))}
+                    {/* Nav Links - Desktop */}
+                    <div className="hidden md:flex items-center space-x-1">
+                        {[
+                            { label: "Features", id: "features" },
+                            { label: "Rewards", id: "rewards" },
+                            { label: "Pricing", id: "pricing" }
+                        ].map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => scrollToSection(item.id)}
+                                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-white transition-all relative group"
+                            >
+                                {item.label}
+                                <span className="absolute bottom-1 left-4 right-4 h-px bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="hidden md:flex items-center gap-2">
+                            <Link href="/docs">
+                                <a className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-white transition-all">
+                                    Docs
+                                </a>
+                            </Link>
                             <Link href="/invoices">
-                                <a className="px-5 py-2 text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/5 rounded-full transition-all" id="nav-dashboard">
-                                    Dashboard
+                                <a className="px-5 py-2 text-sm font-bold bg-white text-black rounded-full hover:bg-white/90 transition-all shadow-lg" id="nav-dashboard">
+                                    Launch
                                 </a>
                             </Link>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <TourGuide />
-                            <div className="hidden md:block" id="tour-wallet-connect">
-                                <WalletButton />
-                            </div>
-
-                            {/* Mobile Menu Toggle */}
-                            <button
-                                className="md:hidden w-10 h-10 flex items-center justify-center rounded-full glass hover:bg-white/10 transition-colors"
-                                onClick={() => setMobileMenuOpen(true)}
-                            >
-                                <Menu className="w-5 h-5 text-white" />
-                            </button>
+                        <div className="md:hidden">
+                            <WalletButton />
                         </div>
+
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            className="md:hidden w-10 h-10 flex items-center justify-center rounded-full glass hover:bg-white/10 transition-colors"
+                            onClick={() => setMobileMenuOpen(true)}
+                        >
+                            <Menu className="w-5 h-5 text-white" />
+                        </button>
                     </div>
-                </div>
-            </nav>
+                </nav>
+            </div>
 
             {/* Mobile Menu Overlay */}
             <AnimatePresence>
                 {mobileMenuOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2 }}
-                        className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl md:hidden flex flex-col pt-24 px-6"
+                        initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                        animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
+                        exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                        className="fixed inset-0 z-[60] bg-black/80 md:hidden flex flex-col pt-32 px-10"
                     >
                         <button
                             onClick={() => setMobileMenuOpen(false)}
-                            className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white"
+                            className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center rounded-full glass text-white"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-6 h-6" />
                         </button>
 
-                        <nav className="flex flex-col gap-6 text-2xl font-heading font-bold text-center">
+                        <nav className="flex flex-col gap-8 text-3xl font-heading font-bold">
                             {[
                                 { label: "Features", id: "features" },
                                 { label: "Rewards", id: "rewards" },
-                                { label: "Pricing", id: "pricing" }
+                                { label: "Pricing", id: "pricing" },
+                                { label: "Docs", href: "/docs" }
                             ].map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => {
-                                        setMobileMenuOpen(false);
-                                        setTimeout(() => scrollToSection(item.id), 300);
-                                    }}
-                                    className="text-white hover:text-primary transition-colors py-2"
-                                >
-                                    {item.label}
-                                </button>
+                                item.href ? (
+                                    <Link key={item.label} href={item.href}>
+                                        <a className="text-white hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                                            {item.label}
+                                        </a>
+                                    </Link>
+                                ) : (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            setMobileMenuOpen(false);
+                                            setTimeout(() => scrollToSection(item.id!), 300);
+                                        }}
+                                        className="text-left text-white hover:text-primary transition-colors"
+                                    >
+                                        {item.label}
+                                    </button>
+                                )
                             ))}
                             <Link href="/invoices">
                                 <a className="text-primary mt-4 py-2" onClick={() => setMobileMenuOpen(false)}>
-                                    Launch Dashboard
+                                    Dashboard →
                                 </a>
                             </Link>
                         </nav>
-
-                        <div className="mt-12 flex justify-center">
-                            <WalletButton />
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

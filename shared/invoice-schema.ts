@@ -203,6 +203,9 @@ export const payments = pgTable("payments", {
   paymentNotes: text("payment_notes"), // Optional notes from payer
   errorMessage: text("error_message"),
 
+  // NFT Status tracking
+  nftReceiptMinted: boolean("nft_receipt_minted").notNull().default(false),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
   confirmedAt: timestamp("confirmed_at"),
 });
@@ -545,6 +548,7 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   // For crypto payments, backend extracts them from chain
   fromAddress: z.string().min(32).optional(),
   toAddress: z.string().min(32).optional(),
+  nftReceiptMinted: z.boolean().optional(),
 });
 
 export const insertBusinessProfileSchema = createInsertSchema(businessProfiles).omit({

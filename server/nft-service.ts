@@ -65,6 +65,7 @@ interface InvoiceNFTMetadata {
   uri: string;
   description: string;
   image: string;
+  external_url?: string;
   attributes: Array<{
     trait_type: string;
     value: string | number;
@@ -467,7 +468,7 @@ export class InvoiceNFTService {
         ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 })
       );
       const priorityFeeIx = fromWeb3JsInstruction(
-        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 5000 }) // 0.000005 SOL
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50000 }) // 0.00005 SOL
       );
 
       builder = builder.prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
@@ -569,7 +570,7 @@ export class InvoiceNFTService {
         ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })
       );
       const priorityFeeIx = fromWeb3JsInstruction(
-        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 5000 })
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50000 })
       );
 
       const mintIxWithBudget = mintIx.prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
@@ -661,7 +662,19 @@ export class InvoiceNFTService {
         tokenOwner: owner,
       } as any);
 
-      const result = await this.executeWithRetry(() => createNftIx.sendAndConfirm(this.umi));
+      // Add Priority Fees
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 })
+      );
+      const priorityFeeIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50000 })
+      );
+
+      const result = await this.executeWithRetry(() =>
+        createNftIx.prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
+          .prepend({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] })
+          .sendAndConfirm(this.umi)
+      );
       const signature = result.signature.toString();
 
       console.log(`✅ Minted Business Identity NFT: ${mint.publicKey.toString()}`);
@@ -891,6 +904,7 @@ export class InvoiceNFTService {
         name: `Invoice #${invoice.invoiceNumber} (Private)`, // Obfuscated Name
         symbol: "INV-P",
         uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
+        external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
         description: `This invoice is private. Data integrity is verified on-chain via SHA256 hash. Verify ownership to decrypt contents.`,
         image: imageUri, // Returns the "Lock" SVG
         attributes: [
@@ -941,6 +955,7 @@ export class InvoiceNFTService {
       name: `Invoice ${invoice.invoiceNumber}`,
       symbol: "INV",
       uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
+      external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
       description: `B2B Invoice from ${invoice.invoicerWalletAddress} to ${invoice.invoiceeWalletAddress}`,
       image: imageUri,
       attributes: [
@@ -1001,6 +1016,7 @@ export class InvoiceNFTService {
       name: `Payment Receipt #${payment.id.slice(0, 8)}`,
       symbol: "RCPT",
       uri: `${apiUrl}/nft-metadata/payment/${payment.id}`,
+      external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
       description: `Payment receipt for Invoice ${invoice.invoiceNumber}`,
       image: `${apiUrl}/images/receipt-nft.png`,
       attributes: [
@@ -1318,7 +1334,20 @@ export class InvoiceNFTService {
       }
 
       const createNftIx = createNft(this.umi, nftConfig);
-      const result = await this.executeWithRetry(() => createNftIx.sendAndConfirm(this.umi));
+
+      // Add Priority Fees
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 })
+      );
+      const priorityFeeIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50000 })
+      );
+
+      const createNftIxWithFees = createNftIx
+        .prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
+        .prepend({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] });
+
+      const result: any = await this.executeWithRetry(() => createNftIxWithFees.sendAndConfirm(this.umi));
       const signature = result.signature.toString();
 
       console.log(`✅ Minted ${nftVariant.name} (${nftVariant.rarity}). Mint: ${mint.publicKey.toString()} Sig: ${signature}`);
@@ -1436,9 +1465,21 @@ export class InvoiceNFTService {
 
       const createNftBuilder = createNft(this.umi, nftConfig);
 
+      // Add Priority Fees (Crucial for Reliability)
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 750_000 }) // Standard NFT minting is expensive
+      );
+      const priorityFeeIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50000 })
+      );
+
+      const builderWithFees = createNftBuilder
+        .prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
+        .prepend({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] });
+
       // 5. Build and Partially Sign
       // Payer is User. Server signs as Authority/Creator/CollectionAuth. MintSigner signs as Mint.
-      const transaction = await createNftBuilder.buildAndSign({
+      const transaction = await builderWithFees.buildAndSign({
         ...this.umi, // REQUIRED: Provide RPC and Transactions context
         payer: // 3. User (Payer) - We only have their public key and a placeholder sign function
           // The client will actually sign this transaction.

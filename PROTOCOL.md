@@ -1,70 +1,55 @@
-# Solana B2B Invoicing Protocol Overview (Production v1.0)
+# Solana B2B Invoicing Protocol Overview (Devnet v1.0)
 
-> **Current Status**: Live on Mainnet
+> **Current Status**: Active on Devnet
 > **Version**: 1.0.0
+> **Privacy Layer**: Arcium v0.5.2 MXE
 
 ## 1. Core Concept
-The **Solana B2B Invoicing System** is a production-ready invoicing platform that enables businesses to send and settle invoices on-chain using stablecoins (USDC/EURC) and SOL. It prioritizes **immediate utility and stability**, using proven cryptographic standards for privacy while preparing for next-gen confidential computing.
+The **Solana B2B Invoicing System** is a production-hardened settlement layer that enables businesses to send and settle invoices on-chain using stablecoins (USDC/EURC) and SOL. It prioritizes **industrial confidentiality** via Arcium MXE and high-velocity settlement on Solana.
 
 ## 2. Key Technologies
 
-### 🛡️ Privacy Layer: Hybrid Encryption (AES-256 + Arcium Ready)
-- **Current Production**: Uses **AES-256-GCM** (standard military-grade encryption) to encrypt sensitive invoice details (line items, unit prices) in the database.
-- **Key Management**: Keys are managed securely server-side, ensuring only authorized parties (Invoicer/Invoicee) can access decrypted data via the API.
-- **Future Integration**: The system is architected to switch to **Arcium's Confidential Computing (MXE)** network when the v0.5 SDK stabilizes, without changing the frontend user experience.
+### 🔐 Privacy Layer: Arcium v0.5.2 (MXE)
+- **Status**: Primary encryption layer.
+- **Confidential Computing**: Uses Arcium's Multi-Party Execution (MXE) to process sensitive invoice details (line items, pricing) in a secure, verifiable environment.
+- **Client-Side Hardening**: All data is encrypted with `x25519` and `RescueCipher` before network transmission.
+- **Access Control**: TEE (Trusted Execution Environment) enforced access—only authorized wallet holders can decrypt their specific invoices.
 
 ### 💰 Settlement Layer: Solana & SPL Tokens
-- **Role**: Handles value transfer and settlement.
+- **Role**: High-speed value transfer.
 - **Support**: Native SOL, USDC (SPL), and EURC.
-- **Speed**: <400ms finality checks.
-- **Verification**: The system performs real-time on-chain verification of transaction signatures to ensure payment finality before updating invoice status.
+- **Verification**: Atomic on-chain verification of transaction signatures ensures 100% finality before ledger updates.
 
-### 📄 Invoicing Logic: Standard REST + Web3
-- **Creation**: Free invoice creation (non-gated).
-- **Storage**: Hybrid storage.
-    - **Metadata** (Who, When, Status): Stored in PostgreSQL for fast indexing.
-    - **Sensitive Data** (What, How Much): Encrypted blobs.
-- **Delivery**: Email notifications and in-app dashboard updates.
+### 📄 Invoicing Logic: Atomic Ledger
+- **Storage**: Hybrid, industrial-hardened storage.
+    - **Public Metadata**: (Timestamps, Status) stored in indexed PostgreSQL.
+    - **Confidential Data**: (Line Items, Total Value) stored as Arcium-encrypted blobs.
+- **Integrity**: Anti-replay guards and sequential numbering prevent financial double-counting.
 
-### 🖼️ Tokenization (Optional)
-- **Receipts**: If a `PAYER_PRIVATE_KEY` is configured on the server, the system automatically mints a **Payment Receipt NFT** upon successful payment.
-- **Purpose**: Provides an immutable on-chain record for accounting and tax auditing.
+### 🖼️ Tokenization: cNFT Receipts
+- **Automatic Minting**: Successful payments trigger an automatic **Compressed NFT (cNFT)** receipt.
+- **Accounting**: Provides an immutable, tax-verifiable record of payment on the Solana ledger.
 
-## 3. The Invoice Lifecycle (Production Flow)
+## 3. The Invoice Lifecycle
 
-1.  **Draft**: 
-    - Business creates an invoice via dashboard.
-    - System validates schema and business rules.
-2.  **Encryption & Storage**:
-    - Sensitive fields are encrypted using **AES-256-GCM**.
-    - Invoice is stored with status `DRAFT` or `SENT`.
-3.  **Delivery**:
-    - Notification sent to customer.
-4.  **Access & Decryption**:
-    - Customer logs in with their wallet.
-    - API verifies wallet ownership (Signature Auth).
-    - If authorized, API decrypts data and returns plain-text JSON to the frontend.
-5.  **Payment**:
-    - Customer signs a standard SPL Token Transfer instruction using their wallet.
-    - Transaction posts to Solana Mainnet.
-6.  **Verification & Settlement**:
-    - Client sends Transaction Signature to API.
-    - API queries Solana RPC to verify:
-        - Sender/Receiver match invoice.
-        - Amount and Mint match invoice.
-        - Block time is recent.
-    - If valid, Invoice status updates to `PAID`.
-7.  **Receipt Minting (Auto)**:
-    - (Optional) System mints a Receipt NFT to the payer's wallet as proof of purchase.
+1.  **Draft & Encrypt**: Business creates invoice; sensitive data is encrypted using Arcium keys.
+2.  **Storage**: Encrypted payload is pushed to the secure ledger.
+3.  **Delivery**: Secure link or dashboard notification is sent to the customer.
+4.  **Auth (SIWS)**: Customer authenticates via **Sign In With Solana**.
+5.  **Decryption**: API interacts with Arcium MXE to verify authorization and decrypt data for the specific viewer.
+6.  **Settlement**: Customer signs transfer; transaction is verified atomically by the Invoix backend.
+7.  **Receipt**: System automatically mints a Proof-of-Payment cNFT to the customer's wallet.
 
 ## 4. Current Architecture Details
 
-### Privacy Model
-- **Public**: No data is exposed publicly. All endpoints require Wallet Authentication.
-- **Private**: 
-    - **Invoicer**: Sees all invoices they created.
-    - **Invoicee**: Sees only invoices sent to them.
-    - **Database Admins**: Cannot see line item details (encrypted at rest).
+### Privacy Model (Tier-0)
+- **Public**: No sensitive data is ever exposed on-chain or in public APIs.
+- **Database Admins**: Cannot view details due to Arcium encryption-at-rest.
+
+### Security Hardening
+- **XSS Guard**: Whitelist sanitization for all user-generated content.
+- **Atomic Locking**: Postgres row-level locking ensures no race conditions during settlement.
+- **Global Signature Ledger**: Tracks all transaction signatures to prevent replay attacks across services.
 
 ### Spam Prevention
 - **Current**: Strictly enforced Rate Limiting (API Gateway).

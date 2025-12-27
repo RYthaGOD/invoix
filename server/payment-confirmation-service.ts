@@ -134,9 +134,12 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
 
             console.log(`[NFT] Receipt Minted: ${receiptResult.mint}`);
 
-            // Save to DB
-            // DB Insertion is handled inside nftService.mintPaymentReceiptNFT
-            // to ensure Asset ID and Merkle indices are captured correctly.
+            // Update payment record to track success
+            await db.update(payments)
+                .set({ nftReceiptMinted: true })
+                .where(eq(payments.txSignature, signature));
+
+            console.log(`[NFT] Payment record updated with NFT success flag`);
         } else {
             console.warn(`[NFT] Skipped Receipt NFT mint for invoice ${invoiceId} - NFT Service not ready`);
         }
