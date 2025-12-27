@@ -388,7 +388,7 @@ export default function PayInvoice() {
 
                         {/* Amount */}
                         <div className="border-t border-white/10 pt-6 mb-6">
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-2 gap-6 mb-4">
                                 <div>
                                     <p className="text-gray-400 text-sm mb-1">Total Amount</p>
                                     <p className="text-3xl font-bold text-white">
@@ -400,6 +400,33 @@ export default function PayInvoice() {
                                     <p className="text-3xl font-bold text-purple-400">
                                         {parseFloat(invoice.remainingAmount).toFixed(2)} {invoice.currency}
                                     </p>
+                                </div>
+                            </div>
+
+                            {/* Payment Distribution Breakdown */}
+                            <div className="bg-white/5 rounded-lg p-4 border border-white/5">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Payment Distribution (Included in Total)</p>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between items-center text-gray-300">
+                                        <span>To Invoicer ({invoice.invoicerWalletAddress.slice(0, 4)}...{invoice.invoicerWalletAddress.slice(-4)})</span>
+                                        <span className="font-mono">
+                                            {(parseFloat(invoice.remainingAmount) * 0.99).toFixed(2)} {invoice.currency}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-purple-300">
+                                        <span className="flex items-center gap-1">
+                                            Platform Fee (1%)
+                                            <div className="group relative">
+                                                <AlertCircle className="w-3 h-3 cursor-help text-purple-400" />
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black/90 text-white text-xs rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                    This fee supports the Invoix protocol and is deducted from the settlement.
+                                                </div>
+                                            </div>
+                                        </span>
+                                        <span className="font-mono">
+                                            {(parseFloat(invoice.remainingAmount) * 0.01).toFixed(2)} {invoice.currency}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
