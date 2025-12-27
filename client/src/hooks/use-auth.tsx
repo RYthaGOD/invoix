@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Create message to sign
             const timestamp = Date.now();
-            const message = `Sign in to Invoix at ${timestamp}`;
+            const message = `Sign in to SolanaInvoice at ${timestamp}`;
             const messageBytes = new TextEncoder().encode(message);
 
             // Request signature from wallet

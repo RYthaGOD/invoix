@@ -4,13 +4,15 @@ export const TREASURY_WALLET_ADDRESS =
     process.env.PLATFORM_TREASURY_WALLET || "jawKuQ3xtcYoAuqE9jyG2H35sv2pWJSzsyjoNpsxG38";
 
 export const PRICING = {
-    STARTER: {
-        name: "Starter Tier",
-        priceSOL: 0.5, // Verify actual pricing requirements
+    FREE: {
+        name: "Free Tier",
+        priceSOL: 0,
+        features: ["Unlimited Invoices", "Basic Analytics", "Community Support"],
     },
-    PRO: {
-        name: "Pro Tier",
-        priceSOL: 1.0,
+    PREMIUM: {
+        name: "Premium",
+        priceSOL: 0.25,
+        features: ["Priority Support", "Advanced Analytics", "Custom Branding", "API Access"],
     },
 } as const;
 

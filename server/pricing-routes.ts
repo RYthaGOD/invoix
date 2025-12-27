@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { getSolPrice } from "./pricing-service";
+import { globalRateLimit } from "./security";
 
 const router = Router();
 
-router.get("/sol", async (req, res) => {
+router.get("/sol", globalRateLimit, async (req, res) => {
     try {
         const price = await getSolPrice();
         res.json({
