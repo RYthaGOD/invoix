@@ -15,12 +15,10 @@ function generateApiKey(): { key: string; hash: string } {
     const randomBytes = crypto.randomBytes(24).toString("hex"); // 48 chars
     const key = `${prefix}${randomBytes}`;
 
-    // Hash using scrypt for storage
-    const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.scryptSync(key, salt, 64).toString("hex");
-    const storedValue = `${salt}:${hash}`;
+    // Hash using SHA-256 for fast lookup (Unique Index friendly)
+    const hash = crypto.createHash("sha256").update(key).digest("hex");
 
-    return { key, hash: storedValue };
+    return { key, hash };
 }
 
 export function registerWaitlistRoutes(app: Express): void {

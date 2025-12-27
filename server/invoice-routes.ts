@@ -24,6 +24,7 @@ import {
 } from "@shared/invoice-schema";
 import { fromZodError } from "zod-validation-error";
 import { requireWalletOwnership, strictRateLimit } from "./security";
+import { validateApiKey } from "./middleware/api-auth";
 import { getArciumService, loadKeypairFromPrivateKey } from "./arcium-service";
 import { getInvoiceNFTService } from "./nft-service";
 import { getEmailService } from "./email-service"; // Import Email Service
@@ -50,12 +51,18 @@ export function registerInvoiceRoutes(app: Express): void {
   /**
    * Create a new invoice
    * POST /api/invoices
-   * Requires authentication
+   * Requires authentication (Wallet Session OR API Key)
    */
-  app.post("/api/invoices", requireWalletOwnership, strictRateLimit, async (req, res) => {
+  app.post("/api/invoices", validateApiKey, requireWalletOwnership, strictRateLimit, async (req, res) => {
     try {
-      // Get authenticated wallet from session
-      const authenticatedWallet = (req as any).authenticatedWallet;
+      // Get authenticated wallet from session (which might be populated by API Key)
+      let authenticatedWallet = (req as any).authenticatedWallet;
+
+      // Fallback for API Key users who might not go through full session logic in requireWalletOwnership 
+      // (though validateApiKey mocks session, safe to check)
+      if (!authenticatedWallet && req.session?.walletAddress) {
+        authenticatedWallet = req.session.walletAddress;
+      }
 
       // --- NORMALIZATION & DEFAULTS ---
       // Apply backend defaults for fields that might be missing from the frontend
