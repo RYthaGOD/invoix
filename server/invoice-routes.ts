@@ -234,7 +234,14 @@ export function registerInvoiceRoutes(app: Express): void {
       // -----------------------------
 
       // If Arcium encryption is requested, encrypt sensitive data
-      if (req.body.encryptWithArcium && req.body.allowedParties) {
+      if (req.body.encryptWithArcium) {
+        if (!req.body.allowedParties || req.body.allowedParties.length < 2) {
+          return res.status(400).json({
+            success: false,
+            message: "Privacy Error: allowedParties (Invoicer + Invoicee) must be specified for Arcium encryption."
+          });
+        }
+
         try {
           const arciumService = getArciumService();
 
@@ -273,33 +280,20 @@ export function registerInvoiceRoutes(app: Express): void {
             throw new Error(`Encryption failed: ${encryptedResult.error}`);
           }
         } catch (arciumError: any) {
-          console.error("⚠️ Arcium Encryption Failed (Soft Fallback Active):", arciumError.message);
+          console.error("❌ Arcium Encryption Failed (HARD ERROR):", arciumError.message);
 
-          // SOFT FALLBACK:
-          // Instead of failing, we update the invoice to reflect it is NOT encrypted but saved successfully.
-          // This prevents "Business Stoppage" due to external privacy network downtime.
-
+          // Delete the invoice we just created to maintain database integrity
+          // since we can't fulfill the privacy guarantee
           try {
-            await invoiceStorage.updateInvoice(invoice.id, {
-              isArciumEncrypted: false,
-              arciumEncryptedData: null,
-              arciumEncryptionKey: null
-            });
-            invoice.isArciumEncrypted = false;
-          } catch (updateErr) {
-            console.error("Failed to update invoice state after encryption failure:", updateErr);
+            await invoiceStorage.deleteInvoice(invoice.id);
+          } catch (deleteErr) {
+            console.error("Failed to cleanup invoice after encryption failure:", deleteErr);
           }
 
-          // Return success but with a warning
-          res.status(201).json({
-            success: true,
-            invoice,
-            lineItems: lineItems || [],
-            nftMinted: !!invoice.nftMint,
-            message: "Invoice created (Privacy Network unavailable - Saved in standard mode)",
-            warning: "Arcium Encryption Failed: " + arciumError.message
+          return res.status(503).json({
+            success: false,
+            message: `Confidential Computing Error: ${arciumError.message}. The invoice was not created to protect your privacy.`
           });
-          return;
         }
       }
 

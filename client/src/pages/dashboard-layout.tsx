@@ -33,10 +33,34 @@ import {
 } from "@/components/ui/breadcrumb";
 import { AnimatePresence, motion } from "framer-motion";
 
+import { useQuery } from "@tanstack/react-query";
+
 import type { ReactNode, CSSProperties } from "react";
+
+interface SystemStatus {
+  success: boolean;
+  services: {
+    [key: string]: {
+      status: string;
+      label: string;
+      version?: string;
+      skipFee?: boolean;
+    };
+  };
+  network: {
+    status: string;
+    rpc: string;
+  };
+}
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+
+  // Fetch system status
+  const { data: systemStatus } = useQuery<SystemStatus>({
+    queryKey: ["/api/system/status"],
+  });
+
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -108,33 +132,41 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
                       <div className="flex items-center gap-2">
                         <Lock className="w-3.5 h-3.5 text-cyan-400" />
-                        <span className="text-xs text-gray-300">Arcium MXE 0.5</span>
+                        <span className="text-xs text-gray-300">{systemStatus?.services?.arcium?.label || "Arcium MXE"}</span>
                       </div>
-                      <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-[10px] h-5">ACTIVE</Badge>
+                      <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-[10px] h-5">
+                        {systemStatus?.services?.arcium?.status || "ACTIVE"}
+                      </Badge>
                     </div>
 
                     <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
                       <div className="flex items-center gap-2">
                         <Zap className="w-3.5 h-3.5 text-indigo-400" />
-                        <span className="text-xs text-gray-300">x402 Anti-Spam</span>
+                        <span className="text-xs text-gray-300">{systemStatus?.services?.x402?.label || "x402 Anti-Spam"}</span>
                       </div>
-                      <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30 text-[10px] h-5">ACTIVE</Badge>
+                      <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30 text-[10px] h-5">
+                        {systemStatus?.services?.x402?.skipFee ? "DEBUG" : (systemStatus?.services?.x402?.status || "ACTIVE")}
+                      </Badge>
                     </div>
 
                     <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
                       <div className="flex items-center gap-2">
                         <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-xs text-gray-300">Anti-Replay Guard</span>
+                        <span className="text-xs text-gray-300">{systemStatus?.services?.replay?.label || "Anti-Replay Guard"}</span>
                       </div>
-                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] h-5">SECURE</Badge>
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] h-5">
+                        {systemStatus?.services?.replay?.status || "SECURE"}
+                      </Badge>
                     </div>
 
                     <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
                       <div className="flex items-center gap-2">
                         <Server className="w-3.5 h-3.5 text-blue-400" />
-                        <span className="text-xs text-gray-300">Atomic Sequential</span>
+                        <span className="text-xs text-gray-300">{systemStatus?.services?.atomic?.label || "Atomic Sequential"}</span>
                       </div>
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] h-5">ENFORCED</Badge>
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] h-5">
+                        {systemStatus?.services?.atomic?.status || "ENFORCED"}
+                      </Badge>
                     </div>
                   </div>
 
@@ -142,7 +174,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <div className="p-3">
                     <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                      NETWORK STATUS: OPTIMIZED
+                      NETWORK STATUS: {systemStatus?.network?.status || "OPTIMIZED"}
                     </div>
                   </div>
                 </DropdownMenuContent>

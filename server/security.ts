@@ -499,8 +499,12 @@ export async function requireWalletOwnership(
  * Ensures critical security variables are set
  */
 export function checkSecurityEnvVars(): void {
-  const criticalVars = ["DATABASE_URL"];
-  const recommendedVars = ["ENCRYPTION_MASTER_KEY", "SESSION_SECRET"];
+  const criticalVars = ["DATABASE_URL", "SESSION_SECRET"];
+  const recommendedVars = [
+    "INVOICE_ENCRYPTION_KEY",
+    "PLATFORM_TREASURY_WALLET",
+    "SOL_PRICE_FALLBACK"
+  ];
 
   // Check critical vars (block startup if missing)
   const missingCritical = criticalVars.filter(v => !process.env[v]);

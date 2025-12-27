@@ -56,8 +56,10 @@ async function getSolPrice(): Promise<number> {
 
         return price;
     } catch (error) {
-        console.error("Error fetching SOL price, using fallback $150", error);
-        return solPriceCache?.price || 150; // Use cached value or fallback
+        // Use cached value, then env fallback, then conservative $100 default
+        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "100");
+        console.error(`Error fetching SOL price, using fallback $${solPriceCache?.price || fallbackPrice}`, error);
+        return solPriceCache?.price || fallbackPrice;
     }
 }
 

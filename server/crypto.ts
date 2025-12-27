@@ -72,16 +72,14 @@ function getMasterKey(): Buffer {
       throw new Error("Invalid ENCRYPTION_MASTER_KEY format");
     }
   }
-  
-  // Development fallback - NOT FOR PRODUCTION
+
+  // No fallback allowed - Set INVOICE_ENCRYPTION_KEY for all environments
   if (process.env.NODE_ENV !== "production") {
-    console.warn("⚠️  WARNING: Using insecure development encryption key!");
-    console.warn("⚠️  Set INVOICE_ENCRYPTION_KEY for production!");
+    console.warn("⚠️  WARNING: No encryption key configured in environment!");
+    console.warn("⚠️  Set INVOICE_ENCRYPTION_KEY (base64 32 bytes)");
     console.warn("⚠️  Generate with: openssl rand -base64 32");
-    // Use a consistent salt for development
-    return crypto.scryptSync("solanainvoice-dev-key-insecure", "dev-salt-insecure", KEY_LENGTH);
   }
-  
+
   throw new Error(
     "No encryption key configured. Set INVOICE_ENCRYPTION_KEY (base64 32 bytes) or " +
     "INVOICE_ENCRYPTION_PASSPHRASE + INVOICE_ENCRYPTION_SALT. " +
@@ -103,17 +101,17 @@ export function encrypt(plaintext: string): EncryptedData {
   try {
     const masterKey = getMasterKey();
     const iv = crypto.randomBytes(IV_LENGTH);
-    
+
     const cipher = crypto.createCipheriv(ALGORITHM, masterKey, iv);
-    
+
     let ciphertext = cipher.update(plaintext, "utf8", "hex");
     ciphertext += cipher.final("hex");
-    
+
     const authTag = cipher.getAuthTag();
-    
+
     // Securely wipe the master key from memory
     masterKey.fill(0);
-    
+
     return {
       ciphertext,
       iv: iv.toString("hex"),
@@ -134,18 +132,18 @@ export function decrypt(ciphertext: string, iv: string, authTag: string): string
     const masterKey = getMasterKey();
     const ivBuffer = Buffer.from(iv, "hex");
     const authTagBuffer = Buffer.from(authTag, "hex");
-    
+
     const decipher = crypto.createDecipheriv(ALGORITHM, masterKey, ivBuffer, {
       authTagLength: AUTH_TAG_LENGTH
     });
     decipher.setAuthTag(authTagBuffer);
-    
+
     let plaintext = decipher.update(ciphertext, "hex", "utf8");
     plaintext += decipher.final("utf8");
-    
+
     // Securely wipe the master key from memory
     masterKey.fill(0);
-    
+
     return plaintext;
   } catch (error) {
     console.error("Decryption error:", error instanceof Error ? error.message : "Unknown error");
@@ -163,10 +161,10 @@ export function generateFingerprint(data: string): string {
     const hmac = crypto.createHmac("sha256", masterKey);
     hmac.update(data);
     const hash = hmac.digest("hex");
-    
+
     // Securely wipe the master key from memory
     masterKey.fill(0);
-    
+
     // Return first 16 bytes (32 hex chars) for compact storage
     return hash.substring(0, 32);
   } catch (error) {
@@ -211,18 +209,18 @@ export function validatePrivateKey(key: string): boolean {
     console.error(`Key validation failed: Invalid length ${key.length} (expected 32-128)`);
     return false;
   }
-  
+
   // Check that it only contains valid base58 characters
   const base58Regex = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/;
   if (!base58Regex.test(key)) {
     // Find the invalid character
-    const invalidChars = key.split('').filter(char => 
+    const invalidChars = key.split('').filter(char =>
       !'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.includes(char)
     );
     const uniqueInvalidChars = Array.from(new Set(invalidChars)).join(', ');
     console.error(`Key validation failed: Contains invalid base58 characters: ${uniqueInvalidChars}`);
     return false;
   }
-  
+
   return true;
 }

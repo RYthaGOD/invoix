@@ -21,6 +21,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", service: "Invoix B2B Invoicing Platform" });
   });
 
+  // System status for dashboard badges
+  app.get("/api/system/status", (_req, res) => {
+    res.json({
+      success: true,
+      services: {
+        arcium: { status: "ACTIVE", version: "0.5", label: "Arcium MXE 0.5" },
+        x402: { status: "ACTIVE", label: "x402 Anti-Spam", skipFee: process.env.SKIP_FEE_CHECK === "true" },
+        replay: { status: "SECURE", label: "Anti-Replay Guard" },
+        atomic: { status: "ENFORCED", label: "Atomic Sequential" }
+      },
+      network: {
+        status: "OPTIMIZED",
+        rpc: process.env.SOLANA_NETWORK || "devnet"
+      }
+    });
+  });
+
   // ================================================
   // AUTHENTICATION ROUTES
   // ================================================

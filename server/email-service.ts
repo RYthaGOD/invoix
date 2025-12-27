@@ -66,16 +66,36 @@ export class EmailService {
             return false;
         }
 
-        try {
-            if (this.isReady && this.resend) {
-                return await this.realSend(data);
-            } else {
-                return await this.mockSend(data);
+        // Retry logic with exponential backoff
+        const maxRetries = 3;
+        let lastError: Error | null = null;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                if (this.isReady && this.resend) {
+                    return await this.realSend(data);
+                } else {
+                    return await this.mockSend(data);
+                }
+            } catch (error: any) {
+                lastError = error;
+                console.warn(`[Email] Attempt ${attempt}/${maxRetries} failed:`, error.message);
+
+                // Don't retry on non-transient errors
+                if (error.statusCode === 400 || error.statusCode === 401) {
+                    break;
+                }
+
+                if (attempt < maxRetries) {
+                    // Exponential backoff: 1s, 2s, 4s
+                    const delay = Math.pow(2, attempt - 1) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
             }
-        } catch (error) {
-            console.error("❌ Failed to send email:", error);
-            return false;
         }
+
+        console.error("❌ Failed to send email after retries:", lastError);
+        return false;
     }
 
     /**

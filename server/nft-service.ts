@@ -252,7 +252,33 @@ export class InvoiceNFTService {
    * Check if service is ready
    */
   isReady(): boolean {
-    return this.initialized && this.merkleTree !== null;
+    return !!this.umi && !!this.merkleTree;
+  }
+
+  /**
+   * Helper: Execute a function with exponential backoff retry logic
+   */
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> {
+    let lastError: any;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        // Don't retry if it's a permanent error (like insufficient funds if we could detect it easily)
+        // For now, retry on all errors since RPC failures are most common
+        console.warn(`⚠️ Operation failed (attempt ${i + 1}/${maxRetries}):`, error.message || error);
+        if (i < maxRetries - 1) {
+          const delay = baseDelay * Math.pow(2, i);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    throw lastError;
   }
 
   /**
@@ -549,7 +575,7 @@ export class InvoiceNFTService {
       const mintIxWithBudget = mintIx.prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
         .prepend({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] });
 
-      const result = await mintIxWithBudget.sendAndConfirm(this.umi);
+      const result = await this.executeWithRetry(() => mintIxWithBudget.sendAndConfirm(this.umi));
       const signature = result.signature.toString();
 
       console.log(`✅ Minted cNFT Payment Receipt. Sig: ${signature}`);
@@ -635,7 +661,7 @@ export class InvoiceNFTService {
         tokenOwner: owner,
       } as any);
 
-      const result = await createNftIx.sendAndConfirm(this.umi);
+      const result = await this.executeWithRetry(() => createNftIx.sendAndConfirm(this.umi));
       const signature = result.signature.toString();
 
       console.log(`✅ Minted Business Identity NFT: ${mint.publicKey.toString()}`);
@@ -1199,7 +1225,7 @@ export class InvoiceNFTService {
         },
       });
 
-      const result = await mintIx.sendAndConfirm(this.umi);
+      const result = await this.executeWithRetry(() => mintIx.sendAndConfirm(this.umi));
       const signature = result.signature.toString();
 
       // Extract Asset ID
@@ -1292,7 +1318,7 @@ export class InvoiceNFTService {
       }
 
       const createNftIx = createNft(this.umi, nftConfig);
-      const result = await createNftIx.sendAndConfirm(this.umi);
+      const result = await this.executeWithRetry(() => createNftIx.sendAndConfirm(this.umi));
       const signature = result.signature.toString();
 
       console.log(`✅ Minted ${nftVariant.name} (${nftVariant.rarity}). Mint: ${mint.publicKey.toString()} Sig: ${signature}`);
@@ -1566,18 +1592,21 @@ export class InvoiceNFTService {
             symbol: "INV",
             uri: metadataUri,
             sellerFeeBasisPoints: 0,
-            collection: none(),
+            collection: this.collectionMint ? {
+              key: toPublicKey(this.collectionMint),
+              verified: false, // cNFT collection verification handled separately
+            } : none(),
             creators: [
               {
                 address: toPublicKey(invoice.invoicerWalletAddress),
-                verified: true,
+                verified: false, // Invoicer can't sign batch tx
                 share: 100,
               },
             ],
           },
         });
 
-        const result = await mintIx.sendAndConfirm(this.umi);
+        const result = await this.executeWithRetry(() => mintIx.sendAndConfirm(this.umi));
         const leafIndex = await this.extractLeafIndexFromTransaction(result.signature.toString());
 
         results.push({
