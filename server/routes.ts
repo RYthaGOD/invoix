@@ -14,12 +14,19 @@ import exportRouter from "./export-routes";
 import { pricingRouter } from "./pricing-routes";
 import { registerSolanaPayRoutes } from "./solana-pay-routes";
 import { registerWaitlistRoutes } from "./waitlist-routes";
+import { analyticsRouter } from "./analytics-routes";
+import { registerDynamicImageRoutes } from "./endpoints/dynamic-image";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", service: "Invoix B2B Invoicing Platform" });
   });
+
+  // ================================================
+  // DYNAMIC IMAGE ROUTES (8K 3D Upgrade)
+  // ================================================
+  registerDynamicImageRoutes(app);
 
   // System status for dashboard badges
   app.get("/api/system/status", (_req, res) => {
@@ -37,6 +44,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
+
+  // ================================================
+  // ANALYTICS ROUTES
+  // ================================================
+  app.use("/api/analytics", analyticsRouter);
 
   // ================================================
   // AUTHENTICATION ROUTES

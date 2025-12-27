@@ -891,8 +891,8 @@ export class InvoiceNFTService {
   public generateInvoiceMetadata(invoice: SelectInvoice): InvoiceNFTMetadata {
     const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
 
-    // Dynamic SVG Image
-    const imageUri = `${apiUrl}/api/images/dynamic-nft/invoice/${invoice.id}.svg`;
+    // Dynamic SVG Image - 8K Premium 3D Upgrade
+    const imageUri = `${apiUrl}/api/images/dynamic-nft/invoice-3d/invoice-${invoice.id}.svg`;
 
     // PRIVACY V2 LOGIC
     if (invoice.isPrivate) {
@@ -901,16 +901,24 @@ export class InvoiceNFTService {
       const dataHash = crypto.createHash("sha256").update(preImage).digest("hex");
 
       return {
-        name: `Invoice #${invoice.invoiceNumber} (Private)`, // Obfuscated Name
+        name: `Invoice #${invoice.invoiceNumber} (3D Private)`, // Obfuscated Name
         symbol: "INV-P",
         uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
         external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
-        description: `This invoice is private. Data integrity is verified on-chain via SHA256 hash. Verify ownership to decrypt contents.`,
-        image: imageUri, // Returns the "Lock" SVG
+        description: `8K Ultra-HD Private Invoice. Data integrity is verified on-chain via SHA256 hash. Verify ownership to decrypt contents. Architecture: Midnight Prism 3D.`,
+        image: imageUri, // Returns the "3D Lock" SVG
         attributes: [
           {
             trait_type: "Invoice Number",
             value: invoice.invoiceNumber,
+          },
+          {
+            trait_type: "Visuals",
+            value: "8K Ultra-HD",
+          },
+          {
+            trait_type: "Style",
+            value: "Midnight Prism 3D",
           },
           {
             trait_type: "Status",
@@ -952,16 +960,24 @@ export class InvoiceNFTService {
 
     // PUBLIC LOGIC (Standard)
     return {
-      name: `Invoice ${invoice.invoiceNumber}`,
+      name: `Invoice ${invoice.invoiceNumber} (3D)`,
       symbol: "INV",
       uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
       external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
-      description: `B2B Invoice from ${invoice.invoicerWalletAddress} to ${invoice.invoiceeWalletAddress}`,
+      description: `B2B Invoice from ${invoice.invoicerWalletAddress} to ${invoice.invoiceeWalletAddress}. Rendered in 8K Ultra-HD with Midnight Prism 3D styling.`,
       image: imageUri,
       attributes: [
         {
           trait_type: "Invoice Number",
           value: invoice.invoiceNumber,
+        },
+        {
+          trait_type: "Visuals",
+          value: "8K Ultra-HD",
+        },
+        {
+          trait_type: "Style",
+          value: "Midnight Prism 3D",
         },
         {
           trait_type: "Status",
@@ -1017,12 +1033,16 @@ export class InvoiceNFTService {
       symbol: "RCPT",
       uri: `${apiUrl}/nft-metadata/payment/${payment.id}`,
       external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
-      description: `Payment receipt for Invoice ${invoice.invoiceNumber}`,
-      image: `${apiUrl}/images/receipt-nft.png`,
+      description: `8K Premium 3D Payment Receipt for Invoice ${invoice.invoiceNumber}.`,
+      image: `${apiUrl}/api/images/dynamic-nft/invoice-3d/receipt-${payment.id}.svg`, // Use same engine with receipt flag
       attributes: [
         {
           trait_type: "Invoice Number",
           value: invoice.invoiceNumber,
+        },
+        {
+          trait_type: "Visuals",
+          value: "8K Ultra-HD",
         },
         {
           trait_type: "Amount",
@@ -1082,7 +1102,7 @@ export class InvoiceNFTService {
       name: `${businessProfile.businessName} - Verified Business`,
       symbol: "BIZ",
       uri: `${apiUrl}/nft-metadata/business/${businessProfile.id}`,
-      description: `Verified business credentials for ${businessProfile.businessName}`,
+      description: `Verified business credentials for ${businessProfile.businessName}. 8K Ultra-HD Identity Token.`,
       // Use User Logo if available, else configured default
       image: businessProfile.logoUrl
         ? (businessProfile.logoUrl.startsWith('http') ? businessProfile.logoUrl : `${apiUrl}${businessProfile.logoUrl}`)
@@ -1091,6 +1111,10 @@ export class InvoiceNFTService {
         {
           trait_type: "Business Name",
           value: businessProfile.businessName,
+        },
+        {
+          trait_type: "Visuals",
+          value: "8K Ultra-HD",
         },
         {
           trait_type: "Verification Level",
@@ -1175,17 +1199,18 @@ export class InvoiceNFTService {
 
       console.log(`[NFT] Minting ${selectedNFT.name} (${selectedNFT.rarity}) for ${recipientAddress}...`);
 
-      // 1. Generate Metadata
+      // 1. Generate Metadata - 8K 3D Holographic Card Upgrade
       const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
-      const imageUri = `${apiUrl}/uploads/${selectedNFT.image}`;
+      const imageUri = `${apiUrl}/api/images/dynamic-nft/community-3d/${selectedNFT.id}.svg`;
 
       const metadata: InvoiceNFTMetadata = {
         name: selectedNFT.name,
         symbol: "INVX",
         uri: "", // Will be set after upload
-        description: `INVOIX Genesis Collection - ${selectedNFT.rarity.toUpperCase()} Edition. Limited to 1000 total.`,
+        description: `INVOIX Genesis Collection - ${selectedNFT.rarity.toUpperCase()} Edition. 8K Holographic Trading Card.`,
         image: imageUri,
         attributes: [
+          { trait_type: "Visuals", value: "8K Holographic 3D" },
           { trait_type: "Name", value: selectedNFT.name },
           { trait_type: "Type", value: selectedNFT.type },
           { trait_type: "Attack", value: selectedNFT.attack },
@@ -1277,17 +1302,18 @@ export class InvoiceNFTService {
     try {
       console.log(`[NFT] Minting specific ${nftVariant.name} (${nftVariant.rarity}) for ${recipientAddress}...`);
 
-      // 1. Generate Metadata
+      // 1. Generate Metadata - 8K 3D Holographic Card Upgrade
       const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
-      const imageUri = `${apiUrl}/uploads/${nftVariant.image}`;
+      const imageUri = `${apiUrl}/api/images/dynamic-nft/community-3d/${nftVariant.id}.svg`;
 
       const metadata: InvoiceNFTMetadata = {
         name: nftVariant.name,
         symbol: "INVX",
         uri: "",
-        description: `INVOIX Genesis Collection - ${nftVariant.rarity.toUpperCase()} Edition. Limited to 1000 total.`,
+        description: `INVOIX Genesis Collection - ${nftVariant.rarity.toUpperCase()} Edition. 8K Holographic Trading Card.`,
         image: imageUri,
         attributes: [
+          { trait_type: "Visuals", value: "8K Holographic 3D" },
           { trait_type: "Name", value: nftVariant.name },
           { trait_type: "Type", value: nftVariant.type },
           { trait_type: "Attack", value: nftVariant.attack },
@@ -1397,17 +1423,18 @@ export class InvoiceNFTService {
 
       console.log(`[NFT] Preparing Claim Transaction for ${selectedNFT.name} (${selectedNFT.rarity}) to ${userPublicKey}...`);
 
-      // 1. Generate Metadata
+      // 1. Generate Metadata - 8K 3D Holographic Card Upgrade
       const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
-      const imageUri = `${apiUrl}/uploads/${selectedNFT.image}`;
+      const imageUri = `${apiUrl}/api/images/dynamic-nft/community-3d/${selectedNFT.id}.svg`;
 
       const metadata: InvoiceNFTMetadata = {
         name: selectedNFT.name,
         symbol: "INVX",
         uri: "",
-        description: `INVOIX Genesis Collection - ${selectedNFT.rarity.toUpperCase()} Edition. Limited to 1000 total.`,
+        description: `INVOIX Genesis Collection - ${selectedNFT.rarity.toUpperCase()} Edition. 8K Holographic Trading Card.`,
         image: imageUri,
         attributes: [
+          { trait_type: "Visuals", value: "8K Holographic 3D" },
           { trait_type: "Name", value: selectedNFT.name },
           { trait_type: "Type", value: selectedNFT.type },
           { trait_type: "Attack", value: selectedNFT.attack },

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, Zap } from "lucide-react";
 
 const fadeInUp = {
     initial: { opacity: 0, y: 30 },
@@ -17,7 +17,7 @@ const tiers = [
         description: "Perfect for getting started",
         features: [
             "Unlimited Invoices",
-            "SOL, USDC, USDT Payments",
+            "SOL, USDC, EURC Payments",
             "Basic Analytics",
             "Community Support"
         ],
@@ -33,7 +33,7 @@ const tiers = [
         features: [
             "Everything in Free",
             "Priority Support",
-            "Advanced Analytics",
+            "Deep Privacy (Arcium)",
             "Custom Branding",
             "Developer API Access",
             "NFT Payment Receipts"
@@ -46,11 +46,11 @@ const tiers = [
 
 export function Pricing() {
     return (
-        <section id="pricing" className="py-24 container mx-auto px-6">
-            <motion.div className="text-center mb-16" {...fadeInUp}>
+        <section id="pricing" className="py-32 container mx-auto px-6 relative">
+            <motion.div className="text-center mb-20" {...fadeInUp}>
                 <h2 className="font-heading font-bold text-4xl md:text-5xl mb-6">Simple Pricing</h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Start free, upgrade when you need more power.
+                    Start free, upgrade for industrial power. No hidden monthly subscriptions.
                 </p>
             </motion.div>
 
@@ -60,40 +60,65 @@ export function Pricing() {
                         key={tier.name}
                         {...fadeInUp}
                         transition={{ duration: 0.6, delay: index * 0.1 }}
-                        className="relative group"
+                        className="relative group perspective-1000"
                     >
-                        {tier.featured && (
-                            <div className="absolute -inset-[2px] bg-gradient-to-r from-primary to-accent rounded-3xl blur opacity-75 group-hover:opacity-100 transition-opacity" />
-                        )}
-                        <div className={`relative glass-card rounded-3xl p-8 h-full flex flex-col ${tier.featured ? 'border-primary/50' : ''}`}>
+                        {tier.featured ? (
+                            // Premium Card Glow
+                            <>
+                                <div className="absolute -inset-[2px] bg-gradient-to-r from-primary via-accent to-primary rounded-[2rem] blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
+                                <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full opacity-20 group-hover:opacity-40 transition-opacity" />
+                            </>
+                        ) : null}
+
+                        <div className={`relative h-full flex flex-col p-8 md:p-10 rounded-[2rem] transition-all duration-300
+                            ${tier.featured
+                                ? 'glass-card border-primary/50' // Premium Glass
+                                : 'glass border-white/5 bg-white/5 hover:bg-white/10' // Standard Glass
+                            }
+                        `}>
                             {tier.featured && (
-                                <div className="absolute top-0 right-0 px-4 py-2 bg-primary text-white text-xs font-bold rounded-bl-2xl flex items-center gap-1">
+                                <div className="absolute top-0 right-0 px-5 py-2 bg-gradient-to-r from-primary to-accent text-white text-xs font-bold rounded-bl-2xl rounded-tr-2xl flex items-center gap-1.5 shadow-lg shadow-primary/20">
                                     <Sparkles className="w-3 h-3" />
                                     RECOMMENDED
                                 </div>
                             )}
 
-                            <h3 className="text-2xl font-bold font-heading mb-2">{tier.name}</h3>
-                            <p className="text-sm text-muted-foreground mb-4">{tier.description}</p>
-
-                            <div className="flex items-baseline gap-1 mb-6">
-                                <span className="text-4xl font-bold text-white">{tier.price}</span>
-                                <span className="text-muted-foreground">/ {tier.period}</span>
+                            <div className="mb-8">
+                                <h3 className="text-2xl font-bold font-heading mb-2 flex items-center gap-2">
+                                    {tier.name}
+                                    {tier.featured && <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">{tier.description}</p>
                             </div>
 
-                            <div className="space-y-4 flex-1 mb-8">
+                            <div className="flex items-baseline gap-1 mb-8">
+                                <span className={`text-5xl font-bold tracking-tight ${tier.featured ? 'text-white' : 'text-white/90'}`}>
+                                    {tier.price}
+                                </span>
+                                <span className="text-muted-foreground font-medium">/ {tier.period}</span>
+                            </div>
+
+                            <div className="space-y-4 flex-1 mb-10">
                                 {tier.features.map((feature, i) => (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
-                                            <Check className="w-3 h-3" />
+                                    <div key={i} className="flex items-center gap-3 group/item">
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${tier.featured
+                                                ? 'bg-primary/20 text-primary group-hover/item:bg-primary group-hover/item:text-white'
+                                                : 'bg-white/10 text-muted-foreground group-hover/item:bg-white/20 group-hover/item:text-white'
+                                            }`}>
+                                            <Check className="w-3.5 h-3.5" />
                                         </div>
-                                        <span className="text-sm text-gray-300">{feature}</span>
+                                        <span className={`text-sm ${tier.featured ? 'text-gray-200' : 'text-gray-400'} group-hover/item:text-white transition-colors`}>
+                                            {feature}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
 
                             <Link href={tier.href}>
-                                <button className={`w-full h-12 rounded-xl text-lg font-medium ${tier.featured ? 'btn-primary' : 'bg-white/10 hover:bg-white/20 text-white transition-colors'}`}>
+                                <button className={`w-full h-14 rounded-xl text-lg font-bold tracking-wide transition-all duration-300 transform group-hover:scale-[1.02] active:scale-[0.98] ${tier.featured
+                                        ? 'btn-primary shadow-lg shadow-primary/25'
+                                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/10 hover:border-white/20'
+                                    }`}>
                                     {tier.cta}
                                 </button>
                             </Link>

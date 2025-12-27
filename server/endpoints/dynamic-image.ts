@@ -3,17 +3,18 @@ import { type Express } from "express";
 import { db } from "../db";
 import { invoices, businessProfiles } from "@shared/invoice-schema";
 import { eq } from "drizzle-orm";
-import { generateInvoiceSvg, generatePrivateInvoiceSvg } from "../utils/svg-generator";
+import { generateInvoiceSvg, generatePrivateInvoiceSvg, generateTradingCardSvg } from "../utils/svg-generator";
+import { NFT_COLLECTION } from "@shared/nft-collection";
 import path from "path";
 import fs from "fs";
 
 export function registerDynamicImageRoutes(app: Express) {
 
-    // GET /api/images/dynamic-nft/invoice/:id.svg
-    app.get("/api/images/dynamic-nft/invoice/:identifier.svg", async (req, res) => {
+    // GET /api/images/dynamic-nft/invoice-3d/:id.svg
+    // Premium 8K Invoice Visuals
+    app.get("/api/images/dynamic-nft/invoice-3d/:identifier.svg", async (req, res) => {
         try {
             const { identifier } = req.params;
-            // Support "invoice-UUID" or just "UUID"
             const invoiceId = identifier.replace("invoice-", "").replace(".svg", "");
 
             const invoice = await db.query.invoices.findFirst({
@@ -28,52 +29,33 @@ export function registerDynamicImageRoutes(app: Express) {
             if (invoice.isPrivate) {
                 const svg = generatePrivateInvoiceSvg(invoice.id);
                 res.setHeader("Content-Type", "image/svg+xml");
-                res.setHeader("Cache-Control", "public, max-age=604800"); // Cache for 1 week (static)
+                res.setHeader("Cache-Control", "public, max-age=604800");
                 return res.send(svg);
             }
 
             // Fetch Business Profile for Logo/Color
-            let business;
-            // Invoice doesn't have businessId foreign key directly?
-            // Wait, we query business profiles by wallet usually.
-            // Let's check schema. `businessProfiles.ownerWalletAddress`. `invoices.invoicerWalletAddress`.
-
-            business = await db.query.businessProfiles.findFirst({
+            let business = await db.query.businessProfiles.findFirst({
                 where: eq(businessProfiles.ownerWalletAddress, invoice.invoicerWalletAddress)
             });
 
             // LOGO LOADING
             let logoData: string | undefined = undefined;
             if (business?.logoUrl) {
-                // Determine if it is a local file or external
-                // Our uploads are `/uploads/filename`.
-                // Our uploads are `/uploads/filename`.
-                // SECURITY: Prevent path traversal
                 if (business.logoUrl.startsWith("/uploads/") && !business.logoUrl.includes("..")) {
                     const normalizedUrl = path.normalize(business.logoUrl).replace(/^(\.\.(\/|\\|$))+/, '');
                     const localPath = path.join(process.cwd(), normalizedUrl);
-
-                    // Double check it resolves to uploads dir
-                    const uploadsDir = path.join(process.cwd(), "uploads");
-                    if (localPath.startsWith(uploadsDir) && fs.existsSync(localPath)) {
+                    if (fs.existsSync(localPath)) {
                         const fileBuffer = await fs.promises.readFile(localPath);
                         const ext = path.extname(localPath).replace(".", "");
                         const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
                         logoData = `data:${mime};base64,${fileBuffer.toString('base64')}`;
                     }
-                } else {
-                    // It might be an external URL. 
-                    // To prevent breakage in wallet, we should technically download and embed it?
-                    // For now, let's just pass the URL if we can't load it locally, but generator assumes data uri for best results.
-                    // If simple URL passed to image href, it works in browser but maybe not phantom.
-                    // Let's skip complex external fetching for now to avoid timeout risks.
                 }
             }
 
             const svg = generateInvoiceSvg(invoice, business, { logoData });
 
             res.setHeader("Content-Type", "image/svg+xml");
-            // Cache for 1 minute
             res.setHeader("Cache-Control", "public, max-age=60");
             res.send(svg);
 
@@ -83,6 +65,39 @@ export function registerDynamicImageRoutes(app: Express) {
         }
     });
 
-    // We can also add a route for Receipt if we want a live view, 
-    // but Receipts are minted to Arweave, so we just use the generator internally for that.
+    // GET /api/images/dynamic-nft/community-3d/:variantId.svg
+    // Premium 8K Community Trading Cards
+    app.get("/api/images/dynamic-nft/community-3d/:variantId.svg", async (req, res) => {
+        try {
+            const { variantId } = req.params;
+            // Lookup NFT variant from shared config
+            const nftVariant = NFT_COLLECTION.find(n => n.id === variantId.replace(".svg", ""));
+
+            if (!nftVariant) {
+                return res.status(404).send("NFT Variant not found");
+            }
+
+            // Load Character Image
+            let imageData: string | undefined = undefined;
+            if (nftVariant.image) {
+                const localPath = path.join(process.cwd(), "uploads", nftVariant.image);
+                if (fs.existsSync(localPath)) {
+                    const fileBuffer = await fs.promises.readFile(localPath);
+                    const ext = path.extname(localPath).replace(".", "");
+                    const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
+                    imageData = `data:${mime};base64,${fileBuffer.toString('base64')}`;
+                }
+            }
+
+            const svg = generateTradingCardSvg(nftVariant, imageData);
+
+            res.setHeader("Content-Type", "image/svg+xml");
+            res.setHeader("Cache-Control", "public, max-age=86400"); // Cache for 24h (pseudo-static)
+            res.send(svg);
+
+        } catch (error) {
+            console.error("Error generating community card:", error);
+            res.status(500).send("Error producing card");
+        }
+    });
 }

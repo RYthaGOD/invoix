@@ -27,7 +27,7 @@ export function Features() {
                     className="md:col-span-3 lg:col-span-2 row-span-2 feature-card group hover:border-primary/40 transition-all duration-500 overflow-hidden"
                     variants={fadeInUp}
                     initial="initial"
-                    whileInView="whiteInView"
+                    whileInView="whileInView"
                     viewport={{ once: true }}
                 >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
@@ -61,7 +61,7 @@ export function Features() {
                     className="md:col-span-1 lg:col-span-2 row-span-2 feature-card group bg-gradient-to-b from-cyan-500/5 to-transparent hover:border-cyan-400/40 transition-all duration-500 overflow-hidden"
                     variants={fadeInUp}
                     initial="initial"
-                    whileInView="whiteInView"
+                    whileInView="whileInView"
                     viewport={{ once: true }}
                 >
                     <div className="grid lg:grid-cols-2 gap-8 items-center h-full">
@@ -91,7 +91,7 @@ export function Features() {
                     className="md:col-span-2 lg:col-span-2 row-span-1 feature-card group hover:border-pink-500/40 transition-all duration-500"
                     variants={fadeInUp}
                     initial="initial"
-                    whileInView="whiteInView"
+                    whileInView="whileInView"
                     viewport={{ once: true }}
                 >
                     <div className="flex items-start gap-6">
@@ -112,7 +112,7 @@ export function Features() {
                     className="md:col-span-2 lg:col-span-2 row-span-1 feature-card group hover:border-green-400/40 transition-all duration-500"
                     variants={fadeInUp}
                     initial="initial"
-                    whileInView="whiteInView"
+                    whileInView="whileInView"
                     viewport={{ once: true }}
                 >
                     <div className="flex items-start gap-6">

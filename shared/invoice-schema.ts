@@ -625,6 +625,25 @@ export const systemSettings = pgTable("system_settings", {
 });
 
 /**
+ * Analytics Events - Privacy-preserving website metrics
+ */
+export const analyticsEvents = pgTable("analytics_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(), // page_view, wallet_connect
+  path: text("path"), // url path
+
+  // Privacy: specific user data is opt-in, but we track generic metrics
+  walletAddress: text("wallet_address"), // Optional: if user connects
+
+  // Basic fingerprinting for unique visitor counts (hashed, not raw IP)
+  visitorHash: text("visitor_hash"),
+
+  userAgent: text("user_agent"),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
  * Waitlist Users - For developer access control
  */
 export const waitlistUsers = pgTable("waitlist_users", {
@@ -746,3 +765,12 @@ export const insertWaitlistUserSchema = createInsertSchema(waitlistUsers).omit({
 
 export type WaitlistUser = typeof waitlistUsers.$inferSelect;
 export type InsertWaitlistUser = z.infer<typeof insertWaitlistUserSchema>;
+
+export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+export const insertAnalyticsEventSchema = createInsertSchema(analyticsEvents).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  eventType: z.enum(["page_view", "wallet_connect"]),
+});
+export type InsertAnalyticsEvent = z.infer<typeof insertAnalyticsEventSchema>;

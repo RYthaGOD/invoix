@@ -30,9 +30,19 @@ const CommunityNFTDrop = lazy(() => import("@/pages/community-nft"));
 const DeveloperWaitlistPage = lazy(() => import("@/pages/developer-waitlist"));
 const DocsPage = lazy(() => import("@/pages/docs"));
 
+import { useAnalytics } from "@/hooks/use-analytics";
+
+// ... existing lazy imports
+
+function AnalyticsTracker() {
+  useAnalytics();
+  return null;
+}
+
 function Router() {
   return (
     <Suspense fallback={<Loader />}>
+      <AnalyticsTracker />
       <Switch>
         <Route path="/" component={InvoiceLanding} />
         <Route path="/community-nft" component={CommunityNFTDrop} />

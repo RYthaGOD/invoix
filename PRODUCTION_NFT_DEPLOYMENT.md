@@ -1,10 +1,22 @@
 # Production Deployment Guide - NFT Service on Devnet
 
+> **Updated:** December 2025 | **NFT Engine:** 8K Premium 3D (Midnight Prism)
+
 ## Current Production Status
 
 ✅ **Network**: Devnet  
 ✅ **Payer Wallet Balance**: 5 SOL  
 ✅ **Code**: Pushed to GitHub (commit 0eb8a41)
+✅ **NFT Visuals**: 8K Premium 3D Glass & Holographic Trading Cards
+
+## Visual Architecture
+
+| NFT Type | Endpoint | Visual Style |
+|----------|----------|--------------|
+| Invoice | `/api/images/dynamic-nft/invoice-3d/:id.svg` | 8K Glass Card with Midnight Prism gradients |
+| Receipt | `/api/images/dynamic-nft/invoice-3d/receipt-:id.svg` | Same engine with PAID stamp overlay |
+| Community Drop | `/api/images/dynamic-nft/community-3d/:id.svg` | 8K Holographic Trading Card |
+| Private Invoice | Auto-detected | 3D Lock with "Arcium TEE Encrypted" |
 
 ## Production Environment Variables
 
