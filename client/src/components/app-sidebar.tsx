@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate, Sparkles } from "lucide-react";
+import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate, Sparkles, Code } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -74,6 +74,12 @@ const menuItems = [
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
+  },
+  {
+    title: "Developer API",
+    url: "/developers",
+    icon: Code,
+    badge: "Beta",
   },
 ];
 

@@ -27,6 +27,7 @@ const Stats = lazy(() => import("@/pages/stats"));
 const SettingsPage = lazy(() => import("@/pages/settings"));
 
 const CommunityNFTDrop = lazy(() => import("@/pages/community-nft"));
+const DeveloperWaitlistPage = lazy(() => import("@/pages/developer-waitlist"));
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/community-nft" component={CommunityNFTDrop} />
         <Route path="/stats" component={Stats} />
         <Route path="/pay/:invoiceId" component={PayInvoice} />
+        <Route path="/developers" component={DeveloperWaitlistPage} />
 
         {/* Dashboard Routes with Layout */}
         <Route path="/invoices">
