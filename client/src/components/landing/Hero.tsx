@@ -1,8 +1,12 @@
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
+import { useState } from "react";
+import { WaitlistModal } from "./WaitlistModal";
 
 export function Hero() {
+    const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+
     return (
         <section className="relative pt-32 pb-32 md:pt-48 md:pb-40 overflow-hidden">
             {/* Animated Mesh Gradient Background */}
@@ -63,13 +67,16 @@ export function Hero() {
                         </button>
                     </Link>
 
-                    <Link href="/invoices">
-                        <button className="btn-secondary h-14 px-10 text-lg flex items-center justify-center hover:bg-white/10" id="hero-dashboard">
-                            Launch Dashboard
-                        </button>
-                    </Link>
+                    <button
+                        onClick={() => setIsWaitlistOpen(true)}
+                        className="btn-secondary h-14 px-10 text-lg flex items-center justify-center hover:bg-white/10 border border-white/5"
+                    >
+                        Request API Access
+                    </button>
                 </motion.div>
             </div>
+
+            <WaitlistModal isOpen={isWaitlistOpen} onClose={() => setIsWaitlistOpen(false)} />
         </section>
     );
 }
