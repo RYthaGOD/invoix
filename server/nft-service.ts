@@ -94,6 +94,16 @@ interface NFTMintConfig {
 }
 
 /**
+ * Truncate NFT name to 32 characters (Solana cNFT limit)
+ * @param name - The full name
+ * @returns Truncated name (max 32 chars)
+ */
+function truncateNFTName(name: string): string {
+  if (name.length <= 32) return name;
+  return name.slice(0, 29) + "...";
+}
+
+/**
  * Default NFT configuration
  */
 const DEFAULT_CONFIG: NFTMintConfig = {
@@ -901,7 +911,7 @@ export class InvoiceNFTService {
       const dataHash = crypto.createHash("sha256").update(preImage).digest("hex");
 
       return {
-        name: `Invoice #${invoice.invoiceNumber} (3D Private)`, // Obfuscated Name
+        name: truncateNFTName(`INV ${invoice.invoiceNumber}`), // Truncated for Solana limit
         symbol: "INV-P",
         uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
         external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
@@ -960,7 +970,7 @@ export class InvoiceNFTService {
 
     // PUBLIC LOGIC (Standard)
     return {
-      name: `Invoice ${invoice.invoiceNumber} (3D)`,
+      name: truncateNFTName(`INV ${invoice.invoiceNumber}`), // Truncated for Solana limit
       symbol: "INV",
       uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
       external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
@@ -1029,7 +1039,7 @@ export class InvoiceNFTService {
     const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
 
     return {
-      name: `Payment Receipt #${payment.id.slice(0, 8)}`,
+      name: truncateNFTName(`RCPT ${payment.id.slice(0, 8)}`), // Truncated for Solana limit
       symbol: "RCPT",
       uri: `${apiUrl}/nft-metadata/payment/${payment.id}`,
       external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
