@@ -137,17 +137,35 @@ export default function InvoiceDetail() {
 
   useEffect(() => {
     if (showSolanaPay && invoice) {
-      // Construct standard Solana Pay Transaction Request URL
-      // Format: solana:https://<domain>/api/solana-pay/<id>
-      const apiUrl = new URL(`/api/solana-pay/${invoice.id}`, window.location.origin);
+      try {
+        // Use Transfer Request pattern instead of Transaction Request
+        // Transfer Request: QR contains payment details, user wallet handles tx
+        // Transaction Request: QR links to API (currently disabled for security)
+        const recipient = new PublicKey(invoice.invoicerWalletAddress);
+        const amount = parseFloat(invoice.remainingAmount);
 
-      // Encode using SDK to ensure spec compliance
-      const spUrl = encodeURL({ link: apiUrl, label: "Invoix Payment" });
+        // Build Transfer Request URL
+        // Format: solana:<recipient>?amount=<amount>&label=<label>&message=<message>&memo=<memo>
+        const params = new URLSearchParams();
+        params.set('amount', amount.toString());
+        params.set('label', 'Invoix Payment');
+        params.set('message', `Payment for Invoice #${invoice.invoiceNumber}`);
+        params.set('memo', `INV-${invoice.invoiceNumber}`);
 
-      // Generate QR code
-      QRCode.toDataURL(spUrl.toString(), { width: 300, margin: 2 }, (err, url) => {
-        if (!err) setQrCodeDataUrl(url);
-      });
+        // For SPL tokens (non-SOL), add spl-token parameter
+        if (invoice.currency !== 'SOL' && invoice.tokenMint) {
+          params.set('spl-token', invoice.tokenMint);
+        }
+
+        const spUrl = `solana:${recipient.toBase58()}?${params.toString()}`;
+
+        // Generate QR code
+        QRCode.toDataURL(spUrl, { width: 300, margin: 2 }, (err, url) => {
+          if (!err) setQrCodeDataUrl(url);
+        });
+      } catch (err) {
+        console.error("Failed to generate QR code:", err);
+      }
     }
   }, [showSolanaPay, invoice]);
 
