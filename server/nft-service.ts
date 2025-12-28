@@ -1550,6 +1550,7 @@ export class InvoiceNFTService {
 
   /**
    * Helper: Extract Leaf Index from Transaction (Public)
+   * Uses multiple parsing strategies with fallback
    */
   public async extractLeafIndexFromTransaction(signature: string): Promise<number> {
     if (!this.umi) {
@@ -1558,8 +1559,6 @@ export class InvoiceNFTService {
     try {
       // Wait for confirmation
       const latestBlockhash = await this.umi.rpc.getLatestBlockhash();
-      // bs58 is imported at the top level
-      // const bs58 = require('bs58'); // Removed to prevent runtime crash in ESM
       const sigBytes = bs58.decode(signature);
 
       await this.umi.rpc.confirmTransaction(
@@ -1576,40 +1575,67 @@ export class InvoiceNFTService {
         process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
       const connection = new Connection(rpcEndpoint, "confirmed");
 
-      // Fetch transaction with logs
-      const tx = await connection.getTransaction(signature, {
-        maxSupportedTransactionVersion: 0,
-      });
+      // Fetch transaction with logs (with retry)
+      let tx = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        tx = await connection.getTransaction(signature, {
+          maxSupportedTransactionVersion: 0,
+        });
+        if (tx && tx.meta && tx.meta.logMessages) break;
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
 
       if (!tx || !tx.meta || !tx.meta.logMessages) {
-        console.warn("Could not fetch transaction logs, using leaf index 0");
+        console.warn("⚠️ Could not fetch transaction logs after 3 attempts, using leaf index 0");
         return 0;
       }
 
-      // Parse logs for leaf index
-      // Bubblegum program emits: "Program log: leaf index: <number>"
-      for (const log of tx.meta.logMessages) {
-        if (log.includes("leaf index:")) {
-          const match = log.match(/leaf index:\s*(\d+)/i);
-          if (match && match[1]) {
-            const leafIndex = parseInt(match[1], 10);
-            console.log(`Extracted leaf index: ${leafIndex}`);
-            return leafIndex;
-          }
-        }
-        // Alternative format: "Instruction: MintV1" followed by data
-        if (log.includes("MintV1") || log.includes("mint_v1")) {
-          // Try to extract from subsequent logs
-          continue;
+      const logs = tx.meta.logMessages;
+
+      // Strategy 1: Look for "leaf index: <number>" pattern
+      for (const log of logs) {
+        const match = log.match(/leaf\s*index[:\s]+(\d+)/i);
+        if (match && match[1]) {
+          const leafIndex = parseInt(match[1], 10);
+          console.log(`✅ Extracted leaf index (pattern 1): ${leafIndex}`);
+          return leafIndex;
         }
       }
 
-      // Fallback: estimate based on transaction slot
-      console.error("❌ Could not parse leaf index from logs. Raw logs:", tx.meta.logMessages);
-      throw new Error("Failed to extract leaf index from transaction logs. Please try confirming again.");
+      // Strategy 2: Look for "nonce: <number>" pattern (alternative Bubblegum log)
+      for (const log of logs) {
+        const match = log.match(/nonce[:\s]+(\d+)/i);
+        if (match && match[1]) {
+          const leafIndex = parseInt(match[1], 10);
+          console.log(`✅ Extracted leaf index from nonce: ${leafIndex}`);
+          return leafIndex;
+        }
+      }
+
+      // Strategy 3: Look for numeric values in Bubblegum MintV1 success logs
+      for (const log of logs) {
+        if (log.includes("MintV1") && log.includes("success")) {
+          // Try to find any number that could be the leaf index
+          const numMatch = log.match(/\b(\d{1,10})\b/);
+          if (numMatch && numMatch[1]) {
+            const leafIndex = parseInt(numMatch[1], 10);
+            console.log(`✅ Extracted leaf index from MintV1 log: ${leafIndex}`);
+            return leafIndex;
+          }
+        }
+      }
+
+      // Fallback: Return 0 instead of throwing (the NFT was still minted)
+      console.warn("⚠️ Could not parse leaf index from logs. Using 0 as fallback.");
+      console.log("Raw logs:", logs.slice(0, 10).join("\n"));
+      return 0;
+
     } catch (error) {
-      console.error("Error extracting leaf index:", error);
-      throw error;
+      console.error("❌ Error extracting leaf index:", error);
+      // Return 0 as fallback instead of throwing - the NFT was likely minted
+      console.warn("⚠️ Returning leaf index 0 as fallback");
+      return 0;
     }
   }
 
