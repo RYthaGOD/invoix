@@ -107,9 +107,10 @@ export class ArciumService {
         return true;
 
       } catch (err: any) {
-        console.error(`❌ FATAL: Standard Arcium Initialization Failed: ${err.message}`);
-        console.error("   (Is the Devnet node healthy?)");
-        throw new Error(`Arcium Service Unavailable. Connection Refused.`);
+        console.error(`⚠️ Arcium Initialization Warning: ${err.message}`);
+        console.error("   (Arcium encryption disabled - invoices will use AES fallback)");
+        this.initialized = false;
+        return false; // Non-fatal - continue without Arcium
       }
     } catch (error) {
       console.error("❌ Failed to initialize Arcium SDK:", error);
