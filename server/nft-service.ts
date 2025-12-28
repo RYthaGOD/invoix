@@ -1261,7 +1261,7 @@ export class InvoiceNFTService {
         leafOwner,
         merkleTree: merkleTreePubkey,
         metadata: {
-          name: metadata.name,
+          name: truncateNFTName(metadata.name), // Truncate for 32-char limit
           symbol: metadata.symbol,
           uri: metadataUri,
           sellerFeeBasisPoints: percentAmount(5) as any,
@@ -1345,7 +1345,7 @@ export class InvoiceNFTService {
 
       const nftConfig: any = {
         mint,
-        name: metadata.name,
+        name: truncateNFTName(metadata.name), // Truncate for 32-char limit
         symbol: metadata.symbol,
         uri: metadataUri,
         sellerFeeBasisPoints: percentAmount(5) as any, // 5% royalties
@@ -1666,7 +1666,7 @@ export class InvoiceNFTService {
           leafOwner,
           merkleTree: merkleTreePubkey,
           metadata: {
-            name: `Invoice ${invoice.invoiceNumber}`,
+            name: truncateNFTName(`INV ${invoice.invoiceNumber}`), // Truncated for Solana 32-char limit
             symbol: "INV",
             uri: metadataUri,
             sellerFeeBasisPoints: 0,
