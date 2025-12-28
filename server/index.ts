@@ -264,6 +264,12 @@ app.use((req, res, next) => {
       await initializeArciumService().catch(e => console.warn("⚠️ Arcium Init failed:", e.message));
     }
 
+    // 9. Start QR Payment Processor (monitors Treasury for QR payments)
+    if (process.env.PAYER_PRIVATE_KEY) {
+      const { startQRPaymentProcessor } = await import("./qr-payment-processor");
+      startQRPaymentProcessor();
+    }
+
     // Finalize
     isServiceReady = true;
     startupPhase = "ready";

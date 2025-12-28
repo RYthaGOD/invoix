@@ -138,26 +138,27 @@ export default function InvoiceDetail() {
   useEffect(() => {
     if (showSolanaPay && invoice) {
       try {
-        // Use Transfer Request pattern instead of Transaction Request
-        // Transfer Request: QR contains payment details, user wallet handles tx
-        // Transaction Request: QR links to API (currently disabled for security)
-        const recipient = new PublicKey(invoice.invoicerWalletAddress);
+        // FEE COLLECTION: Send payment to Treasury, backend distributes 99% to invoicer
+        // This allows us to collect the 1% platform fee on QR payments
+        const treasury = new PublicKey(TREASURY_WALLET_ADDRESS);
         const amount = parseFloat(invoice.remainingAmount);
 
-        // Build Transfer Request URL
-        // Format: solana:<recipient>?amount=<amount>&label=<label>&message=<message>&memo=<memo>
+        // Reference format: QR-{invoiceId} for backend tracking
+        const reference = `QR-${invoice.id}`;
+
+        // Build Transfer Request URL - payment goes to Treasury
         const params = new URLSearchParams();
         params.set('amount', amount.toString());
         params.set('label', 'Invoix Payment');
-        params.set('message', `Payment for Invoice #${invoice.invoiceNumber}`);
-        params.set('memo', `INV-${invoice.invoiceNumber}`);
+        params.set('message', `Invoice #${invoice.invoiceNumber} • 1% processing fee`);
+        params.set('memo', reference); // Backend uses this to match payments
 
         // For SPL tokens (non-SOL), add spl-token parameter
         if (invoice.currency !== 'SOL' && invoice.tokenMint) {
           params.set('spl-token', invoice.tokenMint);
         }
 
-        const spUrl = `solana:${recipient.toBase58()}?${params.toString()}`;
+        const spUrl = `solana:${treasury.toBase58()}?${params.toString()}`;
 
         // Generate QR code
         QRCode.toDataURL(spUrl, { width: 300, margin: 2 }, (err, url) => {
