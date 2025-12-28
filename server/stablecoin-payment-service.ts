@@ -65,10 +65,18 @@ export async function verifyStablecoinPayment(
             mint = stablecoinConfig.mint;
         }
 
-        // Fetch transaction from blockchain
-        const tx = await connection.getTransaction(txSignature, {
-            maxSupportedTransactionVersion: 0,
-        });
+        // Fetch transaction from blockchain with retries (RPC may not have indexed immediately)
+        let tx = null;
+        const maxRetries = 5;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            tx = await connection.getTransaction(txSignature, {
+                maxSupportedTransactionVersion: 0,
+            });
+            if (tx) break;
+            // Wait before retry (exponential backoff: 1s, 2s, 3s, 4s, 5s)
+            console.log(`⏳ Transaction not found yet, retry ${attempt + 1}/${maxRetries}...`);
+            await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
+        }
 
         if (!tx) {
             return {
@@ -79,7 +87,7 @@ export async function verifyStablecoinPayment(
                 toAddress: "",
                 txSignature,
                 timestamp: new Date(),
-                error: "Transaction not found",
+                error: "Transaction not found after 5 retries. Please wait a moment and try again.",
             };
         }
 
