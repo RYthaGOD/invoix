@@ -1,7 +1,14 @@
 import { Link } from "wouter";
-import { FileText, Github, Globe, Twitter, ArrowRight } from "lucide-react";
+import { FileText, Github, Twitter, ArrowRight, MessageCircle } from "lucide-react";
 
 export function Footer() {
+    const scrollToSection = (id: string) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: "smooth" });
+        }
+    };
+
     return (
         <footer className="border-t border-white/5 bg-[#020617] relative overflow-hidden">
             {/* Horizon Glow */}
@@ -9,10 +16,10 @@ export function Footer() {
             <div className="absolute top-0 inset-x-0 h-[100px] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
             <div className="container mx-auto px-6 py-20 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
 
                     {/* Brand Column */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-1 space-y-6">
                         <Link href="/">
                             <a className="flex items-center space-x-3 group w-fit">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center border border-white/10 group-hover:border-primary/50 transition-colors">
@@ -26,16 +33,17 @@ export function Footer() {
                             Powered by Solana and Arcium for speed and confidentiality.
                         </p>
 
-                        {/* Newsletter Input */}
-                        <div className="relative max-w-sm">
-                            <input
-                                type="email"
-                                placeholder="Enter email for updates"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-all text-white placeholder:text-muted-foreground/50 pr-12"
-                            />
-                            <button className="absolute right-1 top-1 bottom-1 w-10 bg-primary/20 hover:bg-primary text-primary hover:text-white rounded-md flex items-center justify-center transition-all">
-                                <ArrowRight className="w-4 h-4" />
-                            </button>
+                        {/* Social Links - Moved here for better layout */}
+                        <div className="flex gap-3">
+                            <a href="https://x.com/InvoixSola24238" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#1DA1F2]/20 group transition-colors border border-white/5 hover:border-[#1DA1F2]/30">
+                                <Twitter className="w-4 h-4 text-muted-foreground group-hover:text-[#1DA1F2]" />
+                            </a>
+                            <a href="https://github.com/RYthaGOD/invoix" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 group transition-colors border border-white/5 hover:border-white/20">
+                                <Github className="w-4 h-4 text-muted-foreground group-hover:text-white" />
+                            </a>
+                            <a href="https://x.com/i/communities/1998417251041718386" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-primary/20 group transition-colors border border-white/5 hover:border-primary/30">
+                                <MessageCircle className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+                            </a>
                         </div>
                     </div>
 
@@ -45,46 +53,51 @@ export function Footer() {
                         <ul className="space-y-4 text-sm text-muted-foreground">
                             <li><Link href="/invoices"><a className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">Dashboard</a></Link></li>
                             <li><Link href="/invoices/create"><a className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">Create Invoice</a></Link></li>
-                            <li><a href="#pricing" onClick={(e) => { e.preventDefault(); document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-primary transition-colors block hover:translate-x-1 duration-200 cursor-pointer">Pricing</a></li>
-                            <li><a href="#rewards" onClick={(e) => { e.preventDefault(); document.getElementById('rewards')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-primary transition-colors block hover:translate-x-1 duration-200 cursor-pointer">Rewards</a></li>
+                            <li>
+                                <button
+                                    onClick={() => scrollToSection('pricing')}
+                                    className="hover:text-primary transition-colors block hover:translate-x-1 duration-200 cursor-pointer text-left"
+                                >
+                                    Pricing
+                                </button>
+                            </li>
+                            <li>
+                                <button
+                                    onClick={() => scrollToSection('rewards')}
+                                    className="hover:text-primary transition-colors block hover:translate-x-1 duration-200 cursor-pointer text-left"
+                                >
+                                    Rewards
+                                </button>
+                            </li>
                         </ul>
                     </div>
 
                     <div>
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-xs">Decentralization</h4>
+                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-xs">Resources</h4>
                         <ul className="space-y-4 text-sm text-muted-foreground">
                             <li><Link href="/docs"><a className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">Documentation</a></Link></li>
-                            <li><a href="#" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">Protocol Governance</a></li>
-                            <li><a href="#" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">Treasury Stats</a></li>
-                            <li><a href="#" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">Smart Contracts</a></li>
+                            <li><Link href="/developers"><a className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">API Access</a></Link></li>
+                            <li><Link href="/community-nft"><a className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">NFT Collection</a></Link></li>
+                            <li><Link href="/stats"><a className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">Analytics</a></Link></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-xs">Community</h4>
-                        <ul className="flex flex-col gap-4">
+                        <ul className="space-y-4 text-sm text-muted-foreground">
                             <li>
-                                <a href="https://x.com/InvoixSola24238" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-muted-foreground hover:text-white group">
-                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#1DA1F2]/20 transition-colors">
-                                        <Twitter className="w-4 h-4 group-hover:text-[#1DA1F2]" />
-                                    </div>
-                                    <span className="text-sm">Twitter / X</span>
+                                <a href="https://x.com/InvoixSola24238" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
+                                    Twitter / X
                                 </a>
                             </li>
                             <li>
-                                <a href="https://github.com/RYthaGOD/invoix" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-muted-foreground hover:text-white group">
-                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                                        <Github className="w-4 h-4" />
-                                    </div>
-                                    <span className="text-sm">GitHub</span>
+                                <a href="https://github.com/RYthaGOD/invoix" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
+                                    GitHub
                                 </a>
                             </li>
                             <li>
-                                <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-white group">
-                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#5865F2]/20 transition-colors">
-                                        <Globe className="w-4 h-4 group-hover:text-[#5865F2]" />
-                                    </div>
-                                    <span className="text-sm">Discord</span>
+                                <a href="https://x.com/i/communities/1998417251041718386" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
+                                    X Community
                                 </a>
                             </li>
                         </ul>
@@ -94,9 +107,8 @@ export function Footer() {
                 <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground/50">
                     <p>&copy; {new Date().getFullYear()} Invoix Protocol. Built with ❤️ on Solana.</p>
                     <div className="flex gap-6">
-                        <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-                        <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-                        <a href="#" className="hover:text-white transition-colors">Cookies</a>
+                        <Link href="/docs"><a className="hover:text-white transition-colors">Documentation</a></Link>
+                        <a href="https://github.com/RYthaGOD/invoix" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Open Source</a>
                     </div>
                 </div>
             </div>

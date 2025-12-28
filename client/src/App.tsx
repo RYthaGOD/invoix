@@ -32,7 +32,6 @@ const DocsPage = lazy(() => import("@/pages/docs"));
 
 import { useAnalytics } from "@/hooks/use-analytics";
 
-// ... existing lazy imports
 
 function AnalyticsTracker() {
   useAnalytics();
@@ -88,9 +87,19 @@ function Router() {
           )}
         </Route>
 
-        {/* Placeholders for Future Features */}
-        <Route path="/pricing" component={ComingSoon} />
-        <Route path="/rewards" component={ComingSoon} />
+        {/* Redirect to landing page sections */}
+        <Route path="/pricing">
+          {() => {
+            window.location.href = "/#pricing";
+            return null;
+          }}
+        </Route>
+        <Route path="/rewards">
+          {() => {
+            window.location.href = "/#rewards";
+            return null;
+          }}
+        </Route>
         <Route path="/dashboard/settings">
           {() => (
             <DashboardLayout>
