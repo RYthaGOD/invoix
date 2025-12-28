@@ -929,6 +929,35 @@ export function registerInvoiceRoutes(app: Express): void {
       }
       // ---------------------------
 
+      // --- RECEIPT NFT MINTING ---
+      try {
+        const { getInvoiceNFTService } = await import("./nft-service");
+        const nftService = getInvoiceNFTService();
+
+        if (nftService.isReady() && updatedInvoice) {
+          console.log(`[NFT] Minting Receipt NFT for payment ${validatedData.txSignature}...`);
+
+          const receiptResult = await nftService.mintPaymentReceiptNFT({
+            payment: payment as any,
+            invoice: updatedInvoice,
+            recipientAddress: validatedData.fromAddress // Payer receives the receipt NFT
+          });
+
+          console.log(`[NFT] Receipt NFT Minted: ${receiptResult.mint}`);
+
+          // Update payment record with NFT mint info
+          await db.update(payments)
+            .set({ nftReceiptMinted: true })
+            .where(eq(payments.txSignature, validatedData.txSignature));
+        } else {
+          console.warn(`[NFT] Skipped Receipt NFT - NFT Service not ready or invoice not found`);
+        }
+      } catch (nftErr: any) {
+        console.error("[NFT] Failed to mint receipt NFT:", nftErr);
+        // Don't fail the payment if NFT minting fails - it's a non-critical feature
+      }
+      // ---------------------------
+
       res.status(201).json({
         success: true,
         payment,
