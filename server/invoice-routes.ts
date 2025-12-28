@@ -825,6 +825,14 @@ export function registerInvoiceRoutes(app: Express): void {
         const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
 
         console.log(`Verifying payment tx: ${validatedData.txSignature} for ${validatedData.amount} ${validatedData.currency}`);
+        console.log(`[DEBUG PAYMENT] Full Input:`, {
+          txSignature: validatedData.txSignature,
+          amount: validatedData.amount,
+          currency: validatedData.currency,
+          fromAddress: validatedData.fromAddress,
+          toAddress: validatedData.toAddress,
+          invoiceId: validatedData.invoiceId,
+        });
 
         // Platform Fee Enforcement (1%)
         // We verify that the transaction split funds: 99% to Seller, 1% to Platform
@@ -833,6 +841,15 @@ export function registerInvoiceRoutes(app: Express): void {
         // Calculate fee using safe math which returns strings
         const feeAmount = safeMultiply(totalAmount, feeRate);
         const recipientAmount = safeSubtract(totalAmount, feeAmount);
+
+        console.log(`[DEBUG PAYMENT] Amount Calculations:`, {
+          totalAmount,
+          feeRate,
+          feeAmount,
+          recipientAmount,
+          recipientAddress: validatedData.toAddress,
+          treasuryAddress: TREASURY_WALLET_ADDRESS,
+        });
 
         const verification = await verifyStablecoinPayment(
           connection,
