@@ -2,22 +2,30 @@
  * QR Payment Processor
  * 
  * Monitors for QR payments sent to Treasury and distributes to invoicers.
- * Flow: User pays Treasury → Backend detects → Forward 99% to invoicer
+ * Flow: User pays Treasury → Backend detects → Verify amount → Forward 99% to invoicer
+ * 
+ * SECURITY NOTES:
+ * - Verifies payment amount matches invoice
+ * - Prevents double-processing via signature deduplication
+ * - Uses Treasury wallet (from PAYER_PRIVATE_KEY) for distribution
  */
 
 import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from "@solana/web3.js";
-import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
 import { db } from "./db";
 import { invoices, payments } from "@shared/invoice-schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import bs58 from "bs58";
 
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 const POLL_INTERVAL_MS = 15000; // Check every 15 seconds
 const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
+const AMOUNT_TOLERANCE = 0.001; // Allow 0.1% variance for floating point
 
 let isRunning = false;
+// Track processed signatures in memory to avoid redundant DB checks
+const processedSignatures = new Set<string>();
 
 /**
  * Start the QR payment processor
@@ -46,10 +54,12 @@ export function startQRPaymentProcessor() {
  */
 async function processQRPayments() {
     try {
-        // 1. Find invoices waiting for QR payment (status = sent or viewed, not paid)
+        // 1. Find invoices waiting for QR payment (status = sent, viewed, or partial)
         const pendingInvoices = await db.query.invoices.findMany({
-            where: and(
+            where: or(
                 eq(invoices.status, "sent"),
+                eq(invoices.status, "viewed"),
+                eq(invoices.status, "partial")
             ),
             limit: 20
         });
@@ -59,18 +69,21 @@ async function processQRPayments() {
         const connection = new Connection(SOLANA_RPC_URL, "confirmed");
         const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
 
-        // 2. Check each invoice for QR payment
+        // 2. Get recent signatures once (not per invoice - optimization)
+        const signatures = await connection.getSignaturesForAddress(
+            treasuryPubkey,
+            { limit: 50 }
+        );
+
+        // 3. Check each invoice for QR payment
         for (const invoice of pendingInvoices) {
             try {
                 const qrReference = `QR-${invoice.id}`;
 
-                // Search for transactions with this memo
-                const signatures = await connection.getSignaturesForAddress(
-                    treasuryPubkey,
-                    { limit: 50 }
-                );
-
                 for (const sigInfo of signatures) {
+                    // Skip if already processed
+                    if (processedSignatures.has(sigInfo.signature)) continue;
+
                     // Get transaction details
                     const tx = await connection.getTransaction(sigInfo.signature, {
                         maxSupportedTransactionVersion: 0
@@ -86,8 +99,16 @@ async function processQRPayments() {
                     if (memoLog) {
                         console.log(`[QR_PROCESSOR] Found payment for invoice ${invoice.id}: ${sigInfo.signature}`);
 
+                        // SECURITY: Verify payment amount before distributing
+                        const verified = await verifyPaymentAmount(connection, tx, invoice);
+                        if (!verified.success) {
+                            console.warn(`[QR_PROCESSOR] Payment verification failed for ${sigInfo.signature}: ${verified.error}`);
+                            processedSignatures.add(sigInfo.signature); // Don't reprocess
+                            continue;
+                        }
+
                         // Process this payment
-                        await distributePayment(connection, invoice, sigInfo.signature);
+                        await distributePayment(connection, invoice, sigInfo.signature, verified.actualAmount);
                         break;
                     }
                 }
@@ -101,29 +122,106 @@ async function processQRPayments() {
 }
 
 /**
+ * SECURITY: Verify payment amount matches expected
+ */
+async function verifyPaymentAmount(
+    connection: Connection,
+    tx: any,
+    invoice: any
+): Promise<{ success: boolean; actualAmount: number; error?: string }> {
+    try {
+        const expectedAmount = parseFloat(invoice.remainingAmount);
+        const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
+
+        if (invoice.currency === "SOL") {
+            // Check SOL balance changes
+            const preBalances = tx.meta.preBalances;
+            const postBalances = tx.meta.postBalances;
+            const accountKeys = tx.transaction.message.staticAccountKeys ||
+                tx.transaction.message.accountKeys;
+
+            // Find treasury account index
+            const treasuryIndex = accountKeys.findIndex((key: any) =>
+                key.toString() === treasuryPubkey.toString()
+            );
+
+            if (treasuryIndex === -1) {
+                return { success: false, actualAmount: 0, error: "Treasury not in transaction" };
+            }
+
+            const received = (postBalances[treasuryIndex] - preBalances[treasuryIndex]) / LAMPORTS_PER_SOL;
+
+            // Allow small tolerance for rounding
+            if (received < expectedAmount * (1 - AMOUNT_TOLERANCE)) {
+                return {
+                    success: false,
+                    actualAmount: received,
+                    error: `Insufficient amount: expected ${expectedAmount}, got ${received}`
+                };
+            }
+
+            return { success: true, actualAmount: received };
+
+        } else {
+            // SPL Token - check token balance changes
+            const preTokenBalances = tx.meta.preTokenBalances || [];
+            const postTokenBalances = tx.meta.postTokenBalances || [];
+
+            // Find treasury token account
+            const treasuryPost = postTokenBalances.find((b: any) =>
+                b.owner === treasuryPubkey.toString() &&
+                b.mint === invoice.tokenMint
+            );
+            const treasuryPre = preTokenBalances.find((b: any) =>
+                b.owner === treasuryPubkey.toString() &&
+                b.mint === invoice.tokenMint
+            );
+
+            const preAmount = treasuryPre?.uiTokenAmount?.uiAmount || 0;
+            const postAmount = treasuryPost?.uiTokenAmount?.uiAmount || 0;
+            const received = postAmount - preAmount;
+
+            if (received < expectedAmount * (1 - AMOUNT_TOLERANCE)) {
+                return {
+                    success: false,
+                    actualAmount: received,
+                    error: `Insufficient token amount: expected ${expectedAmount}, got ${received}`
+                };
+            }
+
+            return { success: true, actualAmount: received };
+        }
+    } catch (error: any) {
+        return { success: false, actualAmount: 0, error: error.message };
+    }
+}
+
+/**
  * Distribute payment: Send 99% to invoicer, keep 1%
  */
 async function distributePayment(
     connection: Connection,
     invoice: any,
-    incomingSignature: string
+    incomingSignature: string,
+    actualAmount: number
 ) {
     try {
-        // Check if already processed
+        // SECURITY: Check if already processed (DB check)
         const existingPayment = await db.query.payments.findFirst({
             where: eq(payments.txSignature, incomingSignature)
         });
 
         if (existingPayment) {
             console.log(`[QR_PROCESSOR] Payment ${incomingSignature} already processed`);
+            processedSignatures.add(incomingSignature);
             return;
         }
 
-        const amount = parseFloat(invoice.remainingAmount);
-        const invoicerAmount = amount * (1 - PLATFORM_FEE_RATE); // 99%
-        const feeAmount = amount * PLATFORM_FEE_RATE; // 1%
+        // Use actual received amount for calculations (not invoice amount)
+        const invoicerAmount = actualAmount * (1 - PLATFORM_FEE_RATE); // 99%
+        const feeAmount = actualAmount * PLATFORM_FEE_RATE; // 1%
 
-        // Load payer keypair
+        // Load payer keypair (Treasury wallet)
         const payerPrivateKey = process.env.PAYER_PRIVATE_KEY!;
         let payerKeypair: Keypair;
         if (payerPrivateKey.includes("[")) {
@@ -181,10 +279,10 @@ async function distributePayment(
         // Record payment in database
         await db.insert(payments).values({
             invoiceId: invoice.id,
-            amount: invoice.remainingAmount,
+            amount: actualAmount.toString(),
             currency: invoice.currency,
             txSignature: incomingSignature,
-            fromAddress: "QR_PAYMENT", // We don't know the payer's address from memo lookup
+            fromAddress: "QR_PAYMENT",
             toAddress: invoice.invoicerWalletAddress,
             paymentMethod: "qr_transfer",
             status: "confirmed",
@@ -193,16 +291,23 @@ async function distributePayment(
         } as any);
 
         // Update invoice status
+        const newPaidAmount = parseFloat(invoice.paidAmount) + actualAmount;
+        const newRemainingAmount = parseFloat(invoice.totalAmount) - newPaidAmount;
+        const newStatus = newRemainingAmount <= 0 ? "paid" : "partial";
+
         await db.update(invoices)
             .set({
-                status: "paid",
-                paidAmount: invoice.totalAmount,
-                remainingAmount: "0",
-                paidAt: new Date()
+                status: newStatus,
+                paidAmount: newPaidAmount.toString(),
+                remainingAmount: Math.max(0, newRemainingAmount).toString(),
+                paidAt: newStatus === "paid" ? new Date() : undefined
             })
             .where(eq(invoices.id, invoice.id));
 
-        console.log(`[QR_PROCESSOR] ✅ Invoice ${invoice.id} marked as paid`);
+        // Mark as processed
+        processedSignatures.add(incomingSignature);
+
+        console.log(`[QR_PROCESSOR] ✅ Invoice ${invoice.id} updated: ${newStatus}`);
 
     } catch (error) {
         console.error(`[QR_PROCESSOR] Distribution error for ${invoice.id}:`, error);
