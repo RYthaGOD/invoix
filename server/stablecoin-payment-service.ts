@@ -120,9 +120,16 @@ export async function verifyStablecoinPayment(
         }
 
         // 1. Verify Payment to Recipient
+        console.log(`[DEBUG] Payment Verification:`, {
+            transfers: transfers.map(t => ({ dest: t.destination, amount: t.amount })),
+            expectedRecipient,
+            mint
+        });
+
         const paymentTransfer = transfers.find(t => t.destination.toLowerCase() === expectedRecipient.toLowerCase());
 
         if (!paymentTransfer) {
+            console.error(`[DEBUG] No transfer found to recipient. Expected: ${expectedRecipient}, Got transfers to: ${transfers.map(t => t.destination).join(', ')}`);
             return {
                 verified: false,
                 amount: 0,
@@ -131,7 +138,7 @@ export async function verifyStablecoinPayment(
                 toAddress: "",
                 txSignature,
                 timestamp: new Date(),
-                error: "Recipient did not receive any funds",
+                error: `Recipient did not receive any funds. Expected: ${expectedRecipient.slice(0, 8)}..., Got payments to: ${transfers.map(t => t.destination.slice(0, 8) + '...').join(', ') || 'none'}`,
             };
         }
 
