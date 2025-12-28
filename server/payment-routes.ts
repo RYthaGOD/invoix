@@ -268,11 +268,12 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             }
         }
 
-        // MINT RECEIPT NFT (Async)
-        if (invoiceId && process.env.MINT_RECEIPT_NFTS === "true") {
+        // CRITICAL: Always record payment in database after successful relay
+        // Previously this was gated behind MINT_RECEIPT_NFTS which caused payments to go unrecorded
+        if (invoiceId) {
             import("./payment-confirmation-service").then(service => {
                 service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer || "unknown");
-            }).catch(err => console.error("Failed to trigger receipt mint:", err));
+            }).catch(err => console.error("Failed to confirm payment:", err));
         }
 
         // 6. Return Signature

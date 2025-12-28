@@ -239,25 +239,10 @@ export default function PayInvoice() {
             // Success! We have a signature. Use Hook to track confirmation.
             setTxSignature(relayResult.signature);
 
-            // Optimistically update DB status via API (Backend relay might handle this, but good to ensure)
-            const paymentData = {
-                invoiceId: invoice.id,
-                amount: invoice.remainingAmount,
-                currency: invoice.currency,
-                txSignature: relayResult.signature,
-                fromAddress: publicKey.toString(),
-                toAddress: invoice.invoicerWalletAddress,
-                paymentMethod: "gasless_transfer",
-                status: "processing", // Will update to completed once confirmed
-                paymentNotes: paymentNotes || undefined,
-                isBusinessExpense: isBusinessExpense,
-            };
-
-            await fetch("/api/payments", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(paymentData),
-            });
+            // NOTE: Payment recording is handled by the relay endpoint's
+            // confirmPaymentAndMintOutcome() call. We don't call POST /api/payments
+            // here to avoid duplicate payment recording errors.
+            // The hook will poll for confirmation status.
 
         } catch (err: any) {
             console.error("Payment error:", err);
