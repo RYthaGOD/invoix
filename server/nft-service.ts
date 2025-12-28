@@ -466,7 +466,7 @@ export class InvoiceNFTService {
           creators: [
             {
               address: toPublicKey(invoice.invoicerWalletAddress),
-              verified: true,
+              verified: false, // Creator not signing this tx - cannot verify
               share: 100,
             },
           ],
