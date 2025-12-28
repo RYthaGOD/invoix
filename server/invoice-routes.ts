@@ -79,7 +79,8 @@ export function registerInvoiceRoutes(app: Express): void {
           "SOL": "So11111111111111111111111111111111111111112", // Native SOL wrapped mint
           "USDC": DEFAULT_USDC_MINT,
           "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-          "EURC": "HzwqbKZw8HzsXB8dfLenzhf6j31qAvjfb5hEM9yr22yu"
+          "PYUSD": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo", // PayPal USD (Mainnet)
+          "EURC": "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr", // Euro Coin (Fixed - matches stablecoin-config)
         };
 
         req.body.tokenMintAddress = mintMap[currency] || DEFAULT_USDC_MINT;

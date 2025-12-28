@@ -136,8 +136,8 @@ export default function InvoiceCreate() {
         "SOL": "So11111111111111111111111111111111111111112", // Native SOL wrapped mint
         "USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // Mainnet USDC
         "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-        "PYUSD": "2b1kV6DkPAnxd5ixfnhKpGTg1nPT4XVgS6s84TmX0gqg", // Devnet/Mainnet placeholders
-        "EURC": "HzwqbKZw8HzsXB8dfLenzhf6j31qAvjfb5hEM9yr22yu",
+        "PYUSD": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo", // PayPal USD (Mainnet - fixed)
+        "EURC": "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr", // Euro Coin (fixed)
       };
       // Devnet overrides if needed, or just send a valid string if server re-checks.
       // Since server overrides it anyway, we just need to pass Zod validation with a valid-looking string.
