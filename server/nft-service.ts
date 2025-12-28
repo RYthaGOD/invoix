@@ -461,7 +461,7 @@ export class InvoiceNFTService {
           sellerFeeBasisPoints: 0,
           collection: this.collectionMint ? {
             key: toPublicKey(this.collectionMint),
-            verified: true, // Server is Collection Authority and signs this tx
+            verified: false, // Cannot verify collection in MintV1 - must use separate verifyCollection instruction
           } : none(),
           creators: [
             {
@@ -561,7 +561,7 @@ export class InvoiceNFTService {
           sellerFeeBasisPoints: 0,
           collection: this.collectionMint ? {
             key: toPublicKey(this.collectionMint),
-            verified: true, // Server is Collection Authority and signs this tx
+            verified: false, // Cannot verify collection in MintV1 - must use separate verifyCollection instruction
           } : none(),
           creators: [
             {
