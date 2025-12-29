@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, TrendingUp, Users, Activity } from "lucide-react";
+import { Check, TrendingUp, Users, Activity, Twitter } from "lucide-react";
 import { useAnalyticsStats } from "@/hooks/use-analytics";
 
 export function Rewards() {
@@ -121,9 +121,15 @@ export function Rewards() {
                                         </div>
                                     </div>
 
-                                    <button className="btn-primary w-full h-14 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 mt-4 opacity-100">
-                                        Join Waitlist
-                                    </button>
+                                    <a
+                                        href="https://x.com/InvoixSola24238"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn-primary w-full h-14 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 mt-4 flex items-center justify-center gap-2 group"
+                                    >
+                                        <Twitter className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                        Follow on X
+                                    </a>
                                 </div>
                             </div>
                         </motion.div>
