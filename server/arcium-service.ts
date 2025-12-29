@@ -1,37 +1,19 @@
 /**
- * Arcium v0.5 Integration for Confidential Computing
+ * Arcium SDK-Only Encryption Service
  * 
- * Provides privacy-preserving encryption for B2B invoicing transactions
- * using Arcium's Multi-party eXecution Environment (MXE)
+ * Uses Arcium's crypto primitives (x25519 + RescueCipher) directly
+ * without requiring an on-chain MXE account. This provides:
+ * - ECDH key exchange for secure key derivation
+ * - RescueCipher (Poseidon-based) symmetric encryption
+ * 
+ * Each encryption generates an ephemeral keypair. The recipient
+ * uses their private key to derive the shared secret and decrypt.
  */
 
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import * as anchor from "@coral-xyz/anchor";
 import bs58 from "bs58";
-import {
-  getArciumEnv,
-  getMXEPublicKey,
-  RescueCipher,
-  x25519,
-  deserializeLE,
-  getArciumProgram
-} from "@arcium-hq/client";
+import { RescueCipher, x25519 } from "@arcium-hq/client";
 import { createHash, randomBytes } from "crypto";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Fallback Crypto (for environments without proper Arcium config)
-import { encrypt as aesEncrypt, decrypt as aesDecrypt } from "./crypto";
-
-// Arcium configuration
-const ARCIUM_CONFIG = {
-  // MXE Network cluster (devnet/mainnet)
-  cluster: process.env.SOLANA_NETWORK || "devnet",
-};
 
 interface ConfidentialTransactionData {
   amount: string;
@@ -55,76 +37,98 @@ interface EncryptedTransactionResult {
   error?: string;
 }
 
-export class ArciumService {
-  private connection: Connection;
-  private initialized: boolean = false;
-  private mxePublicKey: Uint8Array | null = null;
-  private provider: anchor.AnchorProvider | null = null;
-  private program: anchor.Program<any> | null = null;
+/**
+ * Derives an x25519 private key from an Ed25519 secret key.
+ * Standard conversion per RFC 8032.
+ */
+function ed25519ToX25519PrivateKey(ed25519Secret: Uint8Array): Uint8Array {
+  // Hash the 32-byte private key with SHA-512
+  const hash = createHash("sha512").update(ed25519Secret.subarray(0, 32)).digest();
+  const xSecret = hash.subarray(0, 32);
 
-  constructor(rpcEndpoint?: string) {
-    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
-    this.connection = new Connection(endpoint, "confirmed");
+  // Clamp (per X25519 spec)
+  xSecret[0] &= 248;
+  xSecret[31] &= 127;
+  xSecret[31] |= 64;
+
+  return xSecret;
+}
+
+/**
+ * Derives an x25519 public key from an Ed25519 keypair.
+ */
+function ed25519ToX25519PublicKey(ed25519Secret: Uint8Array): Uint8Array {
+  const xPrivate = ed25519ToX25519PrivateKey(ed25519Secret);
+  return x25519.getPublicKey(xPrivate);
+}
+
+export class ArciumService {
+  private serverKeypair: Keypair | null = null;
+  private serverX25519Public: Uint8Array | null = null;
+  private serverX25519Private: Uint8Array | null = null;
+  private initialized: boolean = false;
+
+  constructor() {
+    // No connection needed for SDK-only mode
   }
 
   /**
-   * Initialize service with Real Arcium SDK (v0.5.2)
+   * Initialize with a server keypair for decryption capabilities.
+   * The server's x25519 public key is derived and used as the "MXE" key.
    */
   async initialize(keypair?: Keypair): Promise<boolean> {
     try {
-      console.log("🔒 Initializing Arcium Confidential Computing Service (v0.5.2)...");
+      console.log("🔒 Initializing Arcium SDK-Only Encryption Service...");
 
-      // Setup Anchor Provider (Read-only if no keypair provided)
-      const wallet = keypair ? new anchor.Wallet(keypair) : new anchor.Wallet(Keypair.generate());
-      this.provider = new anchor.AnchorProvider(this.connection, wallet, { commitment: "confirmed" });
-
-      // Get Environment
-      const env = getArciumEnv();
-      console.log(`   Cluster Offset: ${env.arciumClusterOffset}`);
-
-      // Initialize Program via local IDL for consistency
-      console.log("   🔄 USING STANDARD ARCIUM SDK (PUBLIC DEVNET) - FORCED BY CONFIG");
-
-      try {
-        // DIRECT: Use Standard SDK
-        this.program = getArciumProgram(this.provider);
-        console.log(`   Program ID: ${this.program.programId.toBase58()}`);
-
-        // Fetch Metadata using SDK Helper
-        // Requires (Provider, ProgramID) signature
-        const mxeKey = await getMXEPublicKey(this.provider, this.program.programId);
-
-        if (!mxeKey) {
-          throw new Error("MXE Public Key not found (null returned from SDK).");
-        }
-
-        console.log(`   Fetched MXE Public Key via SDK Helper`);
-
-        // mxeKey is likely Uint8Array or array, ensure it's Uint8Array
-        this.mxePublicKey = mxeKey instanceof Uint8Array ? mxeKey : Uint8Array.from(mxeKey);
-        console.log("✅ Arcium SDK Initialized Successfully (Standard Devnet).");
-        this.initialized = true;
-        return true;
-
-      } catch (err: any) {
-        console.error(`⚠️ Arcium Initialization Warning: ${err.message}`);
-        console.error("   (Arcium encryption disabled - invoices will use AES fallback)");
-        this.initialized = false;
-        return false; // Non-fatal - continue without Arcium
+      if (keypair) {
+        this.serverKeypair = keypair;
+      } else if (process.env.ARCIUM_PRIVATE_KEY || process.env.PAYER_PRIVATE_KEY) {
+        // Load from environment
+        const privateKey = process.env.ARCIUM_PRIVATE_KEY || process.env.PAYER_PRIVATE_KEY!;
+        this.serverKeypair = loadKeypairFromPrivateKey(privateKey);
+      } else {
+        // Generate ephemeral keypair (server restart = new keys)
+        console.log("   ⚠️ No keypair provided, generating ephemeral keys...");
+        this.serverKeypair = Keypair.generate();
       }
+
+      // Derive x25519 keys from Ed25519 keypair
+      this.serverX25519Private = ed25519ToX25519PrivateKey(this.serverKeypair.secretKey);
+      this.serverX25519Public = ed25519ToX25519PublicKey(this.serverKeypair.secretKey);
+
+      console.log("   ✅ Server Ed25519 Pubkey:", this.serverKeypair.publicKey.toBase58());
+      console.log("   ✅ Derived X25519 Pubkey:", Buffer.from(this.serverX25519Public).toString("hex").substring(0, 32) + "...");
+      console.log("✅ Arcium SDK-Only Mode Active (Local x25519 + RescueCipher)");
+
+      this.initialized = true;
+      return true;
     } catch (error) {
-      console.error("❌ Failed to initialize Arcium SDK:", error);
+      console.error("❌ Failed to initialize Arcium SDK-Only Service:", error);
       this.initialized = false;
       return false;
     }
   }
 
   isAvailable(): boolean {
-    return this.initialized && !!this.mxePublicKey;
+    return this.initialized && !!this.serverX25519Public;
   }
 
   /**
-   * Encrypt transaction data using Arcium MXE
+   * Get the server's x25519 public key for encryption.
+   * This is equivalent to what the on-chain MXE would provide.
+   */
+  getServerPublicKey(): Uint8Array | null {
+    return this.serverX25519Public;
+  }
+
+  /**
+   * Encrypt transaction data using x25519 ECDH + RescueCipher.
+   * 
+   * The flow:
+   * 1. Generate ephemeral x25519 keypair
+   * 2. Derive shared secret with server's public key
+   * 3. Use RescueCipher to encrypt the data
+   * 4. Return encrypted data + ephemeral public key
    */
   async encryptTransaction(
     transactionData: ConfidentialTransactionData,
@@ -132,17 +136,22 @@ export class ArciumService {
   ): Promise<EncryptedTransactionResult> {
 
     if (!this.isAvailable()) {
-      console.error("⛔ Arcium TEE not available. Cannot encrypt transaction safely.");
-      throw new Error("Arcium TEE unavailable. Transaction rejected for privacy.");
+      console.error("⛔ Arcium SDK not initialized. Cannot encrypt.");
+      throw new Error("Arcium encryption service not available.");
     }
 
     try {
       const plaintext = JSON.stringify(transactionData);
       const bufferData = Buffer.from(plaintext, "utf-8");
 
+      // 1. Generate ephemeral keypair for this encryption
       const ephemeralSecret = x25519.utils.randomSecretKey();
       const ephemeralPublic = x25519.getPublicKey(ephemeralSecret);
-      const sharedSecret = x25519.getSharedSecret(ephemeralSecret, this.mxePublicKey!);
+
+      // 2. Derive shared secret with server's public key
+      const sharedSecret = x25519.getSharedSecret(ephemeralSecret, this.serverX25519Public!);
+
+      // 3. Encrypt with RescueCipher
       const cipher = new RescueCipher(sharedSecret);
       const nonce = randomBytes(16);
 
@@ -150,7 +159,7 @@ export class ArciumService {
       const payloadBigInts = payload.map(b => BigInt(b));
       const ciphertext = cipher.encrypt(payloadBigInts, nonce);
 
-      // ciphertext is number[][], convert to Uint8Array before concat
+      // Flatten ciphertext blocks
       const flatCiphertext = Buffer.concat(ciphertext.map(block => Uint8Array.from(block)));
       const packedData = Buffer.concat([nonce, flatCiphertext]);
 
@@ -166,10 +175,18 @@ export class ArciumService {
     }
   }
 
+  /**
+   * Decrypt transaction data using the server's private key.
+   * 
+   * The flow:
+   * 1. Extract ephemeral public key from encryptionKey
+   * 2. Derive shared secret with server's private key
+   * 3. Use RescueCipher to decrypt
+   */
   async decryptTransaction(
     encryptedData: string,
     encryptionKey: string,
-    decryptorKeypair: Keypair
+    decryptorKeypair?: Keypair // Optional: use specific keypair instead of server's
   ): Promise<ConfidentialTransactionData | null> {
     if (!this.isAvailable()) {
       return null;
@@ -181,21 +198,19 @@ export class ArciumService {
       const nonce = Array.from(packedData.subarray(0, 16));
       const ciphertextFlat = packedData.subarray(16);
 
-      // FIX: Convert Ed25519 Secret Key -> X25519 Secret Key (Standard RFC 8032)
-      // 1. Hash the 32-byte private key with SHA-512
-      // 2. Clamp the first 32 bytes to make it a valid Scalar
-      const edSecretKey = decryptorKeypair.secretKey.subarray(0, 32);
-      const hash = createHash("sha512").update(edSecretKey).digest();
-      const xSecretKey = hash.subarray(0, 32);
+      // Determine which private key to use
+      let x25519PrivateKey: Uint8Array;
+      if (decryptorKeypair) {
+        x25519PrivateKey = ed25519ToX25519PrivateKey(decryptorKeypair.secretKey);
+      } else {
+        x25519PrivateKey = this.serverX25519Private!;
+      }
 
-      // Clamp (Pruning)
-      xSecretKey[0] &= 248;
-      xSecretKey[31] &= 127;
-      xSecretKey[31] |= 64;
-
-      const sharedSecret = x25519.getSharedSecret(xSecretKey, Uint8Array.from(senderPublicKey));
+      // Derive shared secret
+      const sharedSecret = x25519.getSharedSecret(x25519PrivateKey, Uint8Array.from(senderPublicKey));
       const cipher = new RescueCipher(sharedSecret);
 
+      // Parse ciphertext into 32-byte chunks
       const CHUNK_SIZE = 32;
       const numChunks = ciphertextFlat.length / CHUNK_SIZE;
       const chunks: Uint8Array[] = [];
@@ -215,13 +230,27 @@ export class ArciumService {
     }
   }
 
+  /**
+   * Encrypt arbitrary data (not just transactions).
+   */
+  async encryptData(data: any): Promise<EncryptedTransactionResult> {
+    return this.encryptTransaction(data as ConfidentialTransactionData, []);
+  }
+
+  /**
+   * Decrypt arbitrary data.
+   */
+  async decryptData(encryptedData: string, encryptionKey: string): Promise<any | null> {
+    return this.decryptTransaction(encryptedData, encryptionKey);
+  }
 }
 
 // Singleton
 let arciumServiceInstance: ArciumService | null = null;
-export function getArciumService(rpcEndpoint?: string): ArciumService {
+
+export function getArciumService(): ArciumService {
   if (!arciumServiceInstance) {
-    arciumServiceInstance = new ArciumService(rpcEndpoint);
+    arciumServiceInstance = new ArciumService();
   }
   return arciumServiceInstance;
 }
