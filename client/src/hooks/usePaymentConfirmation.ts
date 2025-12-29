@@ -20,23 +20,32 @@ export function usePaymentConfirmation({ connection, signature, invoiceId }: Use
         try {
             setStatus('confirming');
 
-            // 1. Check On-Chain Status
+            // 1. Check Backend Status FIRST (Faster)
+            // The server records payment immediately after relay, so this should return 'paid' quickly
+            if (invoiceId) {
+                try {
+                    const res = await fetch(`/api/invoices/${invoiceId}`);
+                    const data = await res.json();
+
+                    if (data.invoice && (data.invoice.status === 'paid' || data.invoice.status === 'processing')) {
+                        setStatus('verified');
+                        return; // Stop polling immediately if DB says paid
+                    }
+                } catch (apiErr) {
+                    console.warn("Failed to fetch invoice status:", apiErr);
+                }
+            }
+
+            // 2. Fallback: Check On-Chain Status
+            // Only rely on this if backend hasn't updated yet
             const result = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
             const confirmationStatus = result.value?.confirmationStatus;
 
             if (confirmationStatus === 'confirmed' || confirmationStatus === 'finalized') {
-                // 2. If on-chain confirmed, verify with Backend (which updates DB)
-                if (invoiceId) {
-                    // Poll backend record
-                    const res = await fetch(`/api/invoices/${invoiceId}`);
-                    const data = await res.json();
-
-                    if (data.invoice && data.invoice.status === 'paid') {
-                        setStatus('verified');
-                        return; // Stop polling
-                    }
-                } else {
-                    // If no invoiceId provided, just rely on chain
+                // If chain is verified but DB isn't yet, we might be in a race condition
+                // But we can trust the chain context if needed, or just keep polling for DB
+                // For now, if we have an invoiceId, we prefer to wait for DB to match 'paid'
+                if (!invoiceId) {
                     setStatus('verified');
                     return;
                 }
