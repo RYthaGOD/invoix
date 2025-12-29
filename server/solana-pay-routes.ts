@@ -5,6 +5,7 @@ import { invoiceStorage } from "./invoice-storage";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import bs58 from "bs58";
+import { logger } from "./logger";
 
 /**
  * Register Solana Pay standard routes
@@ -23,8 +24,8 @@ export function registerSolanaPayRoutes(app: Express) {
     const SOLANA_PAY_ENABLED = process.env.ENABLE_SOLANA_PAY === 'true';
 
     if (!SOLANA_PAY_ENABLED) {
-        console.warn("⚠️ Solana Pay routes DISABLED for security. Use /api/payments/relay instead.");
-        console.warn("   Set ENABLE_SOLANA_PAY=true to re-enable (not recommended for production).");
+        logger.warn("Solana Pay routes DISABLED for security. Use /api/payments/relay instead.", "solana-pay");
+        logger.warn("Set ENABLE_SOLANA_PAY=true to re-enable (not recommended for production).", "solana-pay");
 
         // Return 503 for all Solana Pay endpoints
         app.get("/api/solana-pay/:id", (req, res) => {
@@ -46,7 +47,7 @@ export function registerSolanaPayRoutes(app: Express) {
         return;
     }
 
-    console.warn("⚠️ Solana Pay routes ENABLED - Consider security implications!");
+    logger.warn("Solana Pay routes ENABLED - Consider security implications!", "solana-pay");
 
     const BASE_URL = process.env.API_URL || "https://invoix.railway.app";
 
@@ -75,7 +76,7 @@ export function registerSolanaPayRoutes(app: Express) {
             });
 
         } catch (error: any) {
-            console.error("Solana Pay GET Error:", error);
+            logger.error("Solana Pay GET Error", "solana-pay", { error: error.message || error });
             res.status(500).json({ error: error.message });
         }
     });
@@ -161,7 +162,7 @@ export function registerSolanaPayRoutes(app: Express) {
                 // Check if ATAs exist
                 const recipientInfo = await connection.getAccountInfo(recipientTokenAccount);
                 if (!recipientInfo) {
-                    console.log("Creating Recipient ATA (Paid by Server)");
+                    logger.info("Creating Recipient ATA (Paid by Server)", "solana-pay");
                     transaction.add(createAssociatedTokenAccountInstruction(
                         payerKeypair.publicKey, // Server Pays Rent
                         recipientTokenAccount,
@@ -172,7 +173,7 @@ export function registerSolanaPayRoutes(app: Express) {
 
                 const treasuryInfo = await connection.getAccountInfo(treasuryTokenAccount);
                 if (!treasuryInfo) {
-                    console.log("Creating Treasury ATA (Paid by Server)");
+                    logger.info("Creating Treasury ATA (Paid by Server)", "solana-pay");
                     transaction.add(createAssociatedTokenAccountInstruction(
                         payerKeypair.publicKey, // Server Pays Rent
                         treasuryTokenAccount,
@@ -206,7 +207,7 @@ export function registerSolanaPayRoutes(app: Express) {
             });
 
         } catch (error: any) {
-            console.error("Solana Pay POST Error:", error);
+            logger.error("Solana Pay POST Error", "solana-pay", { error: error.message || error });
             res.status(500).json({ error: error.message });
         }
     });

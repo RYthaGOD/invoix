@@ -12,6 +12,7 @@ import { loadKeypairFromPrivateKey } from "./arcium-service"; // Reuse this help
 import { invoiceStorage } from "./invoice-storage";
 
 import { strictRateLimit } from "./security";
+import { logger } from "./logger";
 
 const router = Router();
 
@@ -38,7 +39,8 @@ router.get("/config/fee-payer", async (req, res) => {
             treasuryAddress: TREASURY_WALLET_ADDRESS
         });
     } catch (error) {
-        console.error("Error getting fee payer config:", error);
+        const err = error as any;
+        logger.error("Error getting fee payer config", "payment", { error: err.message || err });
         res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
@@ -222,7 +224,7 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         // EXCEPTION: If the User IS the Protocol Admin (Testing/Dev), allow everything.
         // If they signed the tx, they hold the private key, so we don't need to protect them from themselves.
         if (userPayer === protocolPubkeyStr) {
-            console.log(`[SECURITY] Skipping checks: User is Protocol Admin (${userPayer})`);
+            logger.warn(`Security check skipped: User is Protocol Admin (${userPayer})`, "security");
         } else {
             for (const ix of transaction.instructions) {
                 const progId = ix.programId.toString();
@@ -253,10 +255,11 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                             }
 
                             if (!isAllowed) {
-                                console.warn(`[SECURITY_ALERT] Blocked instruction signed by protocol.`);
-                                console.warn(`[SECURITY] Program: ${progId}`);
-                                console.warn(`[SECURITY] Instruction Data Hex: ${ix.data.toString('hex')}`);
-                                console.warn(`[SECURITY] Protocol Pubkey: ${protocolPubkeyStr}`);
+                                logger.error("Blocked instruction signed by protocol", "security", {
+                                    program: progId,
+                                    instructionData: ix.data.toString('hex'),
+                                    protocolPubkey: protocolPubkeyStr
+                                });
 
                                 return res.status(403).json({
                                     success: false,
@@ -299,23 +302,23 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                     confirmedAt: new Date(),
                 };
                 await invoiceStorage.createPayment(paymentData as any);
-                console.log(`✅ [PAYMENT] Recorded payment ${signature} for invoice ${invoiceId}`);
+                logger.info("Payment recorded locally", "payment", { signature, invoiceId });
             } catch (paymentErr: any) {
-                console.error(`[PAYMENT] ERROR recording payment:`, paymentErr.message || paymentErr);
+                logger.error("Error recording payment", "payment", { error: paymentErr.message || paymentErr });
             }
 
             // ASYNC: Mint NFT receipt in background (non-blocking)
             import("./payment-confirmation-service").then(service => {
                 service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer || "unknown");
-            }).catch(err => console.error("Failed to start NFT minting:", err));
+            }).catch(err => logger.error("Failed to start NFT minting", "nft", { error: err.message || err }));
         }
 
         // 6. Return Signature
-        console.log(`✅ [RELAY] Transaction sent: ${signature}`);
+        logger.info("Relay transaction sent", "payment", { signature });
         res.json({ success: true, signature });
 
     } catch (error: any) {
-        console.error("Payment relay error:", error);
+        logger.error("Payment relay error", "payment", { error: error.message || error });
         res.status(500).json({ success: false, message: error.message || "Relay processing failed" });
     }
 });

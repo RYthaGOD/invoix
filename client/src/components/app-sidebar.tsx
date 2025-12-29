@@ -87,16 +87,19 @@ export function AppSidebar() {
   const [location] = useLocation();
 
   return (
-    <Sidebar>
+    <Sidebar variant="floating" collapsible="icon" className="border-r-0">
+      {/* Premium Glass Island Background Override */}
+      <div className="absolute inset-0 bg-[#030712]/90 backdrop-blur-3xl -z-10 rounded-r-2xl border-r border-white/10 shadow-[5px_0_30px_rgba(0,0,0,0.5)]" />
+
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-3 py-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-md rounded-full" />
-              <img src="/invoix-logo.jpg" alt="Invoix Logo" className="relative w-8 h-8 object-contain rounded-lg border border-white/10" />
+          <SidebarGroupLabel className="flex items-center gap-3 py-4 mb-2">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+              <img src="/logo-premium.png" alt="Invoix Premium" className="relative w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold font-heading tracking-tight leading-none">
+              <span className="text-xl font-bold font-heading tracking-tight leading-none group-hover:scale-105 transition-transform origin-left">
                 <span className="text-foreground">Inv</span>
                 <span className="text-primary">oix</span>
               </span>

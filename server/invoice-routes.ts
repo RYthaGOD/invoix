@@ -5,6 +5,7 @@
  */
 
 import type { Express } from "express";
+import { logger } from "./logger";
 import { invoiceStorage } from "./invoice-storage";
 import { safeSubtract, safeAdd, safeMultiply } from "@shared/math";
 import {
@@ -599,7 +600,7 @@ export function registerInvoiceRoutes(app: Express): void {
             });
           }
         } catch (emailErr: any) {
-          console.error("Failed to trigger email notification:", emailErr);
+          logger.error("Failed to trigger email notification", "invoice", { error: emailErr });
           // Don't fail the request, just log error
         }
       }
@@ -844,8 +845,8 @@ export function registerInvoiceRoutes(app: Express): void {
         // If it's a crypto payment, verify it
         const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("devnet"));
 
-        console.log(`Verifying payment tx: ${validatedData.txSignature} for ${validatedData.amount} ${validatedData.currency}`);
-        console.log(`[DEBUG PAYMENT] Full Input:`, {
+        logger.info(`Verifying payment tx: ${validatedData.txSignature} for ${validatedData.amount} ${validatedData.currency}`, "invoice");
+        logger.debug(`Payment Verification Input`, "invoice", {
           txSignature: validatedData.txSignature,
           amount: validatedData.amount,
           currency: validatedData.currency,
@@ -862,7 +863,7 @@ export function registerInvoiceRoutes(app: Express): void {
         const feeAmount = safeMultiply(totalAmount, feeRate);
         const recipientAmount = safeSubtract(totalAmount, feeAmount);
 
-        console.log(`[DEBUG PAYMENT] Amount Calculations:`, {
+        logger.debug(`Payment Amount Calculations`, "invoice", {
           totalAmount,
           feeRate,
           feeAmount,
@@ -882,13 +883,13 @@ export function registerInvoiceRoutes(app: Express): void {
         );
 
         if (!verification.verified) {
-          console.error(`Payment verification failed:`, verification);
+          logger.error(`Payment verification failed`, "invoice", { verification });
           return res.status(400).json({
             message: `Payment verification failed: ${verification.error || "Transaction invalid"}`
           });
         }
 
-        console.log("✅ Payment Verified On-Chain:", verification);
+        logger.info("Payment Verified On-Chain", "invoice", { verification });
 
         // Global Replay Protection (checking across ALL payment types)
         const isReplay = await invoiceStorage.isSignatureUsed(validatedData.txSignature);
@@ -944,7 +945,7 @@ export function registerInvoiceRoutes(app: Express): void {
             businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
           });
         } catch (emailErr: any) {
-          console.error("Failed to trigger receipt email:", emailErr);
+          logger.error("Failed to trigger receipt email", "invoice", { error: emailErr });
         }
       }
       // ---------------------------
@@ -955,25 +956,25 @@ export function registerInvoiceRoutes(app: Express): void {
         const nftService = getInvoiceNFTService();
 
         if (nftService.isReady() && updatedInvoice) {
-          console.log(`[NFT] Minting Receipt NFT for payment ${validatedData.txSignature}...`);
+          logger.info(`Minting Receipt NFT for payment ${validatedData.txSignature}...`, "nft");
 
           const receiptResult = await nftService.mintPaymentReceiptNFT({
             payment: payment as any,
             invoice: updatedInvoice,
-            recipientAddress: validatedData.fromAddress // Payer receives the receipt NFT
+            recipientAddress: validatedData.fromAddress || "" // Payer receives the receipt NFT, fallback to empty string if missing
           });
 
-          console.log(`[NFT] Receipt NFT Minted: ${receiptResult.mint}`);
+          logger.info(`Receipt NFT Minted: ${receiptResult.mint}`, "nft");
 
           // Update payment record with NFT mint info
           await db.update(payments)
             .set({ nftReceiptMinted: true })
             .where(eq(payments.txSignature, validatedData.txSignature));
         } else {
-          console.warn(`[NFT] Skipped Receipt NFT - NFT Service not ready or invoice not found`);
+          logger.warn(`Skipped Receipt NFT - NFT Service not ready or invoice not found`, "nft");
         }
       } catch (nftErr: any) {
-        console.error("[NFT] Failed to mint receipt NFT:", nftErr);
+        logger.error("Failed to mint receipt NFT", "nft", { error: nftErr });
         // Don't fail the payment if NFT minting fails - it's a non-critical feature
       }
       // ---------------------------
@@ -1026,7 +1027,7 @@ export function registerInvoiceRoutes(app: Express): void {
         count: payments.length,
       });
     } catch (error: any) {
-      console.error(`Error fetching payments for invoice ${req.params.id}:`, error);
+      logger.error(`Error fetching payments for invoice`, "invoice", { invoiceId: req.params.id, error });
       res.status(500).json({ message: error.message, stack: process.env.NODE_ENV === 'development' ? error.stack : undefined });
     }
   });
@@ -1064,7 +1065,7 @@ export function registerInvoiceRoutes(app: Express): void {
       const stats = await invoiceStorage.getGlobalStats();
       res.json(stats);
     } catch (error: any) {
-      console.error("Error running global stats broadcast:", error);
+      logger.error("Error running global stats broadcast", "invoice", { error });
       res.status(500).json({ message: "Failed to fetch stats" });
     }
   });
@@ -1205,7 +1206,7 @@ export function registerInvoiceRoutes(app: Express): void {
         message: `Business identity NFT minted successfully (${verificationLevel} verification)`,
       });
     } catch (error: any) {
-      console.error("Failed to mint business identity NFT:", error);
+      logger.error("Failed to mint business identity NFT", "invoice", { error });
       res.status(500).json({ message: error.message });
     }
   });

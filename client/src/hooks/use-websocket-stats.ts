@@ -12,13 +12,15 @@ export function useWebSocketStats() {
         totalVolume: string;    // changed to string to match backend
         totalPaidVolume: string; // New field
         isLive: boolean; // Tracking connection status
+        volumes: { currency: string; amount: string }[];
     }>({
         totalInvoices: 0,
         totalUsers: 0,
         encryptedInvoices: 0,
         totalVolume: "0",
         totalPaidVolume: "0",
-        isLive: false // Default to not live until connected
+        isLive: false, // Default to not live until connected
+        volumes: []
     });
 
     const [wsConnected, setWsConnected] = useState(false);
@@ -30,11 +32,11 @@ export function useWebSocketStats() {
             const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
             const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-            console.log("Connecting to stats WebSocket:", wsUrl);
+            console.debug("Connecting to stats WebSocket:", wsUrl);
             const ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                console.log("Stats WebSocket Connected");
+                console.debug("Stats WebSocket Connected");
                 setWsConnected(true);
             };
 
@@ -55,7 +57,7 @@ export function useWebSocketStats() {
             };
 
             ws.onclose = () => {
-                console.log("Stats WebSocket Disconnected");
+                console.debug("Stats WebSocket Disconnected");
                 setWsConnected(false);
                 setGlobalStats(prev => ({ ...prev, isLive: false }));
 

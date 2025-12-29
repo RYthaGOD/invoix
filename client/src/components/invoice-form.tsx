@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { User, Lock, Loader2, FileText, ShieldCheck, Zap, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Loader } from "@/components/ui/loader"; // Import premium loader
 import { CurrencySelector } from "@/components/currency-selector";
 import { LineItemEditor } from "@/components/line-item-editor";
 import { safeAdd, safeMultiply, safeSubtract } from "@shared/math";
@@ -139,7 +140,7 @@ export function InvoiceForm({
                     </div>
 
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">
                             Customer Email (Optional)
                         </label>
                         <input
@@ -411,12 +412,21 @@ export function InvoiceForm({
 
             {/* Status Overlay (for minting) */}
             {mintingStatus && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                    <div className="glass-card p-8 rounded-xl flex flex-col items-center gap-4 max-w-md text-center">
-                        <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
-                        <h3 className="text-xl font-bold text-white">Minting NFT...</h3>
-                        <p className="text-gray-300">{mintingStatus}</p>
-                        <p className="text-xs text-gray-500 mt-2">Please examine the transaction in your wallet popup.</p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md">
+                    <div className="glass-card p-10 rounded-2xl flex flex-col items-center gap-6 max-w-md text-center border-primary/20 shadow-2xl shadow-primary/10">
+                        {/* Use Premium Loader here, resized via CSS scaling or container if needed, but standard is fine */}
+                        <div className="scale-75">
+                            <Loader />
+                        </div>
+
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-heading font-bold gradient-text">Processing...</h3>
+                            <p className="text-secondary-foreground font-medium text-lg">{mintingStatus}</p>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground mt-2 max-w-[200px]">
+                            Please check your wallet for signature requests.
+                        </p>
                     </div>
                 </div>
             )}

@@ -929,7 +929,7 @@ class InvoiceStorage implements IInvoiceStorage {
   /**
    * Get global system statistics (Public)
    */
-  async getGlobalStats(): Promise<{ totalInvoices: number; totalUsers: number; totalPaidVolume: string; encryptedInvoices: number; totalVolume: string }> {
+  async getGlobalStats(): Promise<{ totalInvoices: number; totalUsers: number; totalPaidVolume: string; encryptedInvoices: number; totalVolume: string; volumes: { currency: string; amount: string }[] }> {
     try {
       // 1. Total Invoices
       const [invResult] = await db.select({ count: sql<string>`count(*)` }).from(invoices);
@@ -950,9 +950,23 @@ class InvoiceStorage implements IInvoiceStorage {
       const [volumeResult] = await db.select({ total: sql<string>`sum(${invoices.totalAmount})` }).from(invoices);
       const totalVolume = volumeResult?.total || "0";
 
-      // 5. Total Paid Volume (Actual Revenue Processed)
-      const [paidResult] = await db.select({ total: sql<string>`sum(${invoices.paidAmount})` }).from(invoices);
-      const totalPaidVolume = paidResult?.total || "0";
+      // 5. PAID VOLUME BY CURRENCY
+      // We aggregate by currency to allow accurate USD conversion on frontend
+      const paidByCurrency = await db
+        .select({
+          currency: invoices.currency,
+          total: sql<string>`sum(${invoices.paidAmount})`
+        })
+        .from(invoices)
+        .groupBy(invoices.currency);
+
+      const volumes = paidByCurrency.map(row => ({
+        currency: row.currency || "USDC", // Default to USDC if null
+        amount: row.total || "0"
+      }));
+
+      // Legacy fallback: Sum of all raw numbers (deprecated but kept for safety)
+      const totalPaidVolume = volumes.reduce((sum, v) => safeAdd(sum, v.amount), "0");
 
       // 6. Unique Users (Union of Business and Customer Wallets)
       // We use a raw query for the UNION operation to ensure distinctness across both tables
@@ -991,12 +1005,13 @@ class InvoiceStorage implements IInvoiceStorage {
         totalUsers,
         totalPaidVolume,
         encryptedInvoices,
-        totalVolume
+        totalVolume,
+        volumes
       };
     } catch (error) {
       console.error("Error computing global stats:", error);
       // Return zeros on error to prevent crash
-      return { totalInvoices: 0, totalUsers: 0, totalPaidVolume: "0", encryptedInvoices: 0, totalVolume: "0" };
+      return { totalInvoices: 0, totalUsers: 0, totalPaidVolume: "0", encryptedInvoices: 0, totalVolume: "0", volumes: [] };
     }
   }
 }

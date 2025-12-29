@@ -6,6 +6,7 @@ import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { EmailService } from "./email-service";
 import crypto from "crypto";
+import { logger } from "./logger";
 
 const emailService = new EmailService();
 
@@ -49,11 +50,11 @@ export function registerWaitlistRoutes(app: Express): void {
             // Send confirmation email to dev (optional, skipping for now to reduce spam risk)
 
             // Notify Admin (optional)
-            console.log(`[WAITLIST] New application from ${data.email} (${data.projectName})`);
+            logger.info(`New application from ${data.email} (${data.projectName})`, "waitlist");
 
             res.json({ success: true, user: newUser });
         } catch (error: any) {
-            console.error("Waitlist apply error:", error);
+            logger.error("Waitlist apply error", "waitlist", { error });
             res.status(400).json({ success: false, message: error.message });
         }
     });
@@ -142,13 +143,13 @@ export function registerWaitlistRoutes(app: Express): void {
                 `
             });
 
-            console.log(`[WAITLIST] Approved ${updatedUser.email}. Email sent: ${emailResult.success}`);
+            logger.info(`Approved ${updatedUser.email}. Email sent: ${emailResult.success}`, "waitlist");
 
             // Return key to admin (optional, useful for manual distribution)
             res.json({ success: true, user: updatedUser, apiKey: key });
 
         } catch (error: any) {
-            console.error("Approve error:", error);
+            logger.error("Approve error", "waitlist", { error });
             res.status(500).json({ message: error.message });
         }
     });

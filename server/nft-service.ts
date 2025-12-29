@@ -57,6 +57,7 @@ import type {
 } from "@shared/invoice-schema";
 import { serializeInvoiceForHashing } from "@shared/invoice-schema";
 import { getMetadataStorageService } from "./metadata-storage";
+import { logger } from "./logger";
 
 /**
  * NFT Metadata for Invoice
@@ -187,13 +188,14 @@ export class InvoiceNFTService {
             if (exists) {
               this.merkleTree = candidateTree;
               validPersistedTree = true;
-              console.log(`✅ Loaded Merkle Tree from DB: ${this.merkleTree}`);
+              validPersistedTree = true;
+              logger.info(`Loaded Merkle Tree from DB: ${this.merkleTree}`, "nft");
             } else {
-              console.warn(`⚠️  Persisted Merkle Tree (${candidateTree}) not found on current network. Invalidating...`);
+              logger.warn(`Persisted Merkle Tree (${candidateTree}) not found on current network. Invalidating...`, "nft");
               // Will fall through to creation
             }
           } catch (err) {
-            console.warn("⚠️  Error checking Merkle tree existence, assuming invalid.", err);
+            logger.warn("Error checking Merkle tree existence, assuming invalid.", "nft", { error: err });
           }
         }
 
@@ -204,14 +206,15 @@ export class InvoiceNFTService {
           const walletAddr = this.umi.identity.publicKey.toString();
           const balance = await this.umi.rpc.getBalance(this.umi.identity.publicKey);
 
-          console.log(`ℹ️  Server Wallet Address: ${walletAddr}`);
+          logger.info(`Server Wallet Address: ${walletAddr}`, "nft");
 
           // 0.01 SOL = 10,000,000 lamports
           if (balance.basisPoints < BigInt(10000000)) {
-            console.warn(`⚠️  NFT Service Warning: Insufficient funds to create Merkle Tree.`);
-            console.warn(`   Address: ${walletAddr}`);
-            console.warn(`   Current Balance: ${Number(balance.basisPoints) / 1e9} SOL`);
-            console.warn(`   Required: 0.01 SOL. Service will be disabled until funded.`);
+            logger.warn("NFT Service Warning: Insufficient funds to create Merkle Tree", "nft", {
+              address: walletAddr,
+              balance: Number(balance.basisPoints) / 1e9,
+              required: 0.01
+            });
             this.initialized = false;
             return false;
           }
@@ -230,7 +233,7 @@ export class InvoiceNFTService {
               description: "Compressed NFT Merkle Tree Address",
             });
           }
-          console.log(`💾 Persisted Merkle Tree to DB`);
+          logger.info("Persisted Merkle Tree to DB", "nft");
         }
       }
 
@@ -248,29 +251,26 @@ export class InvoiceNFTService {
 
               if (updateAuthority === serverIdentity) {
                 this.collectionMint = this.config.collectionMintAddress;
-                console.log(`✅ Using Collection NFT from env: ${this.collectionMint}`);
-                console.log(`   Update Authority verified: ${updateAuthority}`);
+                logger.info(`Using Collection NFT from env: ${this.collectionMint}`, "nft", { updateAuthority });
               } else {
-                console.warn(`⚠️ Env Collection ${this.config.collectionMintAddress} has different update authority.`);
-                console.warn(`   Expected: ${serverIdentity}`);
-                console.warn(`   Found: ${updateAuthority}`);
-                console.warn(`   Creating new collection...`);
+                logger.warn(`Env Collection ${this.config.collectionMintAddress} has different update authority.`, "nft", { expected: serverIdentity, found: updateAuthority });
+                logger.info("Creating new collection...", "nft");
                 await this.createCollectionNFT();
               }
             } catch (metadataErr) {
-              console.warn(`⚠️ Could not fetch env collection metadata:`, metadataErr);
+              logger.warn("Could not fetch env collection metadata", "nft", { error: metadataErr });
               // Still use it if account exists
               this.collectionMint = this.config.collectionMintAddress;
-              console.log(`⚠️ Using env Collection NFT (no authority verification): ${this.collectionMint}`);
+              logger.warn(`Using env Collection NFT (no authority verification): ${this.collectionMint}`, "nft");
             }
           } else {
-            console.warn(`⚠️ Env-configured Collection NFT (${this.config.collectionMintAddress}) not found on current network.`);
-            console.log(`🎨 Creating new INVOIX Genesis Collection NFT...`);
+            logger.warn(`Env-configured Collection NFT (${this.config.collectionMintAddress}) not found on current network.`, "nft");
+            logger.info("Creating new INVOIX Genesis Collection NFT...", "nft");
             await this.createCollectionNFT();
           }
         } catch (err) {
-          console.warn("⚠️ Error checking Collection NFT existence:", err);
-          console.log(`🎨 Creating new INVOIX Genesis Collection NFT...`);
+          logger.warn("Error checking Collection NFT existence:", "nft", { error: err });
+          logger.info("Creating new INVOIX Genesis Collection NFT...", "nft");
           await this.createCollectionNFT();
         }
       } else {
@@ -293,34 +293,35 @@ export class InvoiceNFTService {
                 if (updateAuthority === serverIdentity) {
                   this.collectionMint = candidateCollection;
                   validPersistedCollection = true;
-                  console.log(`✅ Loaded Collection NFT from DB: ${this.collectionMint}`);
-                  console.log(`   Update Authority verified: ${updateAuthority}`);
+                  validPersistedCollection = true;
+                  logger.info(`Loaded Collection NFT from DB: ${this.collectionMint}`, "nft");
+                  logger.debug(`Update Authority verified: ${updateAuthority}`, "nft");
                 } else {
-                  console.warn(`⚠️ Collection ${candidateCollection} has different update authority.`);
-                  console.warn(`   Expected: ${serverIdentity}`);
-                  console.warn(`   Found: ${updateAuthority}`);
-                  console.warn(`   Creating new collection...`);
+                  logger.warn(`Collection ${candidateCollection} has different update authority.`, "nft");
+                  logger.warn(`Expected: ${serverIdentity}`, "nft");
+                  logger.warn(`Found: ${updateAuthority}`, "nft");
+                  logger.warn(`Creating new collection...`, "nft");
                   // Will fall through to creation
                 }
               } catch (metadataErr) {
-                console.warn(`⚠️ Could not fetch collection metadata for authority check:`, metadataErr);
+                logger.warn(`Could not fetch collection metadata for authority check`, "nft", { error: metadataErr });
                 // Still use it if account exists - may be a different on-chain format
                 this.collectionMint = candidateCollection;
                 validPersistedCollection = true;
-                console.log(`⚠️ Loaded Collection NFT (no authority verification): ${this.collectionMint}`);
+                logger.warn(`Loaded Collection NFT (no authority verification): ${this.collectionMint}`, "nft");
               }
             } else {
-              console.warn(`⚠️ Persisted Collection NFT (${candidateCollection}) not found on current network. Invalidating...`);
+              logger.warn(`Persisted Collection NFT (${candidateCollection}) not found on current network. Invalidating...`, "nft");
               // Will fall through to creation
             }
           } catch (err) {
-            console.warn("⚠️ Error checking Collection NFT existence, assuming invalid.", err);
+            logger.warn("Error checking Collection NFT existence, assuming invalid.", "nft", { error: err });
           }
         }
 
         if (!validPersistedCollection) {
           // Create collection NFT on first run or if previous was invalid
-          console.log(`🎨 Creating INVOIX Genesis Collection NFT...`);
+          logger.info(`Creating INVOIX Genesis Collection NFT...`, "nft");
           await this.createCollectionNFT();
 
           // Update DB if there was an old invalid entry
@@ -328,17 +329,18 @@ export class InvoiceNFTService {
             await db.update(systemSettings)
               .set({ value: this.collectionMint, description: `Genesis Collection NFT (${process.env.SOLANA_NETWORK || 'unknown'})` })
               .where(eq(systemSettings.key, "genesis_collection_mint"));
-            console.log(`💾 Updated Collection NFT in DB`);
+            logger.info(`Updated Collection NFT in DB`, "nft");
           }
         }
       }
 
       this.initialized = true;
-      console.log("✅ Invoice NFT service initialized");
+      this.initialized = true;
+      logger.info("Invoice NFT service initialized", "nft");
 
       return true;
     } catch (error) {
-      console.error("❌ Failed to initialize NFT service:", error);
+      logger.error("Failed to initialize NFT service", "nft", { error });
       this.initialized = false;
       return false;
     }
@@ -453,7 +455,8 @@ export class InvoiceNFTService {
       await createCollectionIx.sendAndConfirm(this.umi);
 
       this.collectionMint = collectionSigner.publicKey.toString();
-      console.log(`✅ Created Collection NFT: ${this.collectionMint}`);
+      this.collectionMint = collectionSigner.publicKey.toString();
+      logger.info(`Created Collection NFT: ${this.collectionMint}`, "nft");
 
       // Persist to DB
       const { systemSettings } = await import("@shared/invoice-schema");
@@ -462,13 +465,13 @@ export class InvoiceNFTService {
         value: this.collectionMint,
         description: "INVOIX Genesis Collection NFT Address",
       });
-      console.log(`💾 Persisted Collection NFT to DB`);
+      logger.info("Persisted Collection NFT to DB", "nft");
 
     } catch (error) {
-      console.error("❌ Failed to create Collection NFT:", error);
+      logger.error("Failed to create Collection NFT", "nft", { error });
       // CRITICAL: Explicitly set to null so we don't try to use an invalid collection
       this.collectionMint = null;
-      console.warn("⚠️ Continuing without collection. NFTs will still work but won't be grouped on marketplaces.");
+      logger.warn("Continuing without collection. NFTs will still work but won't be grouped on marketplaces.", "nft");
     }
   }
 
@@ -489,12 +492,13 @@ export class InvoiceNFTService {
       await createTreeIx.sendAndConfirm(this.umi);
 
       this.merkleTree = merkleTreeSigner.publicKey.toString();
-      console.log(`✅ Created merkle tree: ${this.merkleTree}`);
-      console.warn(`⚠️  IMPORTANT: Add MERKLE_TREE_ADDRESS=${this.merkleTree} to your .env file to persist this tree!`);
+      this.merkleTree = merkleTreeSigner.publicKey.toString();
+      logger.info(`Created merkle tree: ${this.merkleTree}`, "nft");
+      logger.warn("IMPORTANT: Add MERKLE_TREE_ADDRESS to .env to persist this tree!", "nft", { address: this.merkleTree });
 
       return this.merkleTree;
     } catch (error) {
-      console.error("❌ Failed to create merkle tree:", error);
+      logger.error("Failed to create merkle tree", "nft", { error });
       throw error;
     }
   }
@@ -626,10 +630,10 @@ export class InvoiceNFTService {
       const serializedTransaction = this.umi.transactions.serialize(tx);
       const base64Transaction = Buffer.from(serializedTransaction).toString("base64");
 
-      console.log(`✅ Created Mint Transaction for User ${userPublicKey}`);
+      logger.info(`Created Mint Transaction for User ${userPublicKey}`, "nft");
       return base64Transaction;
     } catch (error) {
-      console.error(`❌ Failed to create mint transaction:`, error);
+      logger.error("Failed to create mint transaction", "nft", { error });
       throw error;
     }
   }
@@ -724,14 +728,13 @@ export class InvoiceNFTService {
       const result = await this.executeWithRetry(() => mintIxWithBudget.sendAndConfirm(this.umi));
       const signature = result.signature.toString();
 
-      console.log(`✅ Minted cNFT Payment Receipt. Sig: ${signature}`);
+      logger.info(`Minted cNFT Payment Receipt`, "nft", { signature });
 
       // Extract details for cNFT
       const leafIndex = await this.extractLeafIndexFromTransaction(signature);
       const assetId = await this.deriveAssetId(leafIndex);
 
-      console.log(`   Asset ID: ${assetId}`);
-      console.log(`   Leaf Index: ${leafIndex}`);
+      logger.debug("Payment Receipt cNFT Details", "nft", { assetId, leafIndex });
 
       // 6. Store in DB (PaymentReceiptNFTs table)
       const { paymentReceiptNFTs } = await import("@shared/invoice-schema");
@@ -753,14 +756,14 @@ export class InvoiceNFTService {
         nftMintSignature: signature
       });
 
-      console.log(`✅ Persisted receipt NFT to DB`);
+      logger.info("Persisted receipt NFT to DB", "nft");
 
       return {
         mint: assetId,
         signature: signature,
       };
     } catch (error) {
-      console.error(`❌ Failed to mint payment receipt NFT:`, error);
+      logger.error("Failed to mint payment receipt NFT", "nft", { error });
       throw error;
     }
   }
@@ -822,14 +825,14 @@ export class InvoiceNFTService {
       );
       const signature = result.signature.toString();
 
-      console.log(`✅ Minted Business Identity NFT: ${mint.publicKey.toString()}`);
+      logger.info(`Minted Business Identity NFT: ${mint.publicKey.toString()}`, "nft");
 
       return {
         mint: mint.publicKey.toString(),
         signature,
       };
     } catch (error) {
-      console.error(`❌ Failed to mint business identity NFT:`, error);
+      logger.error(`Failed to mint business identity NFT`, "nft", { error });
       throw error;
     }
   }
@@ -1308,7 +1311,7 @@ export class InvoiceNFTService {
       return result.uri;
 
     } catch (error) {
-      console.error("Failed to upload metadata:", error);
+      logger.error("Failed to upload metadata", "nft", { error });
       // Fallback to a valid dummy or handle error
       throw error;
     }
@@ -1342,7 +1345,7 @@ export class InvoiceNFTService {
         throw new Error("All NFTs sold out! Collection complete.");
       }
 
-      console.log(`[NFT] Minting ${selectedNFT.name} (${selectedNFT.rarity}) for ${recipientAddress}...`);
+      logger.info(`Minting ${selectedNFT.name} (${selectedNFT.rarity}) for ${recipientAddress}...`, "nft");
 
       // 1. Generate Metadata - 8K 3D Holographic Card Upgrade
       const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
@@ -1378,7 +1381,7 @@ export class InvoiceNFTService {
         throw new Error("Merkle Tree not initialized");
       }
 
-      console.log(`[NFT] Minting Compressed Special NFT to tree: ${this.merkleTree}`);
+      logger.info(`Minting Compressed Special NFT to tree: ${this.merkleTree}`, "nft");
 
       const merkleTreePubkey = toPublicKey(this.merkleTree);
       const leafOwner = toPublicKey(recipientAddress);
@@ -1414,7 +1417,7 @@ export class InvoiceNFTService {
         const leafIndex = await this.extractLeafIndexFromTransaction(signature);
         const assetId = await this.deriveAssetId(leafIndex);
 
-        console.log(`✅ Minted cNFT ${selectedNFT.name}. Asset ID: ${assetId} Sig: ${signature}`);
+        logger.info(`Minted cNFT ${selectedNFT.name}. Asset ID: ${assetId} Sig: ${signature}`, "nft");
 
         return {
           mint: assetId.toString(),
@@ -1448,7 +1451,7 @@ export class InvoiceNFTService {
         const leafIndex = await this.extractLeafIndexFromTransaction(signature);
         const assetId = await this.deriveAssetId(leafIndex);
 
-        console.log(`✅ Minted cNFT ${selectedNFT.name} (no collection). Asset ID: ${assetId} Sig: ${signature}`);
+        logger.info(`Minted cNFT ${selectedNFT.name} (no collection). Asset ID: ${assetId} Sig: ${signature}`, "nft");
 
         return {
           mint: assetId.toString(),
@@ -1458,7 +1461,7 @@ export class InvoiceNFTService {
       }
 
     } catch (error) {
-      console.error("Failed to mint special NFT:", error);
+      logger.error("Failed to mint special NFT", "nft", { error });
       throw error;
     }
   }
@@ -1476,7 +1479,7 @@ export class InvoiceNFTService {
     }
 
     try {
-      console.log(`[NFT] Minting specific ${nftVariant.name} (${nftVariant.rarity}) for ${recipientAddress}...`);
+      logger.info(`Minting specific ${nftVariant.name} (${nftVariant.rarity}) for ${recipientAddress}...`, "nft");
 
       // 1. Generate Metadata - 8K 3D Holographic Card Upgrade
       const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
@@ -1552,7 +1555,7 @@ export class InvoiceNFTService {
       const result: any = await this.executeWithRetry(() => createNftIxWithFees.sendAndConfirm(this.umi));
       const signature = result.signature.toString();
 
-      console.log(`✅ Minted ${nftVariant.name} (${nftVariant.rarity}). Mint: ${mint.publicKey.toString()} Sig: ${signature}`);
+      logger.info(`Minted ${nftVariant.name} (${nftVariant.rarity}). Mint: ${mint.publicKey.toString()} Sig: ${signature}`, "nft");
 
       return {
         mint: mint.publicKey.toString(),
@@ -1560,7 +1563,7 @@ export class InvoiceNFTService {
       };
 
     } catch (error) {
-      console.error("Failed to mint specific NFT:", error);
+      logger.error("Failed to mint specific NFT", "nft", { error });
       throw error;
     }
   }
@@ -1597,7 +1600,11 @@ export class InvoiceNFTService {
         throw new Error("All NFTs sold out! Collection complete.");
       }
 
-      console.log(`[NFT] Preparing Claim Transaction for ${selectedNFT.name} (${selectedNFT.rarity}) to ${userPublicKey}...`);
+      if (!selectedNFT) {
+        throw new Error("All NFTs sold out! Collection complete.");
+      }
+
+      logger.info(`Preparing Claim Transaction for ${selectedNFT.name} (${selectedNFT.rarity}) to ${userPublicKey}...`, "nft");
 
       // 1. Generate Metadata - 8K 3D Holographic Card Upgrade
       const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
@@ -1708,7 +1715,7 @@ export class InvoiceNFTService {
       };
 
     } catch (error) {
-      console.error("Failed to create claim transaction:", error);
+      logger.error("Failed to create claim transaction", "nft", { error });
       throw error;
     }
   }
@@ -1753,7 +1760,7 @@ export class InvoiceNFTService {
       }
 
       if (!tx || !tx.meta || !tx.meta.logMessages) {
-        console.warn("⚠️ Could not fetch transaction logs after 3 attempts, using leaf index 0");
+        logger.warn("Could not fetch transaction logs after 3 attempts, using leaf index 0", "nft");
         return 0;
       }
 
@@ -1764,7 +1771,7 @@ export class InvoiceNFTService {
         const match = log.match(/leaf\s*index[:\s]+(\d+)/i);
         if (match && match[1]) {
           const leafIndex = parseInt(match[1], 10);
-          console.log(`✅ Extracted leaf index (pattern 1): ${leafIndex}`);
+          logger.debug(`Extracted leaf index (pattern 1): ${leafIndex}`, "nft");
           return leafIndex;
         }
       }
@@ -1774,7 +1781,7 @@ export class InvoiceNFTService {
         const match = log.match(/nonce[:\s]+(\d+)/i);
         if (match && match[1]) {
           const leafIndex = parseInt(match[1], 10);
-          console.log(`✅ Extracted leaf index from nonce: ${leafIndex}`);
+          logger.debug(`Extracted leaf index from nonce: ${leafIndex}`, "nft");
           return leafIndex;
         }
       }
@@ -1786,21 +1793,21 @@ export class InvoiceNFTService {
           const numMatch = log.match(/\b(\d{1,10})\b/);
           if (numMatch && numMatch[1]) {
             const leafIndex = parseInt(numMatch[1], 10);
-            console.log(`✅ Extracted leaf index from MintV1 log: ${leafIndex}`);
+            logger.debug(`Extracted leaf index from MintV1 log: ${leafIndex}`, "nft");
             return leafIndex;
           }
         }
       }
 
       // Fallback: Return 0 instead of throwing (the NFT was still minted)
-      console.warn("⚠️ Could not parse leaf index from logs. Using 0 as fallback.");
-      console.log("Raw logs:", logs.slice(0, 10).join("\n"));
+      logger.warn("Could not parse leaf index from logs. Using 0 as fallback.", "nft");
+      logger.debug(`Raw logs: ${logs.slice(0, 10).join("\n")}`, "nft");
       return 0;
 
     } catch (error) {
-      console.error("❌ Error extracting leaf index:", error);
+      logger.error("Error extracting leaf index", "nft", { error });
       // Return 0 as fallback instead of throwing - the NFT was likely minted
-      console.warn("⚠️ Returning leaf index 0 as fallback");
+      logger.warn("Returning leaf index 0 as fallback", "nft");
       return 0;
     }
   }
@@ -1831,7 +1838,7 @@ export class InvoiceNFTService {
       throw new Error("Invoices and owner addresses arrays must have same length");
     }
 
-    console.log(`📦 Batch minting ${invoices.length} invoice NFTs...`);
+    logger.info(`Batch minting ${invoices.length} invoice NFTs...`, "nft");
 
     // Upload all metadata in parallel
     const storageService = getMetadataStorageService();
@@ -1912,9 +1919,9 @@ export class InvoiceNFTService {
           },
         });
 
-        console.log(`✅ Minted NFT ${i + 1}/${invoices.length} for invoice ${invoice.invoiceNumber}`);
+        logger.info(`Minted NFT ${i + 1}/${invoices.length} for invoice ${invoice.invoiceNumber}`, "nft");
       } catch (error: any) {
-        console.error(`❌ Failed to mint NFT for invoice ${invoices[i].invoiceNumber}:`, error);
+        logger.error(`Failed to mint NFT for invoice ${invoices[i].invoiceNumber}`, "nft", { error });
         results.push({
           invoiceId: invoices[i].id,
           success: false,
@@ -1924,7 +1931,7 @@ export class InvoiceNFTService {
     }
 
     const succeeded = results.filter((r) => r.success).length;
-    console.log(`✅ Batch minting complete: ${succeeded}/${invoices.length} succeeded`);
+    logger.info(`Batch minting complete: ${succeeded}/${invoices.length} succeeded`, "nft");
 
     return results;
   }

@@ -35,7 +35,7 @@ import { logger } from "./logger";
 
 // Validate environment variables on startup (before security check)
 validateEnvironment();
-console.log("[SYSTEM] Config reload trigger: " + Date.now());
+logger.info("Config reload trigger", "system", { timestamp: Date.now() });
 
 // Check security environment variables on startup
 checkSecurityEnvVars();
@@ -44,7 +44,7 @@ const app = express();
 const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
 
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
-  console.warn("⚠️  WARNING: SESSION_SECRET not set in production! Using insecure default.");
+  logger.warn("SESSION_SECRET not set in production! Using insecure default.", "security");
 }
 
 // Trust proxy - MUST be set before rate limiting middleware
@@ -136,7 +136,7 @@ server = createServer(app);
 const port = parseInt(process.env.PORT || "5000", 10);
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`✅ [BOOT] Listening on port ${port} - Service initializing...`);
+  logger.info(`Listening on port ${port} - Service initializing...`, "boot", { port });
   log(`serving on port ${port}`);
 });
 
@@ -157,17 +157,16 @@ app.use((req, res, next) => {
 // GLOBAL STARTUP SEQUENCE
 (async () => {
   try {
-    console.log("🚀 Initializing Invoix Platform Components...");
-    console.log("   Cluster:", process.env.NODE_ENV || "development");
+    logger.info("Initializing Invoix Platform Components...", "boot", { cluster: process.env.NODE_ENV });
 
     // 1. DNS Resolution Check
     if (process.env.DATABASE_URL) {
       startupPhase = "dns_preflight";
       try {
         const urlObj = new URL(process.env.DATABASE_URL);
-        console.log(`   🔍 DB Host: ${urlObj.hostname}`);
+        logger.info(`DB Host: ${urlObj.hostname}`, "dns");
       } catch (e) {
-        console.warn("   ⚠️  Invalid DATABASE_URL format");
+        logger.warn("Invalid DATABASE_URL format", "dns");
       }
     }
 
@@ -176,13 +175,13 @@ app.use((req, res, next) => {
       if (process.env.ENABLE_ARCIUM_ENCRYPTION === 'true') {
         const arciumSuccess = await initializeArciumService();
         if (arciumSuccess) {
-          console.log("✅ Arcium Service initialized");
+          logger.info("Arcium Service initialized", "arcium");
         }
       } else {
-        console.log("ℹ️  Arcium Encryption Disabled (ENABLE_ARCIUM_ENCRYPTION != true)");
+        logger.info("Arcium Encryption Disabled (ENABLE_ARCIUM_ENCRYPTION != true)", "arcium");
       }
-    } catch (arciumError) {
-      console.error("⚠️  Arcium Service Initialization Failed:", arciumError);
+    } catch (arciumError: any) {
+      logger.error("Arcium Service Initialization Failed", "arcium", { error: arciumError.message || arciumError });
     }
 
     // 2. Load Modules
@@ -233,7 +232,7 @@ app.use((req, res, next) => {
     // 4. Register Routes
     startupPhase = "route_registration";
     await registerRoutes(app);
-    console.log("   ✅ App routes registered.");
+    logger.info("App routes registered", "boot");
 
     // 5. Static Assets
     if (app.get("env") === "development") {
@@ -244,7 +243,7 @@ app.use((req, res, next) => {
 
     // 6. DB Verification
     startupPhase = "database_sync";
-    console.log("   ⏳ Connecting to Database...");
+    logger.info("Connecting to Database...", "boot");
     const dbResult = await checkDatabaseConnection(10, 2000); // 20s total retry
     if (!dbResult.connected) {
       throw new Error(`DB Connection Timeout: ${dbResult.error}`);
@@ -258,10 +257,10 @@ app.use((req, res, next) => {
     startupPhase = "services_init";
     if (process.env.PAYER_PRIVATE_KEY) {
       const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
-      await initializeNFTService(payerKeypair).catch(e => console.warn("⚠️ NFT Init failed:", e));
+      await initializeNFTService(payerKeypair).catch(e => logger.warn("NFT Init failed", "nft", { error: e }));
     }
     if (process.env.ENABLE_ARCIUM_ENCRYPTION === "true") {
-      await initializeArciumService().catch(e => console.warn("⚠️ Arcium Init failed:", e.message));
+      await initializeArciumService().catch(e => logger.warn("Arcium Init failed", "arcium", { error: e.message }));
     }
 
     // 9. Start QR Payment Processor (monitors Treasury for QR payments)
@@ -273,7 +272,7 @@ app.use((req, res, next) => {
     // Finalize
     isServiceReady = true;
     startupPhase = "ready";
-    console.log("🚀 [READY] Invoix Platform is fully operational!");
+    logger.info("Invoix Platform is fully operational!", "boot", { ready: true });
 
     // 9. Realtime Systems (WS)
     const wss = new WebSocketServer({ server, path: "/ws" });
@@ -294,7 +293,7 @@ app.use((req, res, next) => {
     }, 5000);
 
   } catch (error: any) {
-    console.error("❌ [FATAL] Startup Failure:", error);
+    logger.error("Startup Failure", "boot", { error: error.message || error, stack: error.stack });
     lastStartupError = error.message;
     startupPhase = "failed";
     // We do NOT exit, to keep the port open for logs and status visibility

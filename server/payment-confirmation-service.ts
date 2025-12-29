@@ -7,6 +7,7 @@ import { invoiceStorage } from "./invoice-storage";
 import { Connection } from "@solana/web3.js";
 import crypto from "crypto";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
+import { logger } from "./logger";
 
 const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
 
@@ -18,7 +19,7 @@ const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.dev
  */
 export async function confirmPaymentAndMintOutcome(signature: string, invoiceId: string, payerAddress: string) {
     try {
-        console.log(`[PAYMENT] Confirming payment ${signature} for invoice ${invoiceId}...`);
+        logger.info(`Confirming payment ${signature} for invoice ${invoiceId}...`, "payment");
 
         // 1. Confirm Transaction with explicit timeout (30 seconds max)
         const latestBlockhash = await connection.getLatestBlockhash("confirmed");
@@ -39,13 +40,13 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             // If timeout, check if transaction was actually confirmed
             const status = await connection.getSignatureStatus(signature);
             if (status.value?.confirmationStatus === 'confirmed' || status.value?.confirmationStatus === 'finalized') {
-                console.log(`[PAYMENT] Transaction confirmed via fallback check`);
+                logger.info("Transaction confirmed via fallback check", "payment");
             } else {
                 throw timeoutErr;
             }
         }
 
-        console.log(`[PAYMENT] Confirmed! Updating DB...`);
+        logger.info("Confirmed! Updating DB...", "payment");
 
         // 2. Fetch Invoice Details
         const invoiceList = await db.select().from(invoices).where(eq(invoices.id, invoiceId)).limit(1);
@@ -63,12 +64,12 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
         );
 
         if (!verification.verified) {
-            console.error(`[PAYMENT] Security Alert: Payment verification failed for ${signature}: ${verification.error}`);
+            logger.error(`Security Alert: Payment verification failed for ${signature}`, "security", { error: verification.error });
             // Stop processing - do not update DB, do not mint NFT
             return;
         }
 
-        console.log(`[PAYMENT] Verified amount: ${verification.amount} ${verification.currency}`);
+        logger.info(`Verified amount: ${verification.amount} ${verification.currency}`, "payment");
 
         // 3. Insert Payment Record with idempotent duplicate detection
         // FIX R2-1: Use invoiceStorage.createPayment which checks for duplicate signatures
@@ -87,7 +88,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             await invoiceStorage.createPayment(paymentData as any);
         } catch (e: any) {
             if (e.message?.includes("already")) {
-                console.log(`[PAYMENT] Duplicate payment detected for ${signature}, skipping`);
+                logger.info(`Duplicate payment detected for ${signature}, skipping`, "payment");
                 return; // Idempotent - already processed
             }
             throw e;
@@ -97,7 +98,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
 
         // 5. Special Logic: Community NFT Drop
         if (invoice.description === "Exclusive Community NFT Mint") {
-            console.log(`[PAYMENT] Community Drop Payment Detected! Checking for existing mint...`);
+            logger.info("Community Drop Payment Detected! Checking for existing mint...", "payment");
 
             // FIX: Check if wallet already has a special NFT (1 per wallet limit)
             const existingWalletMint = await db.select()
@@ -106,7 +107,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                 .limit(1);
 
             if (existingWalletMint.length > 0) {
-                console.log(`[NFT] Wallet ${payerAddress} already owns a Community NFT, skipping`);
+                logger.info(`Wallet ${payerAddress} already owns a Community NFT, skipping`, "nft");
                 return;
             }
 
@@ -117,7 +118,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                 .limit(1);
 
             if (existingMint.length > 0) {
-                console.log(`[NFT] NFT already minted for invoice ${invoiceId}, skipping`);
+                logger.info(`NFT already minted for invoice ${invoiceId}, skipping`, "nft");
                 return;
             }
 
@@ -141,12 +142,12 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                             mintedCounts[row.rarity] = row.count;
                         }
                     }
-                    console.log(`[NFT] Current rarity distribution:`, mintedCounts);
+                    logger.debug("Current rarity distribution", "nft", mintedCounts);
 
                     // Check total supply limit (1000 max)
                     const totalMinted = Object.values(mintedCounts).reduce((sum, count) => sum + count, 0);
                     if (totalMinted >= 1000) {
-                        console.log(`[NFT] Collection sold out! Total minted: ${totalMinted}/1000`);
+                        logger.info(`Collection sold out! Total minted: ${totalMinted}/1000`, "nft");
                         return;
                     }
 
@@ -164,18 +165,18 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                         invoiceId: invoiceId,
                     });
 
-                    console.log(`[NFT] Special NFT Airdropped to ${payerAddress} (${result.nftVariant.rarity})`);
+                    logger.info(`Special NFT Airdropped to ${payerAddress} (${result.nftVariant.rarity})`, "nft");
                 } catch (mintError) {
-                    console.error("[NFT] Failed to mint special NFT:", mintError);
+                    logger.error("Failed to mint special NFT", "nft", { error: mintError });
                 }
             } else {
-                console.warn(`[NFT] Skipped Special NFT mint for ${invoiceId} - NFT Service not ready (Merkle Tree not loaded)`);
+                logger.warn(`Skipped Special NFT mint for ${invoiceId} - NFT Service not ready (Merkle Tree not loaded)`, "nft");
             }
             return;
         }
 
         // 6. Standard Receipt NFT
-        console.log(`[NFT] Minting Receipt NFT...`);
+        logger.info("Minting Receipt NFT...", "nft");
         const nftService = getInvoiceNFTService();
         if (nftService.isReady()) {
 
@@ -187,19 +188,19 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                 recipientAddress: payerAddress
             });
 
-            console.log(`[NFT] Receipt Minted: ${receiptResult.mint}`);
+            logger.info(`Receipt Minted: ${receiptResult.mint}`, "nft");
 
             // Update payment record to track success
             await db.update(payments)
                 .set({ nftReceiptMinted: true })
                 .where(eq(payments.txSignature, signature));
 
-            console.log(`[NFT] Payment record updated with NFT success flag`);
+            logger.info("Payment record updated with NFT success flag", "nft");
         } else {
-            console.warn(`[NFT] Skipped Receipt NFT mint for invoice ${invoiceId} - NFT Service not ready`);
+            logger.warn(`Skipped Receipt NFT mint for invoice ${invoiceId} - NFT Service not ready`, "nft");
         }
 
     } catch (error) {
-        console.error(`[PAYMENT] Error confirming/minting for ${signature}:`, error);
+        logger.error(`Error confirming/minting for ${signature}`, "payment", { error });
     }
 }

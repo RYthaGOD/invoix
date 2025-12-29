@@ -4,6 +4,7 @@
 import type { Request, Response, NextFunction } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import { logger } from "./logger";
 
 
 /**
@@ -260,7 +261,7 @@ export function auditLog(operation: string, details: Record<string, any>) {
   delete sanitizedDetails.signature;
   delete sanitizedDetails.password;
 
-  console.log(`[SECURITY AUDIT] ${timestamp} - ${operation}:`, sanitizedDetails);
+  logger.info(operation, "audit", sanitizedDetails);
 }
 
 /**
@@ -364,14 +365,14 @@ export async function requireWalletAuth(
     const fifteenMinutesInMs = 15 * 60 * 1000;
 
     if (now - messageTimestamp > fifteenMinutesInMs) {
-      console.warn(`[AUTH] Expired timestamp in middleware: Server ${now} vs Msg ${messageTimestamp}`);
+      logger.warn(`[AUTH] Expired timestamp in middleware: Server ${now} vs Msg ${messageTimestamp}`, "auth");
       return res.status(400).json({
         message: "Message expired: Please sign a new message"
       });
     }
 
     if (messageTimestamp - now > (5 * 60 * 1000)) {
-      console.warn(`[AUTH] Future timestamp in middleware: Server ${now} vs Msg ${messageTimestamp}`);
+      logger.warn(`[AUTH] Future timestamp in middleware: Server ${now} vs Msg ${messageTimestamp}`, "auth");
       return res.status(400).json({
         message: "Invalid timestamp: Clock skew detected"
       });
@@ -414,7 +415,7 @@ export async function requireWalletAuth(
 
     next();
   } catch (error: any) {
-    console.error("Wallet authentication error:", error);
+    logger.error("Wallet authentication error", "auth", { error: error.message || error });
     res.status(500).json({ message: "Authentication failed" });
   }
 }
@@ -439,8 +440,8 @@ export async function requireWalletOwnership(
   try {
     // FIX #12: Only log in development
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`[AUTH_DEBUG] Checking ownership for ${req.method} ${req.path}`);
-      console.log(`[AUTH_DEBUG] Session ID: ${req.sessionID}`);
+      logger.debug(`Checking ownership for ${req.method} ${req.path}`, "auth");
+      logger.debug(`Session ID: ${req.sessionID}`, "auth");
     }
 
     // Check if user has an active session
@@ -465,7 +466,7 @@ export async function requireWalletOwnership(
 
       // FIX #3: Destroy stale session to force re-authentication
       req.session.destroy((err) => {
-        if (err) console.error("Session destroy error:", err);
+        if (err) logger.error("Session destroy error", "auth", { error: err });
       });
 
       return res.status(401).json({
@@ -487,7 +488,7 @@ export async function requireWalletOwnership(
 
     next();
   } catch (error: any) {
-    console.error("Wallet ownership verification error:", error);
+    logger.error("Wallet ownership verification error", "auth", { error: error.message || error });
     res.status(500).json({ message: "Authorization check failed" });
   }
 }
@@ -509,43 +510,30 @@ export function checkSecurityEnvVars(): void {
   // Check critical vars (block startup if missing)
   const missingCritical = criticalVars.filter(v => !process.env[v]);
   if (missingCritical.length > 0 && process.env.NODE_ENV === "production") {
-    console.error("❌ CRITICAL: Missing required environment variables:");
-    missingCritical.forEach(v => console.error(`   - ${v}`));
-    console.error("\n⚠️  Platform will serve 503 Maintenance until these are configured.");
+    logger.error("CRITICAL: Missing required environment variables", "security", { missing: missingCritical });
+    logger.warn("Platform will serve 503 Maintenance until these are configured.", "security");
     // process.exit(1); 
   }
 
   // Check recommended vars (warn but don't block)
   const missingRecommended = recommendedVars.filter(v => !process.env[v]);
   if (missingRecommended.length > 0) {
-    console.warn("\n⚠️  Optional security variables not configured (app will continue):");
-    missingRecommended.forEach(v => console.warn(`   - ${v}`));
-    console.warn("\n→ Application starting normally - these are optional");
-    console.warn("→ Encryption and session features may have reduced security");
-    console.warn("→ To enable full security, add these environment variables:");
-    console.warn("   ENCRYPTION_MASTER_KEY: openssl rand -hex 32");
-    console.warn("   SESSION_SECRET: openssl rand -base64 32\n");
+    logger.warn("Optional security variables not configured", "security", { missing: missingRecommended });
   }
 
   // Check Merkle Tree Persistence (Critical for pNFTs)
   // Check Merkle Tree Persistence (Critical for pNFTs)
   if (!process.env.MERKLE_TREE_ADDRESS && process.env.NODE_ENV !== "test") {
-    console.warn("\nℹ️  MERKLE_TREE_ADDRESS not set in .env");
-    console.warn("   System will attempt to load it from the database 'system_settings' table.");
-    console.warn("   If not found, a new tree will be created and persisted to the DB.");
-    console.warn("   (This is normal for the first run or if relying on DB persistence)\n");
+    logger.info("MERKLE_TREE_ADDRESS not set in .env - will check DB or create new", "nft");
   }
 
   // Verify ENCRYPTION_MASTER_KEY strength if present
   const masterKey = process.env.ENCRYPTION_MASTER_KEY;
   if (masterKey && masterKey.length < 64) {
-    console.warn("\n⚠️  ENCRYPTION_MASTER_KEY is too short (app will continue)");
-    console.warn(`   Current length: ${masterKey.length} characters`);
-    console.warn(`   Recommended: 64+ characters`);
-    console.warn(`   Generate with: openssl rand -hex 32\n`);
+    logger.warn("ENCRYPTION_MASTER_KEY is too short (recommended: 64+)", "security", { length: masterKey.length });
   }
 
   if (missingRecommended.length === 0 && (!masterKey || masterKey.length >= 64)) {
-    console.log("✅ All security environment variables properly configured");
+    logger.info("All security environment variables properly configured", "security");
   }
 }

@@ -112,7 +112,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("[WebSocket] Connected to real-time server");
+      console.debug("[WebSocket] Connected to real-time server");
       setIsConnected(true);
       reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
     };
@@ -120,11 +120,11 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     ws.onmessage = (event) => {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
-        
+
         switch (message.type) {
           case "price_update": {
             const priceUpdate = message.data as PriceUpdate;
-            
+
             // Update local price cache
             setLatestPrices((prev) => {
               const next = new Map(prev);
@@ -134,8 +134,8 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
             // Invalidate project metrics query
             if (priceUpdate.projectId) {
-              queryClient.invalidateQueries({ 
-                queryKey: ["/api/projects", priceUpdate.projectId, "metrics"] 
+              queryClient.invalidateQueries({
+                queryKey: ["/api/projects", priceUpdate.projectId, "metrics"]
               });
             }
 
@@ -148,13 +148,13 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
           case "bot_event": {
             const botEvent = message.data as BotEvent;
-            
+
             // Invalidate project data to refresh bot status
-            queryClient.invalidateQueries({ 
-              queryKey: ["/api/projects", botEvent.projectId] 
+            queryClient.invalidateQueries({
+              queryKey: ["/api/projects", botEvent.projectId]
             });
-            queryClient.invalidateQueries({ 
-              queryKey: ["/api/projects", botEvent.projectId, "metrics"] 
+            queryClient.invalidateQueries({
+              queryKey: ["/api/projects", botEvent.projectId, "metrics"]
             });
 
             // Notify subscribers
@@ -166,16 +166,16 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
           case "transaction_event": {
             const txEvent = message.data as TransactionEvent;
-            
+
             // Invalidate transactions list and project metrics
-            queryClient.invalidateQueries({ 
-              queryKey: ["/api/transactions/project", txEvent.projectId] 
+            queryClient.invalidateQueries({
+              queryKey: ["/api/transactions/project", txEvent.projectId]
             });
-            queryClient.invalidateQueries({ 
-              queryKey: ["/api/projects", txEvent.projectId, "transactions", "recent"] 
+            queryClient.invalidateQueries({
+              queryKey: ["/api/projects", txEvent.projectId, "transactions", "recent"]
             });
-            queryClient.invalidateQueries({ 
-              queryKey: ["/api/projects", txEvent.projectId, "metrics"] 
+            queryClient.invalidateQueries({
+              queryKey: ["/api/projects", txEvent.projectId, "metrics"]
             });
 
             // Notify subscribers
@@ -187,12 +187,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
           case "accuracy_check": {
             const accuracyCheck = message.data as AccuracyCheck;
-            
+
             // Invalidate transaction queries to refresh accuracy data
-            queryClient.invalidateQueries({ 
-              queryKey: ["/api/projects", accuracyCheck.projectId, "transactions", "recent"] 
+            queryClient.invalidateQueries({
+              queryKey: ["/api/projects", accuracyCheck.projectId, "transactions", "recent"]
             });
-            
+
             // Notify subscribers
             accuracyCheckCallbacksRef.current.forEach((callback) => {
               callback(accuracyCheck);
@@ -202,7 +202,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
           case "ai_activity_log": {
             const activityLog = message.data as ActivityLog;
-            
+
             // Notify subscribers
             activityLogCallbacksRef.current.forEach((callback) => {
               callback(activityLog);
@@ -212,12 +212,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
           case "performance_update": {
             const performanceUpdate = message.data as PerformanceUpdate;
-            
+
             // Invalidate AI bot config for this specific wallet to refresh performance metrics
-            queryClient.invalidateQueries({ 
-              queryKey: ["/api/ai-bot/config", performanceUpdate.walletAddress] 
+            queryClient.invalidateQueries({
+              queryKey: ["/api/ai-bot/config", performanceUpdate.walletAddress]
             });
-            
+
             // Notify subscribers
             performanceUpdateCallbacksRef.current.forEach((callback) => {
               callback(performanceUpdate);
@@ -236,20 +236,20 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     };
 
     ws.onclose = () => {
-      console.log("[WebSocket] Disconnected from real-time server");
+      console.debug("[WebSocket] Disconnected from real-time server");
       setIsConnected(false);
-      
+
       // Don't reconnect if this was an intentional close (component unmount)
       if (isIntentionalCloseRef.current) {
         return;
       }
-      
+
       // Exponential backoff reconnection (max 5 attempts: 1s, 2s, 4s, 8s, 16s)
       const maxAttempts = 5;
       if (reconnectAttemptsRef.current < maxAttempts) {
         const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 16000);
-        console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxAttempts})`);
-        
+        console.debug(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxAttempts})`);
+
         reconnectTimeoutRef.current = setTimeout(() => {
           reconnectAttemptsRef.current++;
           connectWebSocket(); // Reconnect without page reload
@@ -347,7 +347,7 @@ export function useRealtime() {
 // Convenience hooks for specific subscriptions
 export function usePriceUpdates(callback: (update: PriceUpdate) => void) {
   const { subscribeToPriceUpdates } = useRealtime();
-  
+
   useEffect(() => {
     const unsubscribe = subscribeToPriceUpdates(callback);
     return unsubscribe;
@@ -356,7 +356,7 @@ export function usePriceUpdates(callback: (update: PriceUpdate) => void) {
 
 export function useBotEvents(callback: (event: BotEvent) => void) {
   const { subscribeToBotEvents } = useRealtime();
-  
+
   useEffect(() => {
     const unsubscribe = subscribeToBotEvents(callback);
     return unsubscribe;
@@ -365,7 +365,7 @@ export function useBotEvents(callback: (event: BotEvent) => void) {
 
 export function useTransactionEvents(callback: (event: TransactionEvent) => void) {
   const { subscribeToTransactions } = useRealtime();
-  
+
   useEffect(() => {
     const unsubscribe = subscribeToTransactions(callback);
     return unsubscribe;
@@ -374,7 +374,7 @@ export function useTransactionEvents(callback: (event: TransactionEvent) => void
 
 export function useAccuracyChecks(callback: (event: AccuracyCheck) => void) {
   const { subscribeToAccuracyChecks } = useRealtime();
-  
+
   useEffect(() => {
     const unsubscribe = subscribeToAccuracyChecks(callback);
     return unsubscribe;
@@ -383,7 +383,7 @@ export function useAccuracyChecks(callback: (event: AccuracyCheck) => void) {
 
 export function usePerformanceUpdates(callback: (update: PerformanceUpdate) => void) {
   const { subscribeToPerformanceUpdates } = useRealtime();
-  
+
   useEffect(() => {
     const unsubscribe = subscribeToPerformanceUpdates(callback);
     return unsubscribe;

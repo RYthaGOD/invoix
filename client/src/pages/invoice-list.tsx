@@ -142,7 +142,7 @@ export default function InvoiceList() {
 
     return (
       <tr
-        className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors"
+        className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-all duration-200 group relative"
         onClick={() => navigate(`/invoices/${invoice.id}`)}
       >
         <td className="px-6 py-4">
@@ -220,21 +220,25 @@ export default function InvoiceList() {
       <div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="tour-stats-overview">
-          <div className="glass-card p-6">
-            <div className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Total Invoices</div>
-            <div className="text-4xl font-bold text-white">{filteredInvoices.length}</div>
+          <div className="glass-card p-6 relative overflow-hidden group hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all">
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors"></div>
+            <div className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-widest relative z-10">Total Invoices</div>
+            <div className="text-4xl font-bold text-white relative z-10">{filteredInvoices.length}</div>
           </div>
-          <div className="glass-card p-6">
-            <div className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Sent</div>
-            <div className="text-4xl font-bold text-blue-400">{sentInvoices.length}</div>
+          <div className="glass-card p-6 relative overflow-hidden group hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] transition-all">
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors"></div>
+            <div className="text-xs font-bold text-blue-300/80 mb-2 uppercase tracking-widest relative z-10">Sent</div>
+            <div className="text-4xl font-bold text-blue-400 relative z-10">{sentInvoices.length}</div>
           </div>
-          <div className="glass-card p-6">
-            <div className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Received</div>
-            <div className="text-4xl font-bold text-purple-400">{receivedInvoices.length}</div>
+          <div className="glass-card p-6 relative overflow-hidden group hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] transition-all">
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-colors"></div>
+            <div className="text-xs font-bold text-purple-300/80 mb-2 uppercase tracking-widest relative z-10">Received</div>
+            <div className="text-4xl font-bold text-purple-400 relative z-10">{receivedInvoices.length}</div>
           </div>
-          <div className="glass-card p-6">
-            <div className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Overdue</div>
-            <div className="text-4xl font-bold text-red-400">
+          <div className="glass-card p-6 relative overflow-hidden group hover:shadow-[0_0_30px_rgba(239,68,68,0.2)] transition-all">
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-colors"></div>
+            <div className="text-xs font-bold text-red-300/80 mb-2 uppercase tracking-widest relative z-10">Overdue</div>
+            <div className="text-4xl font-bold text-red-400 relative z-10">
               {filteredInvoices.filter(
                 (inv) => inv.status !== "paid" && new Date(inv.dueDate) < new Date()
               ).length}
@@ -253,7 +257,7 @@ export default function InvoiceList() {
                 placeholder="Search invoices..."
                 value={searchTerm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all backdrop-blur-sm"
               />
             </div>
 
@@ -366,27 +370,27 @@ export default function InvoiceList() {
 
         {/* Invoice Table */}
         {!loading && !error && filteredInvoices.length > 0 && (
-          <div className="glass-card overflow-hidden" id="tour-invoice-table">
+          <div className="glass-card overflow-hidden border-white/10 shadow-2xl" id="tour-invoice-table">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <tr className="border-b border-white/10 bg-white/5">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Invoice
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Due Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Customer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Created
                     </th>
                   </tr>

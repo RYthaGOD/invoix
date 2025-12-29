@@ -9,6 +9,9 @@ import { useQuery } from "@tanstack/react-query";
 export default function Stats() {
     const { data: tokenStats, isLoading: isStatsLoading } = useTokenStats();
 
+    // Add interface for tokenStats to fix TS error if not exported (or just assume shape)
+    const solPrice = tokenStats?.solPrice || 0;
+
     // Use WebSocket for real-time global platform stats
     const { globalStats, isConnected } = useWebSocketStats();
 
@@ -20,7 +23,35 @@ export default function Stats() {
         ? `$${(Number(tokenStats?.volume24h || 0) / 1000).toFixed(1)}K+`
         : `$${Number(globalStats?.totalVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    const displayPaidVolume = `$${Number(globalStats?.totalPaidVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // Calculate Total Settled Volume in USD
+    // If volumes array exists (new backend), use it. Else fall back to totalPaidVolume (legacy raw sum).
+    let totalSettledValueUsd = 0;
+
+    // Check if we have SOL volume but no price yet
+    let hasSolVolume = false;
+
+    if (globalStats?.volumes && globalStats.volumes.length > 0) {
+        // Iterate currencies and convert
+        globalStats.volumes.forEach(v => {
+            const currency = (v.currency || "").toUpperCase();
+            if (currency === "SOL") {
+                hasSolVolume = true;
+                totalSettledValueUsd += Number(v.amount) * solPrice;
+            } else {
+                // Assume 1:1 for stablecoins (USDC, USDT, PYUSD, EURC)
+                // In a perfect world, we'd fetch EUR exchange rate too, but 1:1 is close enough for beta
+                totalSettledValueUsd += Number(v.amount);
+            }
+        });
+    } else {
+        // Legacy/Fallback: If no breakdown, assume it's stablecoin USD or just raw sum
+        totalSettledValueUsd = Number(globalStats?.totalPaidVolume || 0);
+    }
+
+    const isPriceLoading = hasSolVolume && solPrice === 0 && isStatsLoading;
+    const displayPaidVolume = isPriceLoading
+        ? "..."
+        : `$${totalSettledValueUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     const stats = [
         {

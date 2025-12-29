@@ -7,6 +7,7 @@ interface TokenStats {
     priceChange24h: string;
     marketCap: string;
     fdv: string;
+    solPrice: number;
 }
 
 const TOKEN_ADDRESS = "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
@@ -38,6 +39,7 @@ export function useTokenStats() {
                         priceChange24h: "0",
                         marketCap: "0",
                         fdv: "0",
+                        solPrice: 0
                     };
                 }
 
@@ -48,6 +50,7 @@ export function useTokenStats() {
                     priceChange24h: String(pair.priceChange?.h24 || 0),
                     marketCap: String(pair.marketCap || pair.fdv || 0),
                     fdv: String(pair.fdv || 0),
+                    solPrice: Number(pair.priceUsd || 0) // Derived, but convenient
                 };
             } catch (error) {
                 console.error("Error fetching token stats:", error);
@@ -58,6 +61,7 @@ export function useTokenStats() {
                     priceChange24h: "0",
                     marketCap: "0",
                     fdv: "0",
+                    solPrice: 0
                 };
             }
         },

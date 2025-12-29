@@ -17,6 +17,7 @@ import { invoices, payments } from "@shared/invoice-schema";
 import { eq, and, or } from "drizzle-orm";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import bs58 from "bs58";
+import { logger } from "./logger";
 
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const POLL_INTERVAL_MS = 15000; // Check every 15 seconds
@@ -32,17 +33,17 @@ const processedSignatures = new Set<string>();
  */
 export function startQRPaymentProcessor() {
     if (isRunning) {
-        console.log("[QR_PROCESSOR] Already running");
+        logger.info("QR_PROCESSOR already running", "qr");
         return;
     }
 
     if (!process.env.PAYER_PRIVATE_KEY) {
-        console.warn("[QR_PROCESSOR] PAYER_PRIVATE_KEY not set - QR payment distribution disabled");
+        logger.warn("PAYER_PRIVATE_KEY not set - QR payment distribution disabled", "qr");
         return;
     }
 
     isRunning = true;
-    console.log("✅ QR Payment Processor started");
+    logger.info("QR Payment Processor started", "qr");
 
     // Run immediately, then on interval
     processQRPayments();
@@ -97,12 +98,12 @@ async function processQRPayments() {
                     );
 
                     if (memoLog) {
-                        console.log(`[QR_PROCESSOR] Found payment for invoice ${invoice.id}: ${sigInfo.signature}`);
+                        logger.info(`Found payment for invoice ${invoice.id}: ${sigInfo.signature}`, "qr", { invoiceId: invoice.id, signature: sigInfo.signature });
 
                         // SECURITY: Verify payment amount before distributing
                         const verified = await verifyPaymentAmount(connection, tx, invoice);
                         if (!verified.success) {
-                            console.warn(`[QR_PROCESSOR] Payment verification failed for ${sigInfo.signature}: ${verified.error}`);
+                            logger.warn(`Payment verification failed for ${sigInfo.signature}`, "qr", { error: verified.error });
                             processedSignatures.add(sigInfo.signature); // Don't reprocess
                             continue;
                         }
@@ -113,11 +114,11 @@ async function processQRPayments() {
                     }
                 }
             } catch (err) {
-                console.error(`[QR_PROCESSOR] Error checking invoice ${invoice.id}:`, err);
+                logger.error(`Error checking invoice ${invoice.id}`, "qr", { error: err });
             }
         }
     } catch (error) {
-        console.error("[QR_PROCESSOR] Processing error:", error);
+        logger.error("Processing error", "qr", { error });
     }
 }
 
@@ -212,7 +213,7 @@ async function distributePayment(
         });
 
         if (existingPayment) {
-            console.log(`[QR_PROCESSOR] Payment ${incomingSignature} already processed`);
+            logger.info(`Payment ${incomingSignature} already processed`, "qr");
             processedSignatures.add(incomingSignature);
             return;
         }
@@ -273,8 +274,8 @@ async function distributePayment(
 
         const distributionSig = await sendAndConfirmTransaction(connection, transaction, [payerKeypair]);
 
-        console.log(`[QR_PROCESSOR] Distributed ${invoicerAmount} ${invoice.currency} to ${invoice.invoicerWalletAddress}`);
-        console.log(`[QR_PROCESSOR] Distribution tx: ${distributionSig}`);
+        logger.info(`Distributed ${invoicerAmount} ${invoice.currency} to ${invoice.invoicerWalletAddress}`, "qr");
+        logger.info(`Distribution tx: ${distributionSig}`, "qr");
 
         // Record payment in database
         await db.insert(payments).values({
@@ -307,9 +308,9 @@ async function distributePayment(
         // Mark as processed
         processedSignatures.add(incomingSignature);
 
-        console.log(`[QR_PROCESSOR] ✅ Invoice ${invoice.id} updated: ${newStatus}`);
+        logger.info(`Invoice ${invoice.id} updated: ${newStatus}`, "qr", { invoiceId: invoice.id, status: newStatus });
 
     } catch (error) {
-        console.error(`[QR_PROCESSOR] Distribution error for ${invoice.id}:`, error);
+        logger.error(`Distribution error for ${invoice.id}`, "qr", { error });
     }
 }

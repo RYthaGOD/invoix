@@ -6,6 +6,7 @@ const { businessProfiles, invoices } = schema;
 import { eq, and } from "drizzle-orm";
 import { requireWalletOwnership } from "./security";
 import { z } from "zod";
+import { logger } from "./logger";
 
 // Validation Schema
 const profileSchema = z.object({
@@ -52,7 +53,7 @@ export function registerProfileRoutes(app: Express) {
 
             res.json({ success: true, profile, isOG });
         } catch (error: any) {
-            console.error("Error fetching profile:", error);
+            logger.error("Error fetching profile", "profile", { error });
             res.status(500).json({ success: false, message: "Failed to fetch profile" });
         }
     });
@@ -123,7 +124,7 @@ export function registerProfileRoutes(app: Express) {
             res.json({ success: true, profile: updatedProfile, message: "Profile updated successfully" });
 
         } catch (error: any) {
-            console.error("Error updating profile:", error);
+            logger.error("Error updating profile", "profile", { error });
             res.status(500).json({ success: false, message: "Failed to update profile" });
         }
     });
@@ -168,7 +169,7 @@ export function registerProfileRoutes(app: Express) {
             }
 
             // 4. Generate Transaction (Server pays rent, User pays 0.008 fee + gas)
-            console.log(`Creating Identity NFT Tx for ${profile.businessName}...`);
+            logger.info(`Creating Identity NFT Tx for ${profile.businessName}...`, "profile");
             // FIX R3-5: Require treasury wallet from env, no hardcoded fallback
             const treasuryAddress = process.env.PLATFORM_TREASURY_WALLET;
             if (!treasuryAddress) {
@@ -185,7 +186,7 @@ export function registerProfileRoutes(app: Express) {
             res.json({ success: true, transaction, mint });
 
         } catch (error: any) {
-            console.error("Mint Identity Error:", error);
+            logger.error("Mint Identity Error", "profile", { error });
             res.status(500).json({ success: false, message: error.message || "Failed to create mint transaction" });
         }
     });
@@ -239,13 +240,13 @@ export function registerProfileRoutes(app: Express) {
                     verificationLevel: "basic",
                     nftMintSignature: signature,
                 });
-                console.log(`✅ Confirmed and Saved Identity NFT: ${mint}`);
+                logger.info(`Confirmed and Saved Identity NFT: ${mint}`, "profile");
             }
 
             res.json({ success: true, message: "Identity Badge Confirmed!" });
 
         } catch (error: any) {
-            console.error("Confirm Mint Error:", error);
+            logger.error("Confirm Mint Error", "profile", { error });
             res.status(500).json({ success: false, message: "Failed to confirm mint" });
         }
     });

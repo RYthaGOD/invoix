@@ -58,9 +58,9 @@ export function Hero() {
                             transition={{ duration: 0.6, delay: 0.3 }}
                         >
                             <Link href="/invoices/create">
-                                <button className="btn-primary smoke-shadow h-14 px-10 text-lg flex items-center justify-center group relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(236,72,153,0.3)]" id="hero-create-invoice">
+                                <button className="btn-primary smoke-shadow h-14 px-10 text-lg flex items-center justify-center group relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(236,72,153,0.5)]" id="hero-create-invoice">
                                     <div className="absolute inset-0 animate-shimmer opacity-30"></div>
-                                    <span className="relative flex items-center">
+                                    <span className="relative flex items-center font-bold tracking-wide">
                                         Start Invoicing Free
                                         <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </span>

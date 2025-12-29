@@ -6,6 +6,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { getStablecoinByMint, getStablecoinConfig, isValidStablecoin } from "@shared/stablecoin-config";
+import { logger } from "./logger";
 
 export interface PaymentVerificationResult {
     verified: boolean;
@@ -74,7 +75,7 @@ export async function verifyStablecoinPayment(
             });
             if (tx) break;
             // Wait before retry (exponential backoff: 1s, 2s, 3s, 4s, 5s)
-            console.log(`⏳ Transaction not found yet, retry ${attempt + 1}/${maxRetries}...`);
+            logger.debug(`Transaction not found yet, retry ${attempt + 1}/${maxRetries}...`, "payment");
             await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
         }
 
@@ -120,7 +121,7 @@ export async function verifyStablecoinPayment(
         }
 
         // 1. Verify Payment to Recipient
-        console.log(`[DEBUG] Payment Verification:`, {
+        logger.debug("Payment Verification Debug", "payment", {
             transfers: transfers.map(t => ({ dest: t.destination, amount: t.amount })),
             expectedRecipient,
             mint
@@ -129,7 +130,10 @@ export async function verifyStablecoinPayment(
         const paymentTransfer = transfers.find(t => t.destination.toLowerCase() === expectedRecipient.toLowerCase());
 
         if (!paymentTransfer) {
-            console.error(`[DEBUG] No transfer found to recipient. Expected: ${expectedRecipient}, Got transfers to: ${transfers.map(t => t.destination).join(', ')}`);
+            logger.warn(`No transfer found to recipient`, "payment", {
+                expected: expectedRecipient,
+                transfersTo: transfers.map(t => t.destination)
+            });
             return {
                 verified: false,
                 amount: 0,
@@ -227,7 +231,7 @@ export async function verifyStablecoinPayment(
         };
 
     } catch (error) {
-        console.error("Error verifying payment:", error);
+        logger.error("Error verifying payment", "payment", { error });
         return {
             verified: false,
             amount: 0,
@@ -332,7 +336,7 @@ function parseAllTokenTransfers(tx: any, expectedMint: string): Array<{ amount: 
         return transfers.map(t => ({ ...t, source }));
 
     } catch (error) {
-        console.error("Error parsing transfers:", error);
+        logger.error("Error parsing transfers", "payment", { error });
         return [];
     }
 }
@@ -360,7 +364,7 @@ export async function hasTokenAccount(
         const accountInfo = await connection.getAccountInfo(tokenAccountAddress);
         return accountInfo !== null;
     } catch (error) {
-        console.error("Error checking token account:", error);
+        logger.error("Error checking token account", "payment", { error });
         return false;
     }
 }
@@ -388,7 +392,7 @@ export async function getTokenBalance(
         const tokenAccount = await getAccount(connection, tokenAccountAddress);
         return Number(tokenAccount.amount) / Math.pow(10, stablecoinConfig.decimals);
     } catch (error) {
-        console.error("Error getting token balance:", error);
+        logger.error("Error getting token balance", "payment", { error });
         return 0;
     }
 }

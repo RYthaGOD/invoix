@@ -278,7 +278,7 @@ export default function InvoiceCreate() {
             throw new Error(`Transaction failed: ${confirmation.value.err}`);
           }
 
-          console.log(`✅ Minted NFT: ${signature}`);
+          console.debug(`✅ Minted NFT: ${signature}`);
           setMintingStatus("Success! ✨");
 
           // E. Confirm with Server
@@ -324,7 +324,7 @@ export default function InvoiceCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-black pb-20 pt-24 px-4 md:px-8">
+    <div className="min-h-screen pb-20 pt-8 px-4 md:px-8 space-y-8 animate-in fade-in duration-500">
       <div className="max-w-4xl mx-auto space-y-8">
 
         {/* Header */}

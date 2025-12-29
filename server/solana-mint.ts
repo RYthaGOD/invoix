@@ -3,6 +3,7 @@
 
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getMint } from "@solana/spl-token";
+import { logger } from "./logger";
 
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
@@ -17,10 +18,10 @@ export async function getTokenDecimals(mintAddress: string): Promise<number> {
     const mintPublicKey = new PublicKey(mintAddress);
     const mintInfo = await getMint(connection, mintPublicKey);
 
-    console.log(`[Mint] Fetched decimals for ${mintAddress}: ${mintInfo.decimals}`);
+    logger.info(`Fetches decimals for ${mintAddress}: ${mintInfo.decimals}`, "utils");
     return mintInfo.decimals;
   } catch (error: any) {
-    console.error(`[Mint] Error fetching decimals for ${mintAddress}:`, error.message);
+    logger.error(`Error fetching decimals for ${mintAddress}`, "utils", { error: error.message });
     // Default to 9 decimals (Solana standard) if fetch fails
     return 9;
   }

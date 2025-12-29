@@ -4,6 +4,7 @@ import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } f
 import { getInvoiceNFTService } from "./nft-service";
 import { z } from "zod";
 import { strictRateLimit, requireWalletOwnership } from "./security";
+import { logger } from "./logger";
 
 // Session type is extended in auth-routes.ts
 
@@ -18,7 +19,7 @@ const STANDARD_PRICE_USD = 5.00;
 // FIX #11: Require treasury wallet
 const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET;
 if (!TREASURY_WALLET) {
-    console.error("❌ PLATFORM_TREASURY_WALLET environment variable is required for special mints");
+    logger.error("PLATFORM_TREASURY_WALLET environment variable is required for special mints", "special-mint");
 }
 
 // Admin wallet for reserved NFT minting (set in .env for privacy)
@@ -58,7 +59,7 @@ async function getSolPrice(): Promise<number> {
     } catch (error) {
         // Use cached value, then env fallback, then conservative $100 default
         const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "100");
-        console.error(`Error fetching SOL price, using fallback $${solPriceCache?.price || fallbackPrice}`, error);
+        logger.error("Error fetching SOL price, using fallback", "special-mint", { error, fallback: solPriceCache?.price || fallbackPrice });
         return solPriceCache?.price || fallbackPrice;
     }
 }
@@ -90,7 +91,7 @@ async function getCustomTokenBalance(
 
         return totalBalance;
     } catch (error) {
-        console.error("Error getting custom token balance:", error);
+        logger.error("Error getting custom token balance", "special-mint", { error });
         return 0;
     }
 }
@@ -136,7 +137,7 @@ export function registerSpecialMintRoutes(app: Express) {
             });
 
         } catch (error: any) {
-            console.error("Error generating quote:", error);
+            logger.error("Error generating quote", "special-mint", { error });
             res.status(500).json({ success: false, message: "Failed to generate quote" });
         }
     });
@@ -223,7 +224,7 @@ export function registerSpecialMintRoutes(app: Express) {
             });
 
         } catch (error: any) {
-            console.error("Error creating mint transaction:", error);
+            logger.error("Error creating mint transaction", "special-mint", { error });
             res.status(500).json({ success: false, message: "Failed to create mint transaction: " + error.message });
         }
     });
@@ -259,7 +260,9 @@ export function registerSpecialMintRoutes(app: Express) {
                 });
             }
 
-            console.log(`[ADMIN] Minting reserved ${selectedNFT.name} (${selectedNFT.rarity}) to ${recipientAddress} `);
+            logger.info(`Admin minting reserved ${selectedNFT.name} (${selectedNFT.rarity}) to ${recipientAddress}`, "special-mint");
+
+            // Initialize NFT service
 
             // Initialize NFT service
             const nftService = getInvoiceNFTService();
@@ -293,7 +296,7 @@ export function registerSpecialMintRoutes(app: Express) {
             });
 
         } catch (error: any) {
-            console.error("Admin mint error:", error);
+            logger.error("Admin mint error", "special-mint", { error });
             res.status(500).json({ success: false, message: error.message || "Failed to mint" });
         }
     });
@@ -326,7 +329,9 @@ export function registerSpecialMintRoutes(app: Express) {
                 return res.status(404).json({ success: false, message: "Not found" });
             }
 
-            console.log(`[ADMIN] Batch minting 6 reserved NFTs to ${ADMIN_WALLET} `);
+            logger.info("Admin batch minting 6 reserved NFTs", "special-mint", { adminWallet: ADMIN_WALLET });
+
+            // Import collection config
 
             // Import collection config
             const { NFT_COLLECTION } = await import("@shared/nft-collection");
@@ -356,7 +361,7 @@ export function registerSpecialMintRoutes(app: Express) {
             // Mint each reserved NFT
             for (const nftVariant of reservedNFTs) {
                 try {
-                    console.log(`[ADMIN] Minting ${nftVariant!.name}...`);
+                    logger.info(`Minting ${nftVariant!.name}...`, "special-mint");
                     const result = await nftService.mintSpecificNFT(ADMIN_WALLET, nftVariant as any);
 
                     // Record to DB
@@ -375,7 +380,7 @@ export function registerSpecialMintRoutes(app: Express) {
                             invoiceId: "admin-batch-reserve",
                         });
                     } catch (dbError) {
-                        console.warn("DB insert warning:", dbError);
+                        logger.warn("DB insert warning", "special-mint", { error: dbError });
                     }
 
                     results.push({
@@ -407,7 +412,7 @@ export function registerSpecialMintRoutes(app: Express) {
             });
 
         } catch (error: any) {
-            console.error("Batch mint error:", error);
+            logger.error("Batch mint error", "special-mint", { error });
             res.status(500).json({ success: false, message: error.message || "Failed to batch mint" });
         }
     });
