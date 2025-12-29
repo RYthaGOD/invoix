@@ -472,7 +472,7 @@ export default function Docs() {
     const [activeTab, setActiveTab] = useState<keyof typeof docsContent>("protocol");
 
     return (
-        <div className="min-h-screen bg-[#020617] text-white selection:bg-primary/30">
+        <div className="min-h-screen bg-[#020617] text-white selection:bg-primary/30 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Background elements */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
                 <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 blur-[150px] rounded-full translate-x-1/2 -translate-y-1/2" />
