@@ -86,9 +86,13 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
         const sellerPubkey = new PublicKey(invoice.invoicerWalletAddress);
 
-        // Amounts
+        // Amounts - use pre-calculated values from invoice, fallback for old invoices
         const invoiceTotal = parseFloat(invoice.remainingAmount);
-        const platformFee = invoiceTotal * 0.01; // 1%
+
+        // NEW INVOICES: Use pre-calculated platformFee and subtotal
+        // OLD INVOICES: Calculate 1% fee from total (backwards compatibility)
+        const platformFee = invoice.platformFee ? parseFloat(invoice.platformFee) : invoiceTotal * 0.01;
+        const sellerAmount = invoice.subtotal ? parseFloat(invoice.subtotal) : invoiceTotal - platformFee;
 
         let treasuryPaidAmount = BigInt(0);
         let sellerPaidAmount = BigInt(0);
@@ -96,7 +100,7 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         if (isNativeSOL) {
             // ==================== NATIVE SOL VALIDATION ====================
             const LAMPORTS_PER_SOL = 1_000_000_000;
-            const requiredSellerLamports = BigInt(Math.floor((invoiceTotal - platformFee) * LAMPORTS_PER_SOL));
+            const requiredSellerLamports = BigInt(Math.floor(sellerAmount * LAMPORTS_PER_SOL));
             const requiredTreasuryLamports = BigInt(Math.floor(platformFee * LAMPORTS_PER_SOL));
 
             const SYSTEM_PROGRAM_ID = "11111111111111111111111111111111";
@@ -121,7 +125,7 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             if (sellerPaidAmount < requiredSellerLamports) {
                 return res.status(400).json({
                     success: false,
-                    message: `Insufficient SOL to Seller. Expected ${(invoiceTotal - platformFee).toFixed(6)} SOL. Got ${Number(sellerPaidAmount) / LAMPORTS_PER_SOL}`
+                    message: `Insufficient SOL to Seller. Expected ${sellerAmount.toFixed(6)} SOL. Got ${Number(sellerPaidAmount) / LAMPORTS_PER_SOL}`
                 });
             }
 
@@ -146,7 +150,7 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             const toAtomic = (amount: number) => Math.floor(amount * Math.pow(10, decimals));
 
             const requiredTreasuryAmount = toAtomic(platformFee + gasFee);
-            const requiredSellerAmount = toAtomic(invoiceTotal - platformFee);
+            const requiredSellerAmount = toAtomic(sellerAmount);
 
             // Iterate over instructions to sum up transfers
             for (const ix of transaction.instructions) {
@@ -186,7 +190,7 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             if (sellerPaidAmount < requiredSellerBigInt) {
                 return res.status(400).json({
                     success: false,
-                    message: `Insufficient Seller Payment. Expected ${invoiceTotal - platformFee}. Got ${Number(sellerPaidAmount) / Math.pow(10, decimals)}`
+                    message: `Insufficient Seller Payment. Expected ${sellerAmount}. Got ${Number(sellerPaidAmount) / Math.pow(10, decimals)}`
                 });
             }
         }
