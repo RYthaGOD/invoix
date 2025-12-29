@@ -75,17 +75,41 @@ export function Hero() {
                             </button>
                         </motion.div>
 
-                        {/* Trusted By Bar */}
+                        {/* Powered By Tech Stack */}
                         <motion.div
-                            className="mt-16 pt-8 border-t border-white/5 flex flex-wrap justify-center lg:justify-start items-center gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-500"
+                            className="mt-16 pt-8 border-t border-white/5"
                             initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.4 }}
+                            animate={{ opacity: 1 }}
                             transition={{ delay: 0.6 }}
                         >
-                            <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground mr-4">Trusted Across Solana</span>
-                            <div className="h-6 w-24 bg-white/20 rounded animate-pulse" />
-                            <div className="h-6 w-28 bg-white/20 rounded animate-pulse" />
-                            <div className="h-6 w-20 bg-white/20 rounded animate-pulse" />
+                            <span className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4 block">
+                                Powered by the Frontier Stack
+                            </span>
+                            <div className="flex flex-wrap justify-center lg:justify-start items-center gap-6">
+                                {/* Solana */}
+                                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
+                                    <img
+                                        src="https://cryptologos.cc/logos/solana-sol-logo.svg"
+                                        alt="Solana"
+                                        className="w-5 h-5"
+                                    />
+                                    <span className="text-sm font-semibold text-white/80">Solana</span>
+                                </div>
+                                {/* Arcium */}
+                                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-purple-500/50 transition-colors group">
+                                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                                        <span className="text-[10px] font-bold text-white">A</span>
+                                    </div>
+                                    <span className="text-sm font-semibold text-white/80 group-hover:text-purple-400 transition-colors">Arcium</span>
+                                </div>
+                                {/* Metaplex */}
+                                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-orange-500/50 transition-colors group">
+                                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center">
+                                        <span className="text-[10px] font-bold text-white">M</span>
+                                    </div>
+                                    <span className="text-sm font-semibold text-white/80 group-hover:text-orange-400 transition-colors">Metaplex</span>
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
 
