@@ -15,6 +15,8 @@ import { strictRateLimit } from "./security";
 
 const router = Router();
 
+console.log("[SYSTEM] Payment Routes v2 Loaded - Debugging Timeout");
+
 // Configuration
 const GAS_FEE_USDC = 0.15; // 0.15 USDC Fee
 const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
