@@ -9,6 +9,7 @@ import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import { loadKeypairFromPrivateKey } from "./arcium-service"; // Reuse this helper
+import { invoiceStorage } from "./invoice-storage";
 
 import { strictRateLimit } from "./security";
 
@@ -275,12 +276,35 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         // CRITICAL: Always record payment in database after successful relay
         // Previously this was gated behind MINT_RECEIPT_NFTS which caused payments to go unrecorded
         if (invoiceId) {
+            // IMMEDIATE: Update invoice status to 'paid' so client polling succeeds
+            // This prevents timeout while waiting for async confirmation
+            try {
+                const paymentData = {
+                    invoiceId: invoiceId,
+                    amount: invoice.remainingAmount,
+                    currency: invoice.currency,
+                    txSignature: signature,
+                    fromAddress: userPayer || "unknown",
+                    toAddress: invoice.invoicerWalletAddress,
+                    status: "confirmed",
+                    confirmedAt: new Date(),
+                };
+                await invoiceStorage.createPayment(paymentData as any);
+                console.log(`✅ [PAYMENT] Recorded payment ${signature} for invoice ${invoiceId}`);
+            } catch (paymentErr: any) {
+                if (!paymentErr.message?.includes("already")) {
+                    console.error(`❌ Failed to record payment:`, paymentErr);
+                }
+            }
+
+            // ASYNC: Mint NFT receipt in background (non-blocking)
             import("./payment-confirmation-service").then(service => {
                 service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer || "unknown");
-            }).catch(err => console.error("Failed to confirm payment:", err));
+            }).catch(err => console.error("Failed to start NFT minting:", err));
         }
 
         // 6. Return Signature
+        console.log(`✅ [RELAY] Transaction sent: ${signature}`);
         res.json({ success: true, signature });
 
     } catch (error: any) {
