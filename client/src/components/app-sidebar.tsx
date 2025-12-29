@@ -96,7 +96,7 @@ export function AppSidebar() {
           <SidebarGroupLabel className="flex items-center gap-3 py-4 mb-2">
             <div className="relative group">
               <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
-              <img src="/logo-premium.png" alt="Invoix Premium" className="relative w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] group-hover:scale-110 transition-transform duration-300" />
+              <img src="/logo.png" alt="Invoix Official" className="relative w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold font-heading tracking-tight leading-none group-hover:scale-105 transition-transform origin-left">

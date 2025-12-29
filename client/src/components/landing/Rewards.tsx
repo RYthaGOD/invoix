@@ -122,7 +122,7 @@ export function Rewards() {
                                     </div>
 
                                     <a
-                                        href="https://x.com/InvoixSola24238"
+                                        href="https://x.com/Invoix_Solana"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="btn-primary w-full h-14 text-lg shadow-lg shadow-primary/20 hover:shadow-primary/40 mt-4 flex items-center justify-center gap-2 group"

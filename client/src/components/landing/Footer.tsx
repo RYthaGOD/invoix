@@ -35,13 +35,13 @@ export function Footer() {
 
                         {/* Social Links - Moved here for better layout */}
                         <div className="flex gap-3">
-                            <a href="https://x.com/InvoixSola24238" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#1DA1F2]/20 group transition-colors border border-white/5 hover:border-[#1DA1F2]/30">
+                            <a href="https://x.com/Invoix_Solana" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#1DA1F2]/20 group transition-colors border border-white/5 hover:border-[#1DA1F2]/30">
                                 <Twitter className="w-4 h-4 text-muted-foreground group-hover:text-[#1DA1F2]" />
                             </a>
                             <a href="https://github.com/RYthaGOD/invoix" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 group transition-colors border border-white/5 hover:border-white/20">
                                 <Github className="w-4 h-4 text-muted-foreground group-hover:text-white" />
                             </a>
-                            <a href="https://x.com/i/communities/1998417251041718386" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-primary/20 group transition-colors border border-white/5 hover:border-primary/30">
+                            <a href="https://x.com/Invoix_Solana" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-primary/20 group transition-colors border border-white/5 hover:border-primary/30">
                                 <MessageCircle className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                             </a>
                         </div>
@@ -86,7 +86,7 @@ export function Footer() {
                         <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-xs">Community</h4>
                         <ul className="space-y-4 text-sm text-muted-foreground">
                             <li>
-                                <a href="https://x.com/InvoixSola24238" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
+                                <a href="https://x.com/Invoix_Solana" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
                                     Twitter / X
                                 </a>
                             </li>
@@ -96,7 +96,7 @@ export function Footer() {
                                 </a>
                             </li>
                             <li>
-                                <a href="https://x.com/i/communities/1998417251041718386" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
+                                <a href="https://x.com/Invoix_Solana" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
                                     X Community
                                 </a>
                             </li>
