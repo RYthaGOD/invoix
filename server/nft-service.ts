@@ -13,6 +13,7 @@
 import {
   createTree,
   mintV1,
+  mintToCollectionV1, // For verified collection minting
   transfer as transferV1,
   burn as burnV1,
   updateMetadata,
@@ -451,27 +452,48 @@ export class InvoiceNFTService {
       // b. OR better: Use setFeePayer with a dummy signer, then serialize.
 
       // Let's use the explicit builder approach which is more robust
-      let builder = mintV1(this.umi, {
-        leafOwner,
-        merkleTree: merkleTreePubkey,
-        metadata: {
-          name: metadata.name,
-          symbol: metadata.symbol,
-          uri: metadataUri,
-          sellerFeeBasisPoints: 0,
-          collection: this.collectionMint ? {
-            key: toPublicKey(this.collectionMint),
-            verified: false, // Cannot verify collection in MintV1 - must use separate verifyCollection instruction
-          } : none(),
-          creators: [
-            {
-              address: toPublicKey(invoice.invoicerWalletAddress),
-              verified: false, // Creator not signing this tx - cannot verify
-              share: 100,
-            },
-          ],
-        },
-      });
+      // Use mintToCollectionV1 for verified collection membership when available
+      let builder;
+      if (this.collectionMint) {
+        builder = mintToCollectionV1(this.umi, {
+          leafOwner,
+          merkleTree: merkleTreePubkey,
+          collectionMint: toPublicKey(this.collectionMint),
+          metadata: {
+            name: metadata.name,
+            symbol: metadata.symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 0,
+            collection: none(), // Collection verified via collectionMint parameter
+            creators: [
+              {
+                address: toPublicKey(invoice.invoicerWalletAddress),
+                verified: false, // Creator not signing this tx
+                share: 100,
+              },
+            ],
+          },
+        });
+      } else {
+        builder = mintV1(this.umi, {
+          leafOwner,
+          merkleTree: merkleTreePubkey,
+          metadata: {
+            name: metadata.name,
+            symbol: metadata.symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 0,
+            collection: none(),
+            creators: [
+              {
+                address: toPublicKey(invoice.invoicerWalletAddress),
+                verified: false,
+                share: 100,
+              },
+            ],
+          },
+        });
+      }
 
       // Add Priority Fees (Crucial for Reliability)
       const computeLimitIx = fromWeb3JsInstruction(
@@ -551,29 +573,48 @@ export class InvoiceNFTService {
       const leafOwner = toPublicKey(params.payment.fromAddress); // Payer owns the receipt
       const merkleTreePubkey = toPublicKey(this.merkleTree!);
 
-      const mintIx = mintV1(this.umi, {
-        leafOwner,
-        merkleTree: merkleTreePubkey,
-        metadata: {
-          name: metadata.name,
-          symbol: metadata.symbol,
-          uri: metadataUri,
-          sellerFeeBasisPoints: 0,
-          collection: this.collectionMint ? {
-            key: toPublicKey(this.collectionMint),
-            verified: false, // Cannot verify collection in MintV1 - must use separate verifyCollection instruction
-          } : none(),
-          creators: [
-            {
-              // We list the Payer as creator but they cannot sign (server is minting)
-              // So verified MUST be false
-              address: toPublicKey(params.payment.fromAddress),
-              verified: false,
-              share: 100, // They own 100% of "creation" credit
-            },
-          ],
-        },
-      });
+      // Use mintToCollectionV1 for verified collection membership when collection is available
+      let mintIx;
+      if (this.collectionMint) {
+        mintIx = mintToCollectionV1(this.umi, {
+          leafOwner,
+          merkleTree: merkleTreePubkey,
+          collectionMint: toPublicKey(this.collectionMint),
+          metadata: {
+            name: metadata.name,
+            symbol: metadata.symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 0,
+            collection: none(), // Collection verified via collectionMint parameter
+            creators: [
+              {
+                address: toPublicKey(params.payment.fromAddress),
+                verified: false, // Payer can't sign
+                share: 100,
+              },
+            ],
+          },
+        });
+      } else {
+        mintIx = mintV1(this.umi, {
+          leafOwner,
+          merkleTree: merkleTreePubkey,
+          metadata: {
+            name: metadata.name,
+            symbol: metadata.symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 0,
+            collection: none(),
+            creators: [
+              {
+                address: toPublicKey(params.payment.fromAddress),
+                verified: false,
+                share: 100,
+              },
+            ],
+          },
+        });
+      }
 
       // Add Priority Fees
       const computeLimitIx = fromWeb3JsInstruction(
@@ -1248,48 +1289,78 @@ export class InvoiceNFTService {
       const merkleTreePubkey = toPublicKey(this.merkleTree);
       const leafOwner = toPublicKey(recipientAddress);
 
-      // Collection Config
-      let collectionConfig = none<any>();
+      // Use mintToCollectionV1 for verified collection membership
+      // Server is collection authority, so we can verify during mint
       if (this.collectionMint) {
-        collectionConfig = some({
-          key: toPublicKey(this.collectionMint),
-          verified: false // cNFT verification usually requires separate instruction or delegate, keeping false to be safe/simple
+        const mintIx = mintToCollectionV1(this.umi, {
+          leafOwner,
+          merkleTree: merkleTreePubkey,
+          collectionMint: toPublicKey(this.collectionMint),
+          metadata: {
+            name: truncateNFTName(metadata.name),
+            symbol: metadata.symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 500, // 5% royalties
+            collection: none(), // Collection is verified via collectionMint parameter
+            creators: [
+              {
+                address: this.umi.identity.publicKey,
+                verified: true,
+                share: 100,
+              }
+            ],
+          },
         });
+
+        const result = await this.executeWithRetry(() => mintIx.sendAndConfirm(this.umi));
+        const signature = result.signature.toString();
+
+        // Extract Asset ID
+        const leafIndex = await this.extractLeafIndexFromTransaction(signature);
+        const assetId = await this.deriveAssetId(leafIndex);
+
+        console.log(`✅ Minted cNFT ${selectedNFT.name}. Asset ID: ${assetId} Sig: ${signature}`);
+
+        return {
+          mint: assetId.toString(),
+          signature: signature,
+          nftVariant: selectedNFT
+        };
+      } else {
+        // Fallback: No collection configured, use standard mintV1
+        const mintIx = mintV1(this.umi, {
+          leafOwner,
+          merkleTree: merkleTreePubkey,
+          metadata: {
+            name: truncateNFTName(metadata.name),
+            symbol: metadata.symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 500,
+            collection: none(),
+            creators: [
+              {
+                address: this.umi.identity.publicKey,
+                verified: true,
+                share: 100,
+              }
+            ],
+          },
+        });
+
+        const result = await this.executeWithRetry(() => mintIx.sendAndConfirm(this.umi));
+        const signature = result.signature.toString();
+
+        const leafIndex = await this.extractLeafIndexFromTransaction(signature);
+        const assetId = await this.deriveAssetId(leafIndex);
+
+        console.log(`✅ Minted cNFT ${selectedNFT.name} (no collection). Asset ID: ${assetId} Sig: ${signature}`);
+
+        return {
+          mint: assetId.toString(),
+          signature: signature,
+          nftVariant: selectedNFT
+        };
       }
-
-      const mintIx = mintV1(this.umi, {
-        leafOwner,
-        merkleTree: merkleTreePubkey,
-        metadata: {
-          name: truncateNFTName(metadata.name), // Truncate for 32-char limit
-          symbol: metadata.symbol,
-          uri: metadataUri,
-          sellerFeeBasisPoints: percentAmount(5) as any,
-          collection: collectionConfig,
-          creators: [
-            {
-              address: this.umi.identity.publicKey,
-              verified: true,
-              share: 100,
-            }
-          ],
-        },
-      });
-
-      const result = await this.executeWithRetry(() => mintIx.sendAndConfirm(this.umi));
-      const signature = result.signature.toString();
-
-      // Extract Asset ID
-      const leafIndex = await this.extractLeafIndexFromTransaction(signature);
-      const assetId = await this.deriveAssetId(leafIndex);
-
-      console.log(`✅ Minted cNFT ${selectedNFT.name}. Asset ID: ${assetId} Sig: ${signature}`);
-
-      return {
-        mint: assetId.toString(),
-        signature: signature,
-        nftVariant: selectedNFT
-      };
 
     } catch (error) {
       console.error("Failed to mint special NFT:", error);
@@ -1688,27 +1759,48 @@ export class InvoiceNFTService {
         const leafOwner = toPublicKey(ownerAddress);
         const merkleTreePubkey = toPublicKey(this.merkleTree!);
 
-        const mintIx = mintV1(this.umi, {
-          leafOwner,
-          merkleTree: merkleTreePubkey,
-          metadata: {
-            name: truncateNFTName(`INV ${invoice.invoiceNumber}`), // Truncated for Solana 32-char limit
-            symbol: "INV",
-            uri: metadataUri,
-            sellerFeeBasisPoints: 0,
-            collection: this.collectionMint ? {
-              key: toPublicKey(this.collectionMint),
-              verified: false, // cNFT collection verification handled separately
-            } : none(),
-            creators: [
-              {
-                address: toPublicKey(invoice.invoicerWalletAddress),
-                verified: false, // Invoicer can't sign batch tx
-                share: 100,
-              },
-            ],
-          },
-        });
+        // Use mintToCollectionV1 for verified collection membership
+        let mintIx;
+        if (this.collectionMint) {
+          mintIx = mintToCollectionV1(this.umi, {
+            leafOwner,
+            merkleTree: merkleTreePubkey,
+            collectionMint: toPublicKey(this.collectionMint),
+            metadata: {
+              name: truncateNFTName(`INV ${invoice.invoiceNumber}`),
+              symbol: "INV",
+              uri: metadataUri,
+              sellerFeeBasisPoints: 0,
+              collection: none(), // Collection verified via collectionMint parameter
+              creators: [
+                {
+                  address: toPublicKey(invoice.invoicerWalletAddress),
+                  verified: false,
+                  share: 100,
+                },
+              ],
+            },
+          });
+        } else {
+          mintIx = mintV1(this.umi, {
+            leafOwner,
+            merkleTree: merkleTreePubkey,
+            metadata: {
+              name: truncateNFTName(`INV ${invoice.invoiceNumber}`),
+              symbol: "INV",
+              uri: metadataUri,
+              sellerFeeBasisPoints: 0,
+              collection: none(),
+              creators: [
+                {
+                  address: toPublicKey(invoice.invoicerWalletAddress),
+                  verified: false,
+                  share: 100,
+                },
+              ],
+            },
+          });
+        }
 
         const result = await this.executeWithRetry(() => mintIx.sendAndConfirm(this.umi));
         const leafIndex = await this.extractLeafIndexFromTransaction(result.signature.toString());

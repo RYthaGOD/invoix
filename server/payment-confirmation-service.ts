@@ -1,7 +1,7 @@
 
 import { db } from "./db";
 import { payments, paymentReceiptNFTs, invoices, specialNFTMints } from "@shared/invoice-schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getInvoiceNFTService } from "./nft-service";
 import { invoiceStorage } from "./invoice-storage";
 import { Connection } from "@solana/web3.js";
@@ -81,6 +81,17 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
         if (invoice.description === "Exclusive Community NFT Mint") {
             console.log(`[PAYMENT] Community Drop Payment Detected! Checking for existing mint...`);
 
+            // FIX: Check if wallet already has a special NFT (1 per wallet limit)
+            const existingWalletMint = await db.select()
+                .from(specialNFTMints)
+                .where(eq(specialNFTMints.walletAddress, payerAddress))
+                .limit(1);
+
+            if (existingWalletMint.length > 0) {
+                console.log(`[NFT] Wallet ${payerAddress} already owns a Community NFT, skipping`);
+                return;
+            }
+
             // FIX R2-3: Check if NFT already minted for this invoice
             const existingMint = await db.select()
                 .from(specialNFTMints)
@@ -95,8 +106,34 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             const nftService = getInvoiceNFTService();
             if (nftService.isReady()) {
                 try {
-                    // Airdrop the Special NFT to the payer
-                    const result = await nftService.mintSpecialNFT(payerAddress, invoiceId);
+                    // Query current minted counts by rarity for proper supply tracking
+                    const rarityCounts = await db.select({
+                        rarity: specialNFTMints.nftRarity,
+                        count: sql<number>`count(*)::int`
+                    }).from(specialNFTMints).groupBy(specialNFTMints.nftRarity);
+
+                    const mintedCounts: Record<string, number> = {
+                        common: 0,
+                        uncommon: 0,
+                        rare: 0,
+                        epic: 0
+                    };
+                    for (const row of rarityCounts) {
+                        if (row.rarity) {
+                            mintedCounts[row.rarity] = row.count;
+                        }
+                    }
+                    console.log(`[NFT] Current rarity distribution:`, mintedCounts);
+
+                    // Check total supply limit (1000 max)
+                    const totalMinted = Object.values(mintedCounts).reduce((sum, count) => sum + count, 0);
+                    if (totalMinted >= 1000) {
+                        console.log(`[NFT] Collection sold out! Total minted: ${totalMinted}/1000`);
+                        return;
+                    }
+
+                    // Airdrop the Special NFT to the payer with proper rarity tracking
+                    const result = await nftService.mintSpecialNFT(payerAddress, invoiceId, mintedCounts);
 
                     // Persist to DB for rarity tracking
                     await db.insert(specialNFTMints).values({

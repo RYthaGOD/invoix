@@ -292,6 +292,29 @@ export function generateTradingCardSvg(nft: NFTVariant, imageData?: string): str
           .stat-label { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 30px; letter-spacing: 2px; }
           .stat-value { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 50px; }
           .type { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 40px; text-transform: uppercase; letter-spacing: 4px;}
+          
+          /* 8K Premium Animations */
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+          @keyframes glow-pulse {
+            0%, 100% { filter: drop-shadow(0 0 10px ${color}); opacity: 1; }
+            50% { filter: drop-shadow(0 0 25px ${color}); opacity: 0.9; }
+          }
+          @keyframes holographic-shift {
+            0% { fill-opacity: 0.1; }
+            50% { fill-opacity: 0.25; }
+            100% { fill-opacity: 0.1; }
+          }
+          @keyframes border-glow {
+            0%, 100% { stroke-opacity: 1; }
+            50% { stroke-opacity: 0.7; }
+          }
+          .shimmer-bar { animation: shimmer 3s ease-in-out infinite; }
+          .glow-text { animation: glow-pulse 2s ease-in-out infinite; }
+          .holo-overlay { animation: holographic-shift 4s ease-in-out infinite; }
+          .border-animate { animation: border-glow 2s ease-in-out infinite; }
         </style>
 
         <!-- Filters -->
@@ -322,21 +345,21 @@ export function generateTradingCardSvg(nft: NFTVariant, imageData?: string): str
       <!-- CARD BODY -->
       <rect width="100%" height="100%" fill="#020617"/>
       
-      <!-- Frame Border -->
-      <rect x="50" y="50" width="1100" height="1500" rx="60" fill="url(#frameGradient)" stroke="url(#borderGradient)" stroke-width="15"/>
+      <!-- Frame Border with Animation -->
+      <rect x="50" y="50" width="1100" height="1500" rx="60" fill="url(#frameGradient)" stroke="url(#borderGradient)" stroke-width="15" class="border-animate"/>
 
       <!-- Character Art -->
       ${imageContent}
 
-      <!-- Holographic Overlay on Art -->
-      <rect x="100" y="200" width="1000" height="1000" rx="40" fill="url(#shimmer)" style="mix-blend-mode: overlay; pointer-events: none;" opacity="0.3"/>
+      <!-- Holographic Overlay on Art with Animation -->
+      <rect x="100" y="200" width="1000" height="1000" rx="40" fill="url(#shimmer)" style="mix-blend-mode: overlay; pointer-events: none;" class="holo-overlay"/>
 
       <!-- HUD / UI Overlay -->
       <g transform="translate(0, 0)">
          <!-- Title Bar -->
          <path d="M50 1200 L1150 1200 L1150 1450 L50 1450 Z" fill="#0f172a" fill-opacity="0.9" stroke="${color}" stroke-width="4"/>
          
-         <text x="600" y="1300" text-anchor="middle" fill="white" class="title" style="filter: drop-shadow(0 0 10px ${color})">${nft.name}</text>
+         <text x="600" y="1300" text-anchor="middle" fill="white" class="title glow-text">${nft.name}</text>
          <text x="600" y="1360" text-anchor="middle" fill="${color}" class="type">${nft.type}</text>
       </g>
 

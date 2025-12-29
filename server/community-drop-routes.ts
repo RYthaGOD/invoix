@@ -10,7 +10,7 @@ import { requireWalletOwnership, strictRateLimit } from "./security";
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 // Configuration
-const GATEKEEPER_TOKEN_MINT = "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
+const GATEKEEPER_TOKEN_MINT = process.env.GATEKEEPER_TOKEN_MINT || "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
 const DISCOUNTED_PRICE_USD = 0.50;
 const STANDARD_PRICE_USD = 5.00;
 const MAX_SUPPLY = 1000;
@@ -49,7 +49,7 @@ async function getSolPrice(): Promise<number> {
 
         return price;
     } catch (error) {
-        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "100");
+        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "180");
         console.error(`Error fetching SOL price, using fallback $${solPriceCache?.price || fallbackPrice}`, error);
         return solPriceCache?.price || fallbackPrice;
     }
