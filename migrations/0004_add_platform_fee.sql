@@ -1,0 +1,1 @@
+ALTER TABLE "invoices" ADD COLUMN "platform_fee" numeric(18, 9) DEFAULT '0' NOT NULL;

@@ -187,7 +187,7 @@ export default function InvoiceCreate() {
         throw new Error("Wallet does not support signing!");
       }
 
-      const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
+      const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("devnet"));
 
       const transaction = new Transaction().add(
         SystemProgram.transfer({
@@ -267,7 +267,7 @@ export default function InvoiceCreate() {
 
           // D. Send
           setMintingStatus("Sending Transaction... 🚀");
-          const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
+          const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("devnet"));
 
           const signature = await connection.sendRawTransaction(signedTx.serialize());
 

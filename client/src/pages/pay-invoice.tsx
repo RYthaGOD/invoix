@@ -19,7 +19,9 @@ interface Invoice {
     invoiceNumber: string;
     invoicerWalletAddress: string;
     invoiceeWalletAddress: string;
-    totalAmount: string;
+    subtotal: string;  // Base amount before platform fee
+    platformFee: string; // 1% platform fee (pre-calculated)
+    totalAmount: string; // subtotal + platformFee
     paidAmount: string;
     remainingAmount: string;
     currency: string;
@@ -102,10 +104,12 @@ export default function PayInvoice() {
 
             const amountToPay = parseFloat(invoice.remainingAmount);
 
-            // Fee Logic: Platform Fee (1%) - Recipient pays fee (Net settlement)
-            const platformFeeRate = 0.01;
-            const platformFeeAmount = amountToPay * platformFeeRate; // 1% of invoice
-            const recipientAmount = amountToPay - platformFeeAmount; // 99% of invoice
+            // Fee Logic: Use pre-calculated platform fee from invoice
+            // The fee is already included in totalAmount/remainingAmount
+            const platformFeeAmount = parseFloat(invoice.platformFee) || (amountToPay * 0.01); // Fallback for old invoices
+            const subtotalAmount = parseFloat(invoice.subtotal) || (amountToPay - platformFeeAmount);
+            const recipientAmount = subtotalAmount; // Seller gets full subtotal (no fee deduction)
+            // Platform fee goes to treasury
 
             const recipientPubkey = new PublicKey(invoice.invoicerWalletAddress);
             const transaction = new Transaction();
@@ -413,12 +417,12 @@ export default function PayInvoice() {
 
                             {/* Payment Distribution Breakdown */}
                             <div className="bg-white/5 rounded-lg p-4 border border-white/5">
-                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Payment Distribution (Included in Total)</p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Payment Breakdown</p>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between items-center text-gray-300">
-                                        <span>To Invoicer ({invoice.invoicerWalletAddress.slice(0, 4)}...{invoice.invoicerWalletAddress.slice(-4)})</span>
+                                        <span>Subtotal (To Invoicer)</span>
                                         <span className="font-mono">
-                                            {(parseFloat(invoice.remainingAmount) * 0.99).toFixed(2)} {invoice.currency}
+                                            {parseFloat(invoice.subtotal || String(parseFloat(invoice.remainingAmount) * 0.99)).toFixed(2)} {invoice.currency}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center text-purple-300">
@@ -427,12 +431,18 @@ export default function PayInvoice() {
                                             <div className="group relative">
                                                 <AlertCircle className="w-3 h-3 cursor-help text-purple-400" />
                                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black/90 text-white text-xs rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                    This fee supports the Invoix protocol and is deducted from the settlement.
+                                                    This fee supports the Invoix protocol and is automatically included in the total.
                                                 </div>
                                             </div>
                                         </span>
                                         <span className="font-mono">
-                                            {(parseFloat(invoice.remainingAmount) * 0.01).toFixed(2)} {invoice.currency}
+                                            {parseFloat(invoice.platformFee || String(parseFloat(invoice.remainingAmount) * 0.01)).toFixed(2)} {invoice.currency}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-white font-bold pt-2 border-t border-white/10">
+                                        <span>Total Due</span>
+                                        <span className="font-mono">
+                                            {parseFloat(invoice.remainingAmount).toFixed(2)} {invoice.currency}
                                         </span>
                                     </div>
                                 </div>

@@ -205,7 +205,7 @@ export function registerProfileRoutes(app: Express) {
             }
 
             // 1. Verify Transaction on Solana
-            const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com");
+            const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
             const status = await connection.getSignatureStatus(signature);
 
             // Allow "confirmed" or "finalized"

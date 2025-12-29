@@ -133,7 +133,7 @@ export class InvoiceNFTService {
     rpcEndpoint?: string,
     config: Partial<NFTMintConfig> = {}
   ) {
-    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
     this.umi = createUmi(endpoint).use(mplTokenMetadata());
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -1738,7 +1738,7 @@ export class InvoiceNFTService {
 
       // Get connection from UMI
       const rpcEndpoint =
-        process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+        process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
       const connection = new Connection(rpcEndpoint, "confirmed");
 
       // Fetch transaction with logs (with retry)

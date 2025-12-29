@@ -558,7 +558,7 @@ export default function InvoiceDetail() {
 
       // 4. Send Transaction
       setMintingStatus("Sending Transaction... 🚀");
-      const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
+      const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("devnet"));
 
       const signature = await connection.sendRawTransaction(signedTx.serialize());
 

@@ -7,7 +7,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { requireWalletOwnership, strictRateLimit } from "./security";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
 // Configuration
 const GATEKEEPER_TOKEN_MINT = process.env.GATEKEEPER_TOKEN_MINT || "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";

@@ -18,7 +18,7 @@ import { eq, and, or } from "drizzle-orm";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import bs58 from "bs58";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const POLL_INTERVAL_MS = 15000; // Check every 15 seconds
 const PLATFORM_FEE_RATE = 0.01; // 1% platform fee
 const AMOUNT_TOLERANCE = 0.001; // Allow 0.1% variance for floating point

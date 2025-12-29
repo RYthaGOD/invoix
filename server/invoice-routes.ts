@@ -180,8 +180,23 @@ export function registerInvoiceRoutes(app: Express): void {
       // Use calculated subtotal if not provided (it was omitted from schema)
       const finalSubtotal = (invoiceData as any).subtotal || subtotal;
 
+      // --- CALCULATE PLATFORM FEE (1% of subtotal) ---
+      // The platform fee is added ON TOP of the invoice total
+      // This ensures the invoicer receives their full amount (no underpayment)
+      const PLATFORM_FEE_RATE = "0.01"; // 1%
+      const platformFee = safeMultiply(finalSubtotal, PLATFORM_FEE_RATE);
+
+      // Recalculate totalAmount to include platform fee
+      // Total = Subtotal + Tax - Discount + PlatformFee
+      const taxAmount = (invoiceData as any).taxAmount || "0";
+      const discountAmount = (invoiceData as any).discountAmount || "0";
+      const calculatedTotal = safeAdd(
+        safeSubtract(safeAdd(finalSubtotal, taxAmount), discountAmount),
+        platformFee
+      );
+
       // Auto-calculate remaining amount using shared utility
-      const remainingAmount = safeSubtract(invoiceData.totalAmount, (invoiceData as any).paidAmount || "0");
+      const remainingAmount = safeSubtract(calculatedTotal, (invoiceData as any).paidAmount || "0");
 
       // --- GENERATE INVOICE NUMBER ---
       // Delegated to storage layer (createInvoiceWithItems) for atomicity
@@ -194,6 +209,10 @@ export function registerInvoiceRoutes(app: Express): void {
           ...invoiceData,
           invoiceNumber, // Added generated number
           subtotal: finalSubtotal, // Added calculated subtotal
+          taxAmount,
+          discountAmount,
+          platformFee, // Auto-calculated 1% platform fee
+          totalAmount: calculatedTotal, // Override with calculated total including fee
           dueDate: new Date(invoiceData.dueDate),
           invoicerWalletAddress: authenticatedWallet,
           remainingAmount: remainingAmount,
@@ -823,7 +842,7 @@ export function registerInvoiceRoutes(app: Express): void {
       // We must ensure the user actually sent the funds
       if (validatedData.paymentMethod === "solana_transfer" || !validatedData.paymentMethod) {
         // If it's a crypto payment, verify it
-        const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"));
+        const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("devnet"));
 
         console.log(`Verifying payment tx: ${validatedData.txSignature} for ${validatedData.amount} ${validatedData.currency}`);
         console.log(`[DEBUG PAYMENT] Full Input:`, {

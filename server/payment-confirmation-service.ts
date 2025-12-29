@@ -8,7 +8,7 @@ import { Connection } from "@solana/web3.js";
 import crypto from "crypto";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 
-const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com");
+const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
 
 /**
  * Handles post-payment logic:

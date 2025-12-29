@@ -16,7 +16,7 @@ const router = Router();
 
 // Configuration
 const GAS_FEE_USDC = 0.15; // 0.15 USDC Fee
-const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com");
+const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
 
 /**
  * GET /api/config/fee-payer

@@ -41,7 +41,8 @@ export const invoices = pgTable("invoices", {
   subtotal: decimal("subtotal", { precision: 18, scale: 9 }).notNull(), // Sum of line items
   taxAmount: decimal("tax_amount", { precision: 18, scale: 9 }).notNull().default("0"),
   discountAmount: decimal("discount_amount", { precision: 18, scale: 9 }).notNull().default("0"),
-  totalAmount: decimal("total_amount", { precision: 18, scale: 9 }).notNull(), // Final amount due
+  platformFee: decimal("platform_fee", { precision: 18, scale: 9 }).notNull().default("0"), // 1% platform fee added to total
+  totalAmount: decimal("total_amount", { precision: 18, scale: 9 }).notNull(), // Final amount due (subtotal + tax - discount + platformFee)
 
   // Payment Status
   status: text("status").notNull().default("draft"), // draft, sent, viewed, partial, paid, overdue, cancelled
