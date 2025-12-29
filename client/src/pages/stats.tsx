@@ -133,8 +133,8 @@ export default function Stats() {
             {/* Stats Content */}
             <section className="container mx-auto px-6 py-12">
                 <div className="text-center mb-12">
-                    <h1 className="text-3xl md:text-4xl font-bold mb-4">Network Status & Analytics</h1>
-                    <p className="text-muted-foreground max-w-2xl mx-auto">
+                    <h1 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent animate-in slide-in-from-bottom-4 duration-700">Network Status & Analytics</h1>
+                    <p className="text-muted-foreground max-w-2xl mx-auto animate-in slide-in-from-bottom-5 duration-700 delay-100">
                         Real-time performance metrics of the SolanaInvoice protocol.
                     </p>
 
@@ -162,8 +162,10 @@ export default function Stats() {
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                     {stats.map((stat, index) => (
-                        <div key={index} className="glass-card p-6 rounded-xl smoke-shadow hover:glass-strong transition-all">
-                            <div className="flex items-center justify-between mb-4">
+                        <div key={index}
+                            className="glass-card p-6 rounded-xl smoke-shadow hover:glass-strong transition-all duration-300 hover:scale-[1.02] group relative overflow-hidden">
+                            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
+                            <div className="relative z-10 flex items-center justify-between mb-4">
                                 <div className="p-3 bg-primary/10 rounded-lg">
                                     {stat.icon}
                                 </div>
