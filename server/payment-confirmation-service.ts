@@ -8,7 +8,7 @@ import { Connection } from "@solana/web3.js";
 import crypto from "crypto";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 
-const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
+const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
 
 /**
  * Handles post-payment logic:
@@ -20,12 +20,30 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
     try {
         console.log(`[PAYMENT] Confirming payment ${signature} for invoice ${invoiceId}...`);
 
-        // 1. Confirm Transaction
-        const latestBlockhash = await connection.getLatestBlockhash();
-        await connection.confirmTransaction({
+        // 1. Confirm Transaction with explicit timeout (30 seconds max)
+        const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+
+        // Use Promise.race for timeout control
+        const confirmationPromise = connection.confirmTransaction({
             signature,
             ...latestBlockhash
         }, "confirmed");
+
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Confirmation timeout")), 30000)
+        );
+
+        try {
+            await Promise.race([confirmationPromise, timeoutPromise]);
+        } catch (timeoutErr: any) {
+            // If timeout, check if transaction was actually confirmed
+            const status = await connection.getSignatureStatus(signature);
+            if (status.value?.confirmationStatus === 'confirmed' || status.value?.confirmationStatus === 'finalized') {
+                console.log(`[PAYMENT] Transaction confirmed via fallback check`);
+            } else {
+                throw timeoutErr;
+            }
+        }
 
         console.log(`[PAYMENT] Confirmed! Updating DB...`);
 

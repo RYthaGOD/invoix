@@ -11,11 +11,18 @@ interface SolanaWalletProviderProps {
 }
 
 export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }) => {
-  // Devnet for demo/arcium integration
-  const network = import.meta.env.VITE_SOLANA_NETWORK === 'mainnet-beta'
-    ? 'mainnet-beta'
-    : 'devnet';
-  const endpoint = useMemo(() => clusterApiUrl(network as any), [network]);
+  // Use custom RPC (Helius) for better performance, fallback to devnet
+  const endpoint = useMemo(() => {
+    // Priority: Environment variable (Helius) > default devnet
+    if (import.meta.env.VITE_SOLANA_RPC_URL) {
+      return import.meta.env.VITE_SOLANA_RPC_URL;
+    }
+    // Fallback based on network config
+    const network = import.meta.env.VITE_SOLANA_NETWORK === 'mainnet-beta'
+      ? 'mainnet-beta'
+      : 'devnet';
+    return clusterApiUrl(network as any);
+  }, []);
 
   // Browser wallets auto-detected (Phantom, Solflare, etc.)
   const wallets = useMemo(() => [], []);
