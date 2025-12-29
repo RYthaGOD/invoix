@@ -15,8 +15,6 @@ import { strictRateLimit } from "./security";
 
 const router = Router();
 
-console.log("[SYSTEM] Payment Routes v2 Loaded - Debugging Timeout");
-
 // Configuration
 const GAS_FEE_USDC = 0.15; // 0.15 USDC Fee
 const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
@@ -277,11 +275,11 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
 
         // CRITICAL: Always record payment in database after successful relay
         // Previously this was gated behind MINT_RECEIPT_NFTS which caused payments to go unrecorded
-        console.log(`[DEBUG] About to record payment. invoiceId=${invoiceId}, signature=${signature}`);
+        // CRITICAL: Always record payment in database after successful relay
+        // Previously this was gated behind MINT_RECEIPT_NFTS which caused payments to go unrecorded
         if (invoiceId) {
             // IMMEDIATE: Update invoice status to 'paid' so client polling succeeds
             // This prevents timeout while waiting for async confirmation
-            console.log(`[DEBUG] Entering payment recording block...`);
             try {
                 const paymentData = {
                     invoiceId: invoiceId,
@@ -293,12 +291,10 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                     status: "confirmed",
                     confirmedAt: new Date(),
                 };
-                console.log(`[DEBUG] Calling invoiceStorage.createPayment...`);
                 await invoiceStorage.createPayment(paymentData as any);
-                console.log(`[PAYMENT] SUCCESS - Recorded payment ${signature} for invoice ${invoiceId}`);
+                console.log(`✅ [PAYMENT] Recorded payment ${signature} for invoice ${invoiceId}`);
             } catch (paymentErr: any) {
                 console.error(`[PAYMENT] ERROR recording payment:`, paymentErr.message || paymentErr);
-                console.error(`[PAYMENT] Full error:`, paymentErr);
             }
 
             // ASYNC: Mint NFT receipt in background (non-blocking)
