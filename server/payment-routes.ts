@@ -233,7 +233,11 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                         }
 
                         if (!isAllowed) {
-                            console.warn(`[SECURITY] Blocked malicious instruction signed by protocol: Program ${progId}`);
+                            console.warn(`[SECURITY_ALERT] Blocked instruction signed by protocol.`);
+                            console.warn(`[SECURITY] Program: ${progId}`);
+                            console.warn(`[SECURITY] Instruction Data Hex: ${ix.data.toString('hex')}`);
+                            console.warn(`[SECURITY] Protocol Pubkey: ${protocolPubkeyStr}`);
+
                             return res.status(403).json({
                                 success: false,
                                 message: "Security Alert: Protocol wallet unauthorized signature detected. Transaction rejected."
