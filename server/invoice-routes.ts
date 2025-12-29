@@ -1683,71 +1683,7 @@ export function registerInvoiceRoutes(app: Express): void {
     }
   });
 
-  /**
-   * Relay Payment Transaction (Gasless)
-   * POST /api/payments/relay
-   * Receives a partially signed transaction, signs as fee payer, and broadcasts
-   */
-  app.post("/api/payments/relay", strictRateLimit, async (req, res) => {
-    try {
-      const { transaction, invoiceId } = req.body;
 
-      if (!transaction || !invoiceId) {
-        return res.status(400).json({ success: false, message: "Missing transaction or invoiceId" });
-      }
-
-      const payerPrivateKey = process.env.PAYER_PRIVATE_KEY;
-      if (!payerPrivateKey) {
-        return res.status(500).json({ success: false, message: "Server fee payer configuration missing" });
-      }
-
-      // Load Server Keypair
-      let payerKeypair;
-      const { Connection, VersionedTransaction, Keypair } = await import("@solana/web3.js");
-      const bs58 = (await import("bs58")).default;
-
-      if (payerPrivateKey.includes("[")) {
-        payerKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(payerPrivateKey)));
-      } else {
-        payerKeypair = Keypair.fromSecretKey(bs58.decode(payerPrivateKey));
-      }
-
-      // Deserialize Transaction
-      const txBuffer = Buffer.from(transaction, 'base64');
-      const tx = VersionedTransaction.deserialize(txBuffer);
-
-      // Sign Transaction (as Fee Payer)
-      tx.sign([payerKeypair]);
-
-      // Connect to Network
-      // Use configured RPC or fallback
-      const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
-      const connection = new Connection(rpcUrl, "confirmed");
-
-      // Broadcast
-      // We skip preflight for speed, relying on client-side simulation success implication
-      const signature = await connection.sendTransaction(tx, {
-        maxRetries: 3,
-        preflightCommitment: "confirmed"
-      });
-
-      console.log(`🚀 Relayed Payment: ${signature} for Invoice ${invoiceId}`);
-
-      // Return signature immediately
-      res.json({
-        success: true,
-        signature: signature,
-        message: "Transaction relayed successfully"
-      });
-
-    } catch (error: any) {
-      console.error("Payment Relay Failed:", error);
-      res.status(400).json({
-        success: false,
-        message: `Relay failed: ${error.message}`
-      });
-    }
-  });
 
   // ============================================
   // NFT METADATA ROUTES
