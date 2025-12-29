@@ -235,17 +235,57 @@ export class InvoiceNFTService {
 
       // Load or create Collection NFT for marketplace integration
       if (this.config.collectionMintAddress) {
-        this.collectionMint = this.config.collectionMintAddress;
+        // Validate env-configured collection exists on-chain
+        try {
+          const exists = await this.umi.rpc.accountExists(toPublicKey(this.config.collectionMintAddress));
+          if (exists) {
+            this.collectionMint = this.config.collectionMintAddress;
+            console.log(`✅ Using Collection NFT from env: ${this.collectionMint}`);
+          } else {
+            console.warn(`⚠️ Env-configured Collection NFT (${this.config.collectionMintAddress}) not found on current network.`);
+            console.log(`🎨 Creating new INVOIX Genesis Collection NFT...`);
+            await this.createCollectionNFT();
+          }
+        } catch (err) {
+          console.warn("⚠️ Error checking Collection NFT existence:", err);
+          console.log(`🎨 Creating new INVOIX Genesis Collection NFT...`);
+          await this.createCollectionNFT();
+        }
       } else {
         const storedCollection = await db.select().from(systemSettings).where(eq(systemSettings.key, "genesis_collection_mint")).limit(1);
 
+        let validPersistedCollection = false;
+
         if (storedCollection.length > 0) {
-          this.collectionMint = storedCollection[0].value;
-          console.log(`✅ Loaded Collection NFT from DB: ${this.collectionMint}`);
-        } else {
-          // Create collection NFT on first run
+          const candidateCollection = storedCollection[0].value;
+          // Validate if this collection actually exists on the current network
+          try {
+            const exists = await this.umi.rpc.accountExists(toPublicKey(candidateCollection));
+            if (exists) {
+              this.collectionMint = candidateCollection;
+              validPersistedCollection = true;
+              console.log(`✅ Loaded Collection NFT from DB: ${this.collectionMint}`);
+            } else {
+              console.warn(`⚠️ Persisted Collection NFT (${candidateCollection}) not found on current network. Invalidating...`);
+              // Will fall through to creation
+            }
+          } catch (err) {
+            console.warn("⚠️ Error checking Collection NFT existence, assuming invalid.", err);
+          }
+        }
+
+        if (!validPersistedCollection) {
+          // Create collection NFT on first run or if previous was invalid
           console.log(`🎨 Creating INVOIX Genesis Collection NFT...`);
           await this.createCollectionNFT();
+
+          // Update DB if there was an old invalid entry
+          if (storedCollection.length > 0 && this.collectionMint) {
+            await db.update(systemSettings)
+              .set({ value: this.collectionMint, description: `Genesis Collection NFT (${process.env.SOLANA_NETWORK || 'unknown'})` })
+              .where(eq(systemSettings.key, "genesis_collection_mint"));
+            console.log(`💾 Updated Collection NFT in DB`);
+          }
         }
       }
 
