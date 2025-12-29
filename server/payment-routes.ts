@@ -280,17 +280,9 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             preflightCommitment: "confirmed"
         });
 
-        // 6. Record Payment in Database (Pending)
-        // We record it first. A background job or webhook should confirm it.
-        // For now, we assume it will confirm if simulation passed.
-
-        // Detect the actual payer (User)
-        // The transaction comes with the User's signature. 
-        // The Fee Payer (Protocol) is added at index 0 or via partialSign later, but we can look for the other signer.
-
-
-        // CRITICAL: Always record payment in database after successful relay
-        // Previously this was gated behind MINT_RECEIPT_NFTS which caused payments to go unrecorded
+        // 6. Record Payment in Database (Immediate)
+        // We record strict payment confirmation immediately to ensure fast UI updates.
+        // Background verification handles finality and NFT minting.
 
         if (invoiceId) {
             // IMMEDIATE: Update invoice status to 'paid' so client polling succeeds
