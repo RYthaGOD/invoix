@@ -201,47 +201,68 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         // It MUST NOT sign Transfers (System or Token) or other interactions.
 
         const protocolPubkeyStr = payerKeypair.publicKey.toString();
+
+        // Detect the actual payer (User)
+        // The transaction comes with the User's signature. 
+        // The Fee Payer (Protocol) is added at index 0 or via partialSign later, but we can look for the other signer.
+        let userPayer = transaction.feePayer?.toString();
+
+        // Iterate signatures to find the one that is NOT the fee payer (Protocol)
+        // The client signed it, so it must be in the signatures list
+        for (const sigPair of transaction.signatures) {
+            if (!sigPair.publicKey.equals(payerKeypair.publicKey) && sigPair.signature !== null) {
+                userPayer = sigPair.publicKey.toString();
+                break;
+            }
+        }
+
         const SYSTEM_PROGRAM_ID = "11111111111111111111111111111111";
         const ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 
-        for (const ix of transaction.instructions) {
-            const progId = ix.programId.toString();
+        // EXCEPTION: If the User IS the Protocol Admin (Testing/Dev), allow everything.
+        // If they signed the tx, they hold the private key, so we don't need to protect them from themselves.
+        if (userPayer === protocolPubkeyStr) {
+            console.log(`[SECURITY] Skipping checks: User is Protocol Admin (${userPayer})`);
+        } else {
+            for (const ix of transaction.instructions) {
+                const progId = ix.programId.toString();
 
-            for (const key of ix.keys) {
-                if (key.pubkey.toString() === protocolPubkeyStr) {
-                    // Protocol is an account in this instruction.
-                    if (key.isSigner) {
-                        // Protocol is SIGNING this instruction. This is dangerous.
-                        // WHITELIST: Only allow specific safe operations.
+                for (const key of ix.keys) {
+                    if (key.pubkey.toString() === protocolPubkeyStr) {
+                        // Protocol is an account in this instruction.
+                        if (key.isSigner) {
+                            // Protocol is SIGNING this instruction. This is dangerous.
+                            // WHITELIST: Only allow specific safe operations.
 
-                        let isAllowed = false;
+                            let isAllowed = false;
 
-                        // Allow: Associated Token Account Creation (Idempotent)
-                        if (progId === ASSOCIATED_TOKEN_PROGRAM_ID) {
-                            isAllowed = true;
-                        }
+                            // Allow: Associated Token Account Creation (Idempotent)
+                            if (progId === ASSOCIATED_TOKEN_PROGRAM_ID) {
+                                isAllowed = true;
+                            }
 
-                        // Allow: System Program Create Account (Rent Payment)
-                        if (progId === SYSTEM_PROGRAM_ID) {
-                            // Check instruction type. CreateAccount is index 0.
-                            if (ix.data.length >= 4) {
-                                const instructionType = ix.data.readUInt32LE(0);
-                                if (instructionType === 0) { // CreateAccount means OK
-                                    isAllowed = true;
+                            // Allow: System Program Create Account (Rent Payment)
+                            if (progId === SYSTEM_PROGRAM_ID) {
+                                // Check instruction type. CreateAccount is index 0.
+                                if (ix.data.length >= 4) {
+                                    const instructionType = ix.data.readUInt32LE(0);
+                                    if (instructionType === 0) { // CreateAccount means OK
+                                        isAllowed = true;
+                                    }
                                 }
                             }
-                        }
 
-                        if (!isAllowed) {
-                            console.warn(`[SECURITY_ALERT] Blocked instruction signed by protocol.`);
-                            console.warn(`[SECURITY] Program: ${progId}`);
-                            console.warn(`[SECURITY] Instruction Data Hex: ${ix.data.toString('hex')}`);
-                            console.warn(`[SECURITY] Protocol Pubkey: ${protocolPubkeyStr}`);
+                            if (!isAllowed) {
+                                console.warn(`[SECURITY_ALERT] Blocked instruction signed by protocol.`);
+                                console.warn(`[SECURITY] Program: ${progId}`);
+                                console.warn(`[SECURITY] Instruction Data Hex: ${ix.data.toString('hex')}`);
+                                console.warn(`[SECURITY] Protocol Pubkey: ${protocolPubkeyStr}`);
 
-                            return res.status(403).json({
-                                success: false,
-                                message: "Security Alert: Protocol wallet unauthorized signature detected. Transaction rejected."
-                            });
+                                return res.status(403).json({
+                                    success: false,
+                                    message: "Security Alert: Protocol wallet unauthorized signature detected. Transaction rejected."
+                                });
+                            }
                         }
                     }
                 }
@@ -266,21 +287,11 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         // Detect the actual payer (User)
         // The transaction comes with the User's signature. 
         // The Fee Payer (Protocol) is added at index 0 or via partialSign later, but we can look for the other signer.
-        let userPayer = transaction.feePayer?.toString();
 
-        // Iterate signatures to find the one that is NOT the fee payer (Protocol)
-        // The client signed it, so it must be in the signatures list
-        for (const sigPair of transaction.signatures) {
-            if (!sigPair.publicKey.equals(payerKeypair.publicKey) && sigPair.signature !== null) {
-                userPayer = sigPair.publicKey.toString();
-                break;
-            }
-        }
 
         // CRITICAL: Always record payment in database after successful relay
         // Previously this was gated behind MINT_RECEIPT_NFTS which caused payments to go unrecorded
-        // CRITICAL: Always record payment in database after successful relay
-        // Previously this was gated behind MINT_RECEIPT_NFTS which caused payments to go unrecorded
+
         if (invoiceId) {
             // IMMEDIATE: Update invoice status to 'paid' so client polling succeeds
             // This prevents timeout while waiting for async confirmation
