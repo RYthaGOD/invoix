@@ -28,6 +28,7 @@ import {
   createNft,
   TokenStandard,
   mplTokenMetadata,
+  fetchDigitalAsset,
 } from "@metaplex-foundation/mpl-token-metadata";
 import {
   createGenericFile,
@@ -235,12 +236,33 @@ export class InvoiceNFTService {
 
       // Load or create Collection NFT for marketplace integration
       if (this.config.collectionMintAddress) {
-        // Validate env-configured collection exists on-chain
+        // Validate env-configured collection exists on-chain AND we're the authority
         try {
           const exists = await this.umi.rpc.accountExists(toPublicKey(this.config.collectionMintAddress));
           if (exists) {
-            this.collectionMint = this.config.collectionMintAddress;
-            console.log(`✅ Using Collection NFT from env: ${this.collectionMint}`);
+            // Verify we're the update authority
+            try {
+              const collectionAsset = await fetchDigitalAsset(this.umi, toPublicKey(this.config.collectionMintAddress));
+              const updateAuthority = collectionAsset.metadata.updateAuthority.toString();
+              const serverIdentity = this.umi.identity.publicKey.toString();
+
+              if (updateAuthority === serverIdentity) {
+                this.collectionMint = this.config.collectionMintAddress;
+                console.log(`✅ Using Collection NFT from env: ${this.collectionMint}`);
+                console.log(`   Update Authority verified: ${updateAuthority}`);
+              } else {
+                console.warn(`⚠️ Env Collection ${this.config.collectionMintAddress} has different update authority.`);
+                console.warn(`   Expected: ${serverIdentity}`);
+                console.warn(`   Found: ${updateAuthority}`);
+                console.warn(`   Creating new collection...`);
+                await this.createCollectionNFT();
+              }
+            } catch (metadataErr) {
+              console.warn(`⚠️ Could not fetch env collection metadata:`, metadataErr);
+              // Still use it if account exists
+              this.collectionMint = this.config.collectionMintAddress;
+              console.log(`⚠️ Using env Collection NFT (no authority verification): ${this.collectionMint}`);
+            }
           } else {
             console.warn(`⚠️ Env-configured Collection NFT (${this.config.collectionMintAddress}) not found on current network.`);
             console.log(`🎨 Creating new INVOIX Genesis Collection NFT...`);
@@ -258,13 +280,35 @@ export class InvoiceNFTService {
 
         if (storedCollection.length > 0) {
           const candidateCollection = storedCollection[0].value;
-          // Validate if this collection actually exists on the current network
+          // Validate if this collection actually exists on the current network AND we're the authority
           try {
             const exists = await this.umi.rpc.accountExists(toPublicKey(candidateCollection));
             if (exists) {
-              this.collectionMint = candidateCollection;
-              validPersistedCollection = true;
-              console.log(`✅ Loaded Collection NFT from DB: ${this.collectionMint}`);
+              // Verify we're the update authority for this collection
+              try {
+                const collectionAsset = await fetchDigitalAsset(this.umi, toPublicKey(candidateCollection));
+                const updateAuthority = collectionAsset.metadata.updateAuthority.toString();
+                const serverIdentity = this.umi.identity.publicKey.toString();
+
+                if (updateAuthority === serverIdentity) {
+                  this.collectionMint = candidateCollection;
+                  validPersistedCollection = true;
+                  console.log(`✅ Loaded Collection NFT from DB: ${this.collectionMint}`);
+                  console.log(`   Update Authority verified: ${updateAuthority}`);
+                } else {
+                  console.warn(`⚠️ Collection ${candidateCollection} has different update authority.`);
+                  console.warn(`   Expected: ${serverIdentity}`);
+                  console.warn(`   Found: ${updateAuthority}`);
+                  console.warn(`   Creating new collection...`);
+                  // Will fall through to creation
+                }
+              } catch (metadataErr) {
+                console.warn(`⚠️ Could not fetch collection metadata for authority check:`, metadataErr);
+                // Still use it if account exists - may be a different on-chain format
+                this.collectionMint = candidateCollection;
+                validPersistedCollection = true;
+                console.log(`⚠️ Loaded Collection NFT (no authority verification): ${this.collectionMint}`);
+              }
             } else {
               console.warn(`⚠️ Persisted Collection NFT (${candidateCollection}) not found on current network. Invalidating...`);
               // Will fall through to creation
@@ -301,10 +345,17 @@ export class InvoiceNFTService {
   }
 
   /**
-   * Check if service is ready
+   * Check if service is ready for basic operations
    */
   isReady(): boolean {
     return !!this.umi && !!this.merkleTree;
+  }
+
+  /**
+   * Check if service is ready for collection-verified minting
+   */
+  hasCollection(): boolean {
+    return !!this.collectionMint;
   }
 
   /**
@@ -415,7 +466,8 @@ export class InvoiceNFTService {
 
     } catch (error) {
       console.error("❌ Failed to create Collection NFT:", error);
-      // Don't fail initialization - collection is optional for basic functionality
+      // CRITICAL: Explicitly set to null so we don't try to use an invalid collection
+      this.collectionMint = null;
       console.warn("⚠️ Continuing without collection. NFTs will still work but won't be grouped on marketplaces.");
     }
   }
@@ -499,6 +551,7 @@ export class InvoiceNFTService {
           leafOwner,
           merkleTree: merkleTreePubkey,
           collectionMint: toPublicKey(this.collectionMint),
+          collectionAuthority: this.umi.identity, // Explicit: Server is collection authority
           metadata: {
             name: metadata.name,
             symbol: metadata.symbol,
@@ -620,6 +673,7 @@ export class InvoiceNFTService {
           leafOwner,
           merkleTree: merkleTreePubkey,
           collectionMint: toPublicKey(this.collectionMint),
+          collectionAuthority: this.umi.identity, // Explicit: Server is collection authority
           metadata: {
             name: metadata.name,
             symbol: metadata.symbol,
@@ -1336,6 +1390,7 @@ export class InvoiceNFTService {
           leafOwner,
           merkleTree: merkleTreePubkey,
           collectionMint: toPublicKey(this.collectionMint),
+          collectionAuthority: this.umi.identity, // Explicit: Server is collection authority
           metadata: {
             name: truncateNFTName(metadata.name),
             symbol: metadata.symbol,
@@ -1806,6 +1861,7 @@ export class InvoiceNFTService {
             leafOwner,
             merkleTree: merkleTreePubkey,
             collectionMint: toPublicKey(this.collectionMint),
+            collectionAuthority: this.umi.identity, // Explicit: Server is collection authority
             metadata: {
               name: truncateNFTName(`INV ${invoice.invoiceNumber}`),
               symbol: "INV",
