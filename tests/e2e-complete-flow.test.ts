@@ -120,7 +120,7 @@ describe("E2E Complete Flow", () => {
             .set("x-test-wallet", INVOICER_WALLET) // Only Invoicer can record manual payment
             .send({
                 invoiceId,
-                amount: "100",
+                amount: "101", // 100 + 1% platform fee
                 currency: "USDC",
                 paymentMethod: "manual_transfer",
                 fromAddress: MOCK_WALLET_2, // Payer
@@ -162,7 +162,7 @@ describe("E2E Complete Flow", () => {
             .set("x-test-wallet", INVOICER_WALLET)
             .send({
                 invoiceId: partialInvoiceId,
-                amount: "50",
+                amount: "102", // 50% of (200 + 2% platform fee = 204) = 102
                 currency: "USDC",
                 paymentMethod: "manual_transfer",
                 fromAddress: MOCK_WALLET_2,
@@ -184,7 +184,7 @@ describe("E2E Complete Flow", () => {
             .set("x-test-wallet", INVOICER_WALLET)
             .send({
                 invoiceId: partialInvoiceId,
-                amount: "150",
+                amount: "102", // Remaining 102 to complete (200 + 2 = 204 total, 102 already paid)
                 currency: "USDC",
                 paymentMethod: "manual_transfer",
                 fromAddress: MOCK_WALLET_2,

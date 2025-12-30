@@ -156,6 +156,10 @@ export default function PayInvoice() {
                 const recipientLamports = toAtomic(recipientAmount);
                 const gasFeeLamports = toAtomic(GAS_FEE_AMOUNT);
 
+                // Defensive check: Ensure tokenMint is available (fixes _bn null error)
+                if (!invoice.tokenMint) {
+                    throw new Error("Invoice token mint is missing. Please contact support.");
+                }
                 const mintPubkey = new PublicKey(invoice.tokenMint);
                 const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, publicKey);
                 const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey);

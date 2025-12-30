@@ -248,6 +248,10 @@ async function distributePayment(
             );
         } else {
             // SPL Token distribution
+            if (!invoice.tokenMint) {
+                logger.error(`Invoice ${invoice.id} missing tokenMint for SPL distribution`, "qr");
+                return;
+            }
             const mintPubkey = new PublicKey(invoice.tokenMint);
             const decimals = invoice.tokenDecimals;
             const atomicAmount = Math.floor(invoicerAmount * Math.pow(10, decimals));

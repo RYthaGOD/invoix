@@ -86,6 +86,12 @@ export function registerInvoiceRoutes(app: Express): void {
 
         req.body.tokenMintAddress = mintMap[currency] || DEFAULT_USDC_MINT;
       }
+
+      // Map tokenMintAddress to tokenMint (DB column name)
+      // This fixes the null tokenMint bug that causes "Cannot read properties of null (reading '_bn')"
+      if (req.body.tokenMintAddress) {
+        req.body.tokenMint = req.body.tokenMintAddress;
+      }
       // -------------------------------
 
       logger.debug(`Invoice creation request from ${authenticatedWallet}`, "invoice", { body: req.body });
