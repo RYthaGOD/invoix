@@ -88,7 +88,7 @@ export function registerInvoiceRoutes(app: Express): void {
       }
       // -------------------------------
 
-      console.log(`[INVOICE_CREATE_DEBUG] Received body from ${authenticatedWallet}:`, JSON.stringify(req.body, null, 2));
+      logger.debug(`Invoice creation request from ${authenticatedWallet}`, "invoice", { body: req.body });
 
       const validatedData = insertInvoiceWithItemsSchema.parse(req.body);
       const { lineItems, ...invoiceData } = validatedData;
@@ -107,12 +107,12 @@ export function registerInvoiceRoutes(app: Express): void {
             treasuryAddress: TREASURY_WALLET_ADDRESS
           });
         }
-        console.log(`Verifying x402 Service Fee: ${invoiceData.x402PaymentSignature}`);
+        logger.debug(`Verifying x402 Service Fee`, "invoice", { signature: invoiceData.x402PaymentSignature });
 
         // Use consistent network
         const network = process.env.SOLANA_NETWORK === 'devnet' ? 'devnet' : 'mainnet-beta';
         const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl(network);
-        console.log(`[x402] Connecting to ${network} via ${rpcUrl}`);
+        logger.debug(`Connecting to Solana`, "invoice", { network, rpcUrl });
         const connection = new Connection(rpcUrl, 'confirmed');
 
         // Retry loop for propagation delay (Increased to 15s total)
@@ -130,7 +130,7 @@ export function registerInvoiceRoutes(app: Express): void {
           if (verification.verified) break;
 
           if (attempt < 5) {
-            console.log(`[x402] Attempt ${attempt} failed (Tx not found?), retrying in 3s...`);
+            logger.debug(`x402 verification attempt ${attempt} failed, retrying`, "invoice");
             await new Promise(r => setTimeout(r, 3000));
           }
         }

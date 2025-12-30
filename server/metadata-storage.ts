@@ -9,6 +9,7 @@
  */
 
 import Arweave from "arweave";
+import { logger } from "./logger";
 
 interface MetadataUploadResult {
   uri: string;
@@ -55,13 +56,13 @@ export class MetadataStorageService {
           port: 443,
           protocol: "https",
         });
-        console.log("✅ Metadata storage initialized (arweave)");
+        logger.info("Metadata storage initialized (arweave)", "storage");
       } else {
         this.preferredProvider = "api";
-        console.log("✅ Metadata storage initialized (api)");
+        logger.info("Metadata storage initialized (api)", "storage");
       }
     } catch (error) {
-      console.error("❌ Failed to initialize metadata storage:", error);
+      logger.error("Failed to initialize metadata storage", "storage", { error });
       this.preferredProvider = "api";
     }
   }
@@ -156,7 +157,7 @@ export class MetadataStorageService {
         const uri = `https://arweave.net/${tx.id}`;
         this.metadataCache.set(identifier, uri);
 
-        console.log(`✅ Uploaded to Arweave (${contentType}): ${uri}`);
+        logger.info(`Uploaded to Arweave (${contentType})`, "storage", { uri });
         return {
           uri,
           provider: "arweave",
@@ -164,7 +165,7 @@ export class MetadataStorageService {
         };
       }
     } catch (error) {
-      console.error(`Failed to upload to arweave:`, error);
+      logger.error("Failed to upload to arweave", "storage", { error });
     }
 
     // Fallback: API storage (centralized but reliable)
@@ -183,7 +184,7 @@ export class MetadataStorageService {
 
     this.metadataCache.set(identifier, uri);
 
-    console.log(`📦 Using API storage fallback: ${uri}`);
+    logger.info(`Using API storage fallback`, "storage", { uri });
     return {
       uri,
       provider: "api",
@@ -197,7 +198,7 @@ export class MetadataStorageService {
     metadataList: Array<{ metadata: any; identifier: string }>,
     options: Partial<RetryOptions> = {}
   ): Promise<MetadataUploadResult[]> {
-    console.log(`📦 Batch uploading ${metadataList.length} metadata files...`);
+    logger.info(`Batch uploading ${metadataList.length} metadata files`, "storage");
 
     const results = await Promise.allSettled(
       metadataList.map((item) =>
@@ -214,7 +215,7 @@ export class MetadataStorageService {
         uploads.push(result.value);
         succeeded++;
       } else {
-        console.error(`Failed to upload ${metadataList[index].identifier}:`, result.reason);
+        logger.error(`Failed to upload ${metadataList[index].identifier}`, "storage", { reason: result.reason });
         const apiUrl = process.env.API_URL || "";
         uploads.push({
           uri: `${apiUrl}/api/nft-metadata/${metadataList[index].identifier}`,
@@ -224,7 +225,7 @@ export class MetadataStorageService {
       }
     });
 
-    console.log(`✅ Batch upload complete: ${succeeded} succeeded, ${failed} failed`);
+    logger.info(`Batch upload complete`, "storage", { succeeded, failed });
     return uploads;
   }
 
@@ -245,7 +246,7 @@ export class MetadataStorageService {
         lastError = error;
 
         if (attempt < options.maxRetries) {
-          console.log(`⚠️ Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+          logger.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms`, "storage");
           await this.sleep(delay);
           delay = Math.min(delay * options.backoffMultiplier, options.maxDelayMs);
         }

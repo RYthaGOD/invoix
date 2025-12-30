@@ -74,10 +74,10 @@ export function serveStatic(app: Express) {
   // dist/public/index.html
   const distPath = path.resolve(__dirname, "public");
 
-  console.log(`[Static] Serving files from: ${distPath}`);
+  logger.info(`Serving static files`, "static", { path: distPath });
 
   if (!fs.existsSync(distPath)) {
-    console.error(`[Static] CRITICAL: Could not find build directory: ${distPath}`);
+    logger.error(`CRITICAL: Could not find build directory`, "static", { path: distPath });
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );

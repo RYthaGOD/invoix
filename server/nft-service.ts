@@ -949,8 +949,7 @@ export class InvoiceNFTService {
       const serializedTransaction = this.umi.transactions.serialize(tx);
       const base64Transaction = Buffer.from(serializedTransaction).toString("base64");
 
-      console.log(`✅ Created Business Identity Mint Tx for ${businessProfile.businessName}`);
-      console.log(`   Mint Address: ${mintSigner.publicKey.toString()}`);
+      logger.info(`Created Business Identity Mint Tx for ${businessProfile.businessName}`, "nft", { mint: mintSigner.publicKey.toString() });
 
       return {
         transaction: base64Transaction,
@@ -958,7 +957,7 @@ export class InvoiceNFTService {
       };
 
     } catch (error) {
-      console.error(`❌ Failed to create business identity transaction:`, error);
+      logger.error("Failed to create business identity transaction", "nft", { error });
       throw error;
     }
   }
@@ -988,13 +987,13 @@ export class InvoiceNFTService {
 
       const result = await transferIx.sendAndConfirm(this.umi);
 
-      console.log(`✅ Transferred invoice NFT from ${fromAddress} to ${toAddress}`);
+      logger.info(`Transferred invoice NFT`, "nft", { from: fromAddress, to: toAddress });
 
       return {
         signature: result.signature.toString(),
       };
     } catch (error) {
-      console.error(`❌ Failed to transfer invoice NFT:`, error);
+      logger.error("Failed to transfer invoice NFT", "nft", { error });
       throw error;
     }
   }
@@ -1022,13 +1021,13 @@ export class InvoiceNFTService {
 
       const result = await burnIx.sendAndConfirm(this.umi);
 
-      console.log(`✅ Burned invoice NFT`);
+      logger.info("Burned invoice NFT", "nft");
 
       return {
         signature: result.signature.toString(),
       };
     } catch (error) {
-      console.error(`❌ Failed to burn invoice NFT:`, error);
+      logger.error("Failed to burn invoice NFT", "nft", { error });
       throw error;
     }
   }

@@ -1,5 +1,6 @@
 import { log } from "./vite";
 import { Resend } from "resend";
+import { logger } from "./logger";
 
 interface EmailConfig {
     apiKey?: string;
@@ -47,12 +48,12 @@ export class EmailService {
             try {
                 this.resend = new Resend(this.config.apiKey);
                 this.isReady = true;
-                console.log("📧 Email Service Initialized (Resend API Active)");
+                logger.info("Email Service Initialized (Resend API Active)", "email");
             } catch (error) {
-                console.error("❌ Failed to initialize Resend:", error);
+                logger.error("Failed to initialize Resend", "email", { error });
             }
         } else {
-            console.log("⚠️ Email Service Initialized (Log/Mock Mode) - Set RESEND_API_KEY to go live");
+            logger.info("Email Service Initialized (Mock Mode)", "email");
         }
     }
 
@@ -62,7 +63,7 @@ export class EmailService {
     async sendInvoiceEmail(data: InvoiceEmailData): Promise<boolean> {
         // Validate 'to' address
         if (!data.to || !data.to.includes("@")) {
-            console.warn(`[Email] Invalid 'to' address: ${data.to}. Skipping email.`);
+            logger.warn(`Invalid email address: ${data.to}. Skipping.`, "email");
             return false;
         }
 
@@ -79,7 +80,7 @@ export class EmailService {
                 }
             } catch (error: any) {
                 lastError = error;
-                console.warn(`[Email] Attempt ${attempt}/${maxRetries} failed:`, error.message);
+                logger.warn(`Email attempt ${attempt}/${maxRetries} failed`, "email", { error: error.message });
 
                 // Don't retry on non-transient errors
                 if (error.statusCode === 400 || error.statusCode === 401) {
@@ -94,7 +95,7 @@ export class EmailService {
             }
         }
 
-        console.error("❌ Failed to send email after retries:", lastError);
+        logger.error("Failed to send email after retries", "email", { error: lastError });
         return false;
     }
 
@@ -103,7 +104,7 @@ export class EmailService {
      */
     async sendPaymentReceiptEmail(data: PaymentReceiptEmailData): Promise<boolean> {
         if (!data.to || !data.to.includes("@")) {
-            console.warn(`[Email] Invalid 'to' address: ${data.to}. Skipping receipt.`);
+            logger.warn(`Invalid email address: ${data.to}. Skipping receipt.`, "email");
             return false;
         }
 
@@ -114,7 +115,7 @@ export class EmailService {
                 return await this.mockSendReceipt(data);
             }
         } catch (error) {
-            console.error("❌ Failed to send receipt email:", error);
+            logger.error("Failed to send receipt email", "email", { error });
             return false;
         }
     }
@@ -156,7 +157,7 @@ export class EmailService {
             });
 
             if (error) {
-                console.error("Resend API Error:", error);
+                logger.error("Resend API Error", "email", { error });
                 return false;
             }
 
@@ -164,7 +165,7 @@ export class EmailService {
             return true;
 
         } catch (error) {
-            console.error("Error sending via Resend:", error);
+            logger.error("Error sending via Resend", "email", { error });
             return false;
         }
     }
@@ -199,7 +200,7 @@ export class EmailService {
             });
 
             if (error) {
-                console.error("Resend API Receipt Error:", error);
+                logger.error("Resend API Receipt Error", "email", { error });
                 return false;
             }
 
@@ -207,7 +208,7 @@ export class EmailService {
             return true;
 
         } catch (error) {
-            console.error("Error sending receipt via Resend:", error);
+            logger.error("Error sending receipt via Resend", "email", { error });
             return false;
         }
     }

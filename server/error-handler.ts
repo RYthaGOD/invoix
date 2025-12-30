@@ -7,6 +7,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { logger } from "./logger";
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -39,23 +40,13 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ) {
-  // Use structured logger if available, otherwise fallback
-  const logger = (req as any).logger;
-  if (logger) {
-    logger.error("Error occurred", error, {
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-    });
-  } else {
-    console.error("Error:", {
-      message: error.message,
-      stack: error.stack,
-      path: req.path,
-      method: req.method,
-      ip: req.ip,
-    });
-  }
+  // Log error using structured logger
+  logger.error("Unhandled request error", "server", {
+    message: error.message,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+  });
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
