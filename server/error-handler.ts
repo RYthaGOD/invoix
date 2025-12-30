@@ -124,3 +124,25 @@ export function notFoundHandler(req: Request, res: Response, next: NextFunction)
     message: `Route ${req.method} ${req.path} not found`,
   });
 }
+
+/**
+ * Type-safe error message extraction
+ * Use in catch blocks: catch (error: unknown) { const msg = getErrorMessage(error); }
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  return "An unknown error occurred";
+}
+
+/**
+ * Type guard to check if error is a ZodError
+ */
+export function isZodError(error: unknown): error is ZodError {
+  return error instanceof ZodError;
+}
+
