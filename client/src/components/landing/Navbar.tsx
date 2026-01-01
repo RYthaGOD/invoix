@@ -33,7 +33,15 @@ export function Navbar() {
 
     return (
         <>
-            <div className="fixed w-full top-6 z-50 flex justify-center px-6 pointer-events-none">
+            {/* Devnet Banner */}
+            <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-yellow-500/90 via-orange-500/90 to-yellow-500/90 text-black py-2 px-4 text-center text-sm font-bold backdrop-blur-sm">
+                <span className="inline-flex items-center gap-2">
+                    <span className="animate-pulse">⚠️</span>
+                    DEVNET ONLY — This is a testnet deployment. Do not use real funds.
+                    <span className="animate-pulse">⚠️</span>
+                </span>
+            </div>
+            <div className="fixed w-full top-14 z-50 flex justify-center px-6 pointer-events-none">
                 <nav className={`
                     pointer-events-auto transition-all duration-500 ease-in-out
                     flex items-center justify-between gap-8 py-3 px-6 rounded-full
