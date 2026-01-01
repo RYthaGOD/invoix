@@ -15,9 +15,12 @@ export function Features() {
                 className="text-center mb-24"
                 {...fadeInUp}
             >
-                <h2 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl mb-6 tracking-tight">Engineered for Velocity</h2>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
+                    <span className="text-xs font-bold text-emerald-400 tracking-widest uppercase">Glass Citadel™ Architecture</span>
+                </div>
+                <h2 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl mb-6 tracking-tight">Built for Trust</h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                    A high-performance infrastructure built to handle the demands of modern global commerce.
+                    Confidential data stays encrypted. Payments create permanent proof. Both happen on the same platform.
                 </p>
             </motion.div>
 
@@ -77,10 +80,10 @@ export function Features() {
                             <div className="icon-wrapper group-hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]">
                                 <Receipt className="w-6 h-6 text-cyan-400" />
                             </div>
-                            <h3 className="text-2xl font-bold font-heading">Immutable Proof</h3>
+                            <h3 className="text-2xl font-bold font-heading">Immutable Audit Trail</h3>
                             <p className="text-muted-foreground leading-relaxed">
-                                Automatically mint cNFT receipts for every transaction.
-                                Secure, verifiable, and permanent proof of payment for your finance department.
+                                Every payment mints a compressed NFT receipt on-chain.
+                                Permanent, verifiable proof that satisfies auditors and regulators alike.
                             </p>
                         </div>
                     </div>
@@ -99,30 +102,34 @@ export function Features() {
                             <CreditCard className="w-6 h-6 text-pink-400" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold font-heading mb-2">Global Liquidity</h3>
+                            <h3 className="text-xl font-bold font-heading mb-2">Stablecoin Native</h3>
                             <p className="text-muted-foreground text-sm leading-relaxed">
-                                Accept USDC, USDT, EURC, or Native SOL. Seamlessly manage multi-currency balances with deep liquidity.
+                                Accept USDC, USDT, EURC, PYUSD, or native SOL. Real-time settlement in the currency your business needs.
                             </p>
                         </div>
                     </div>
                 </motion.div>
 
-                {/* 4. Security */}
+                {/* 4. Glass Citadel Security */}
                 <motion.div
-                    className="md:col-span-2 lg:col-span-2 row-span-1 feature-card group hover:border-green-400/40 transition-all duration-500"
+                    className="md:col-span-2 lg:col-span-2 row-span-1 feature-card group bg-gradient-to-br from-emerald-500/5 to-transparent hover:border-emerald-400/40 transition-all duration-500"
                     variants={fadeInUp}
                     initial="initial"
                     whileInView="whileInView"
                     viewport={{ once: true }}
                 >
                     <div className="flex items-start gap-6">
-                        <div className="icon-wrapper shrink-0 group-hover:shadow-[0_0_20px_rgba(34,197,94,0.3)]">
-                            <ShieldCheck className="w-6 h-6 text-green-400" />
+                        <div className="icon-wrapper shrink-0 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] bg-emerald-500/10 border-emerald-500/20">
+                            <ShieldCheck className="w-6 h-6 text-emerald-400" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold font-heading mb-2">Atomic Security</h3>
+                            <h3 className="text-xl font-bold font-heading mb-2 flex items-center gap-2">
+                                Glass Citadel™ Privacy
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">ACTIVE</span>
+                            </h3>
                             <p className="text-muted-foreground text-sm leading-relaxed">
-                                Built with atomic sequential logic to prevent double-spending and ensure 100% accurate financial tracking.
+                                Client data encrypted with Arcium MXE. Public payments, private details.
+                                Compliant with enterprise requirements while maintaining blockchain transparency.
                             </p>
                         </div>
                     </div>

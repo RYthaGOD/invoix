@@ -476,6 +476,94 @@ const docsContent = {
                 </div>
             </div>
         )
+    },
+    faq: {
+        title: "FAQ",
+        icon: <Book className="w-5 h-5" />,
+        content: (
+            <div className="space-y-6">
+                <div className="glass-card p-6 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> What is Invoix?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Invoix is a B2B invoicing and payment platform built on Solana.</strong> It lets businesses create professional invoices, accept crypto payments (USDC, USDT, SOL), and automatically mint NFT receipts for permanent audit trails. Payments settle in under 400ms.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> What are the fees?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">1% platform fee on all payments.</strong> There are no subscription fees, no hidden costs. NFT receipt minting costs approximately $0.001 per receipt using Solana's compressed NFT technology.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> Which currencies are supported?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        We currently support <strong className="text-white">USDC, USDT, EURC, PYUSD, and native SOL</strong>. All stablecoins use their official SPL token mints on Solana Mainnet. More tokens will be added based on community demand.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> What is Glass Citadel™?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        Glass Citadel is our <strong className="text-white">privacy + auditability architecture</strong>. Invoice details (line items, amounts, parties) are encrypted with Arcium MXE technology. Payments are public on-chain, but the details behind them remain private—unless you share them with auditors via a View Key.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> Do I need a wallet to use Invoix?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Yes, you'll need a Solana wallet</strong> like Phantom, Solflare, or Backpack to connect and receive payments. Invoice recipients can pay via QR code scan with any Solana Pay-compatible wallet.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> What are the NFT receipts?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        Every payment automatically mints a <strong className="text-white">Compressed NFT (cNFT)</strong> to your wallet. These serve as permanent, on-chain proof of payment for your accounting and tax records. They're grouped in a verified Metaplex collection and viewable on marketplaces like Magic Eden.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> Is my data secure?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Yes.</strong> Invoice data is encrypted client-side using x25519 + RescueCipher before it ever leaves your browser. Even our database admins cannot read your commercial data. Payments use battle-tested Solana security with atomic transaction guarantees.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> Can my customers pay without signing up?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Yes!</strong> Share your invoice link or QR code with customers. They can pay directly from any Solana wallet—no Invoix account required. The payment is verified automatically and you get an instant notification.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-cyan-400">Q:</span> Is there an API?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Yes, API access is available by application.</strong> You can create invoices, process payments, and mint NFT receipts programmatically. Check the <strong className="text-cyan-400">API Access</strong> section for details on how to apply.
+                    </p>
+                </div>
+            </div>
+        )
     }
 };
 

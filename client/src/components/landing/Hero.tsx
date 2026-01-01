@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
+import { Sparkles, ArrowRight, ShieldCheck, Lock, Eye } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import { WaitlistModal } from "./WaitlistModal";
@@ -22,9 +22,13 @@ export function Hero() {
                             transition={{ duration: 0.6 }}
                             className="inline-flex items-center px-4 py-2 rounded-full glass-card mb-8 border border-white/10 bg-white/5 shadow-[0_0_20px_rgba(236,72,153,0.1)]"
                         >
-                            <Sparkles className="w-4 h-4 mr-2 text-pink-400 animate-pulse" />
-                            <span className="text-sm font-semibold font-heading text-primary tracking-widest uppercase">
-                                The New Standard for On-Chain Commerce
+                            <Lock className="w-4 h-4 mr-2 text-emerald-400" />
+                            <span className="text-sm font-semibold font-heading text-emerald-400 tracking-widest uppercase">
+                                Glass Citadel™ Protocol
+                            </span>
+                            <span className="mx-2 text-white/30">|</span>
+                            <span className="text-sm text-muted-foreground">
+                                Private. Auditable. Unstoppable.
                             </span>
                         </motion.div>
 
@@ -34,9 +38,9 @@ export function Hero() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.1 }}
                         >
-                            Invoice with <br className="hidden md:block" />
+                            B2B Invoicing for<br className="hidden md:block" />
                             <span className="gradient-text pb-2 inline-block relative">
-                                Pure Velocity
+                                the Crypto Age
                                 <span className="absolute inset-0 blur-3xl opacity-20 bg-gradient-to-r from-primary to-accent pointer-events-none"></span>
                             </span>
                         </motion.h1>
@@ -47,8 +51,9 @@ export function Hero() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.2 }}
                         >
-                            Instant crypto settlements, automated NFT receipts, and zero hidden fees.
-                            Scale your B2B operations on the world's most performant blockchain.
+                            Create professional invoices. Get paid in USDC, USDT, or SOL in under 400ms.
+                            Every payment mints an NFT receipt for your permanent, auditable records.
+                            <span className="block mt-2 text-emerald-400/80 font-medium">Enterprise privacy meets public proof.</span>
                         </motion.p>
 
                         <motion.div
