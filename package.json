@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:indexes": "psql $DATABASE_URL -f server/database-indexes.sql",
+    "generate-wallet": "tsx scripts/generate-payer.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

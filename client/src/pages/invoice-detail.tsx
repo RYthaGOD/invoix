@@ -46,7 +46,6 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { serializeInvoiceForHashing } from "@shared/invoice-schema";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
 import { ReceiptNFTDisplay } from "@/components/receipt-nft-display";
-import { encodeURL } from "@solana/pay";
 import QRCode from "qrcode";
 import { ScanLine } from "lucide-react";
 
@@ -134,41 +133,74 @@ export default function InvoiceDetail() {
   // Solana Pay Logic
   const [showSolanaPay, setShowSolanaPay] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState("");
+  const [paymentPolling, setPaymentPolling] = useState(false);
+  const [paymentDetected, setPaymentDetected] = useState(false);
 
+  // Generate QR Code with Transaction Request URL
   useEffect(() => {
     if (showSolanaPay && invoice) {
       try {
-        // FEE COLLECTION: Send payment to Treasury, backend distributes 99% to invoicer
-        // This allows us to collect the 1% platform fee on QR payments
-        const treasury = new PublicKey(TREASURY_WALLET_ADDRESS);
-        const amount = parseFloat(invoice.remainingAmount);
+        // Use Transaction Request format - wallet will POST to this endpoint
+        // Backend builds and returns a secure transaction for signing
+        const baseUrl = window.location.origin;
+        const transactionRequestUrl = `${baseUrl}/api/solana-pay/${invoice.id}`;
 
-        // Reference format: QR-{invoiceId} for backend tracking
-        const reference = `QR-${invoice.id}`;
-
-        // Build Transfer Request URL - payment goes to Treasury
-        const params = new URLSearchParams();
-        params.set('amount', amount.toString());
-        params.set('label', 'Invoix Payment');
-        params.set('message', `Invoice #${invoice.invoiceNumber} • 1% processing fee`);
-        params.set('memo', reference); // Backend uses this to match payments
-
-        // For SPL tokens (non-SOL), add spl-token parameter
-        if (invoice.currency !== 'SOL' && invoice.tokenMint) {
-          params.set('spl-token', invoice.tokenMint);
-        }
-
-        const spUrl = `solana:${treasury.toBase58()}?${params.toString()}`;
+        // Solana Pay Transaction Request format
+        const spUrl = `solana:${encodeURIComponent(transactionRequestUrl)}`;
 
         // Generate QR code
         QRCode.toDataURL(spUrl, { width: 300, margin: 2 }, (err, url) => {
           if (!err) setQrCodeDataUrl(url);
         });
+
+        // Start polling for payment
+        setPaymentPolling(true);
+        setPaymentDetected(false);
       } catch (err) {
         console.error("Failed to generate QR code:", err);
       }
+    } else {
+      setPaymentPolling(false);
     }
   }, [showSolanaPay, invoice]);
+
+  // Payment Verification Polling
+  useEffect(() => {
+    if (!paymentPolling || !invoice || !walletAddress) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/invoices/${invoice.id}?wallet=${walletAddress}`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const updatedInvoice = data.invoice;
+
+        // Check if payment was made
+        if (updatedInvoice.status === 'paid' ||
+          parseFloat(updatedInvoice.paidAmount) > parseFloat(invoice.paidAmount)) {
+          setPaymentDetected(true);
+          setPaymentPolling(false);
+          clearInterval(pollInterval);
+
+          // Reload invoice data
+          loadInvoice(invoice.id);
+
+          toast({
+            title: "Payment Received! 🎉",
+            description: `Invoice #${invoice.invoiceNumber} has been paid.`,
+          });
+
+          // Auto-close dialog after short delay
+          setTimeout(() => setShowSolanaPay(false), 2000);
+        }
+      } catch (err) {
+        console.error("Payment polling error:", err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [paymentPolling, invoice, walletAddress]);
 
   // Integrity Verification
   const [isVerified, setIsVerified] = useState<boolean>(false);
@@ -1212,30 +1244,51 @@ export default function InvoiceDetail() {
       <Dialog open={showSolanaPay} onOpenChange={setShowSolanaPay}>
         <DialogContent className="glass-card border-white/10 text-white sm:max-w-sm text-center">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl">Scan to Pay</DialogTitle>
+            <DialogTitle className="text-center text-xl">
+              {paymentDetected ? "Payment Received! 🎉" : "Scan to Pay"}
+            </DialogTitle>
             <DialogDescription className="text-gray-400 text-center">
-              Scan with your Phantom or Solflare mobile wallet.
-              <br />
-              <span className="text-xs text-purple-400 font-mono mt-2 block">
-                Gasless Relay Active (0 SOL Fee)
-              </span>
+              {paymentDetected ? (
+                <span className="text-green-400">Invoice has been paid successfully.</span>
+              ) : (
+                <>
+                  Scan with your Phantom or Solflare mobile wallet.
+                  <br />
+                  <span className="text-xs text-purple-400 font-mono mt-2 block">
+                    Secure Transaction Request
+                  </span>
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex justify-center py-6 bg-white rounded-xl">
-            {qrCodeDataUrl ? (
+          <div className="flex justify-center py-6 bg-white rounded-xl relative">
+            {paymentDetected ? (
+              <div className="w-64 h-64 flex flex-col items-center justify-center text-green-600">
+                <CheckCircle className="w-24 h-24 mb-4" />
+                <span className="text-lg font-bold">Payment Complete</span>
+              </div>
+            ) : qrCodeDataUrl ? (
               <img src={qrCodeDataUrl} alt="Solana Pay QR" className="w-64 h-64" />
             ) : (
               <div className="w-64 h-64 flex items-center justify-center text-black">Loading QR...</div>
             )}
           </div>
 
+          {/* Payment Polling Status */}
+          {paymentPolling && !paymentDetected && (
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Waiting for payment...
+            </div>
+          )}
+
           <DialogFooter className="sm:justify-center">
             <button
               onClick={() => setShowSolanaPay(false)}
               className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
             >
-              Close
+              {paymentDetected ? "Done" : "Close"}
             </button>
           </DialogFooter>
         </DialogContent>

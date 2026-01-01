@@ -1,6 +1,6 @@
-const { Keypair } = require('@solana/web3.js');
-const fs = require('fs');
-const path = require('path');
+import { Keypair } from '@solana/web3.js';
+import fs from 'fs';
+import path from 'path';
 
 console.log('🔐 Generating Invoix "Glass Citadel" Admin Key\n');
 
@@ -20,7 +20,7 @@ try {
     console.log('\n---------------------------------------------------------');
 
     // Auto-create a snippet file for easy copying
-    const snippetPath = path.join(__dirname, '../.env.snippet');
+    const snippetPath = path.resolve(process.cwd(), '.env.snippet');
     const snippetContent = `\n# Invoix Glass Citadel Keys\nPAYER_PRIVATE_KEY=${secretKeyJSON}\nENABLE_NFT_MINTING=true\n`;
     fs.writeFileSync(snippetPath, snippetContent);
     console.log(`📄 Saved credentials to: ${snippetPath}`);

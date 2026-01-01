@@ -29,6 +29,12 @@ interface HealthCheckResult {
       status: "ok";
       info: Record<string, any>;
     };
+    glassCitadel?: {
+      status: "ok" | "degraded" | "disabled";
+      nftMintingEnabled: boolean;
+      merkleTree: string | null;
+      collectionMint: string | null;
+    };
   };
 }
 
@@ -90,6 +96,29 @@ export async function healthCheck(req: Request, res: Response): Promise<void> {
 
   // Environment info
   result.checks.environment.info = getEnvInfo();
+
+  // Glass Citadel (NFT Audit Trail) status check
+  try {
+    const { getInvoiceNFTService } = await import("./nft-service");
+    const nftService = getInvoiceNFTService();
+    const isReady = nftService.isReady();
+    const hasCollection = nftService.hasCollection();
+    const nftMintingEnabled = process.env.ENABLE_NFT_MINTING === 'true';
+
+    result.checks.glassCitadel = {
+      status: !nftMintingEnabled ? "disabled" : (isReady && hasCollection ? "ok" : "degraded"),
+      nftMintingEnabled,
+      merkleTree: isReady ? nftService.getMerkleTree() : null,
+      collectionMint: nftService.getCollectionMint(),
+    };
+  } catch (error) {
+    result.checks.glassCitadel = {
+      status: "disabled",
+      nftMintingEnabled: process.env.ENABLE_NFT_MINTING === 'true',
+      merkleTree: null,
+      collectionMint: null,
+    };
+  }
 
   // Set HTTP status based on health
   // IMPORTANT: We return 200 even if unhealthy to prevent Railway/K8s from killing the container

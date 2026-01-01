@@ -256,15 +256,26 @@ const docsContent = {
                 </section>
 
                 <section className="space-y-4">
-                    <h3 className="text-xl font-bold text-white border-l-2 border-primary pl-4">2. Confidential Computing (Arcium MXE)</h3>
+                    <h3 className="text-xl font-bold text-white border-l-2 border-primary pl-4">2. The "Glass Citadel" Protocol (Arcium MXE)</h3>
                     <p className="text-muted-foreground">
-                        Privacy is the foundation, not a toggle. All sensitive invoice data is processed within Arcium's <strong className="text-white">Multi-Party Execution (MXE)</strong> environment using x25519 key exchange and RescueCipher encryption.
+                        AwibPay and similar "burner wallet" tools offer black-box anonymity, which is incompatible with corporate treasury standards. Invoix utilizes Arcium's <strong className="text-white">Multi-Party Execution (MXE)</strong> to build a "Glass Citadel":
                     </p>
-                    <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                        <li>Encrypted-at-Rest: Line items never stored in plaintext</li>
-                        <li>TEE Authorization: Database admins cannot view commercial details</li>
-                        <li>Fail-Closed Design: Encryption errors block invoice creation (no plaintext fallback)</li>
-                    </ul>
+                    <div className="glass p-4 rounded-xl border border-white/5 space-y-2">
+                        <div className="flex items-start gap-3">
+                            <ShieldCheck className="w-5 h-5 text-green-400 mt-1" />
+                            <div>
+                                <strong className="text-white block">Composite Privacy</strong>
+                                <span className="text-sm text-muted-foreground">Transactions are encrypted from competitors and the public, but selectively transparent to holders of the <strong>Auditor View Key</strong> for regulatory compliance.</span>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Lock className="w-5 h-5 text-primary mt-1" />
+                            <div>
+                                <strong className="text-white block">Fail-Closed Encryption</strong>
+                                <span className="text-sm text-muted-foreground">Uses x25519 key exchange + RescueCipher. If the TEE cannot guarantee secrecy, the transaction aborts. No plaintext fallbacks.</span>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <section className="space-y-4">

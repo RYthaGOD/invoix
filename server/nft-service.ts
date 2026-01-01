@@ -188,7 +188,6 @@ export class InvoiceNFTService {
             if (exists) {
               this.merkleTree = candidateTree;
               validPersistedTree = true;
-              validPersistedTree = true;
               logger.info(`Loaded Merkle Tree from DB: ${this.merkleTree}`, "nft");
             } else {
               logger.warn(`Persisted Merkle Tree (${candidateTree}) not found on current network. Invalidating...`, "nft");
@@ -293,7 +292,6 @@ export class InvoiceNFTService {
                 if (updateAuthority === serverIdentity) {
                   this.collectionMint = candidateCollection;
                   validPersistedCollection = true;
-                  validPersistedCollection = true;
                   logger.info(`Loaded Collection NFT from DB: ${this.collectionMint}`, "nft");
                   logger.debug(`Update Authority verified: ${updateAuthority}`, "nft");
                 } else {
@@ -334,7 +332,6 @@ export class InvoiceNFTService {
         }
       }
 
-      this.initialized = true;
       this.initialized = true;
       logger.info("Invoice NFT service initialized", "nft");
 
@@ -455,7 +452,6 @@ export class InvoiceNFTService {
       await createCollectionIx.sendAndConfirm(this.umi);
 
       this.collectionMint = collectionSigner.publicKey.toString();
-      this.collectionMint = collectionSigner.publicKey.toString();
       logger.info(`Created Collection NFT: ${this.collectionMint}`, "nft");
 
       // Persist to DB
@@ -491,7 +487,6 @@ export class InvoiceNFTService {
 
       await createTreeIx.sendAndConfirm(this.umi);
 
-      this.merkleTree = merkleTreeSigner.publicKey.toString();
       this.merkleTree = merkleTreeSigner.publicKey.toString();
       logger.info(`Created merkle tree: ${this.merkleTree}`, "nft");
       logger.warn("IMPORTANT: Add MERKLE_TREE_ADDRESS to .env to persist this tree!", "nft", { address: this.merkleTree });

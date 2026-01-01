@@ -43,8 +43,8 @@ const ENVIRONMENT_VARIABLES: EnvVar[] = [
   },
   {
     key: "PAYER_PRIVATE_KEY",
-    required: false,
-    description: "Base58 private key for paying transaction fees (required for NFT minting)",
+    required: false, // Validated dynamically based on ENABLE_NFT_MINTING
+    description: "Base58 private key for paying transaction fees (Required for 'Glass Citadel' Audit Trails)",
   },
 
   // Optional: Metadata Storage
@@ -138,6 +138,13 @@ export function validateEnvironment(): void {
         );
       }
     }
+  }
+
+  // Dynamic Validation: Glass Citadel Requirements
+  if (process.env.ENABLE_NFT_MINTING === 'true' && !process.env.PAYER_PRIVATE_KEY) {
+    errors.push(
+      `❌ PAYER_PRIVATE_KEY is required when NFT Minting is enabled.\n   This key is needed to mint 'Glass Citadel' audit receipts.\n   💡 FIX: Run 'npx tsx scripts/generate-payer.ts' to create one automatically.`
+    );
   }
 
   // Print results
