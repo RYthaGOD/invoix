@@ -27,6 +27,11 @@ const ENVIRONMENT_VARIABLES: EnvVar[] = [
     description: "Secret key for session encryption (min 32 characters)",
     defaultValue: "temporary-session-secret-change-in-prod-please",
   },
+  {
+    key: "FRONTEND_URL",
+    required: false, // Recommended for CORS
+    description: "URL of the frontend (e.g. https://your-app.up.railway.app) for CORS policy",
+  },
 
   // Solana
   {

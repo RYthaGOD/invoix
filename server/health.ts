@@ -79,15 +79,17 @@ export async function healthCheck(req: Request, res: Response): Promise<void> {
 
   // Memory health check
   const memUsage = process.memoryUsage();
-  const totalMem = memUsage.heapTotal;
-  const usedMem = memUsage.heapUsed;
-  const memPercentage = (usedMem / totalMem) * 100;
+  const usedMem = Math.round(memUsage.heapUsed / 1024 / 1024); // MB
+  // We use a fixed approximate limit because V8's heapTotal is dynamic and misleading.
+  // The container is configured with --max-old-space-size=460
+  const MAX_HEAP_SIZE_MB = 460;
+  const memPercentage = Math.round((usedMem / MAX_HEAP_SIZE_MB) * 100);
 
   result.checks.memory = {
     status: memPercentage > 90 ? "warning" : "ok",
-    used: Math.round(usedMem / 1024 / 1024), // MB
-    total: Math.round(totalMem / 1024 / 1024), // MB
-    percentage: Math.round(memPercentage),
+    used: usedMem,
+    total: Math.round(memUsage.heapTotal / 1024 / 1024), // Report actual current heap size for info
+    percentage: memPercentage,
   };
 
   if (memPercentage > 90) {

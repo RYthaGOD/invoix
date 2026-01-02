@@ -206,8 +206,15 @@ export function corsPolicy() {
         allowedOrigins.push(frontendUrl);
       }
 
+      // Add Railway Public Domain if set
+      if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+        allowedOrigins.push(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
+      }
+
       // Add Replit deployment domains (pattern matching)
       const replitAppPattern = /^https:\/\/[a-z0-9-]+\.repl(it\.app|it\.dev)$/i;
+      // Add Railway deployment domains (pattern matching)
+      const railwayAppPattern = /^https:\/\/[a-z0-9-]+\.up\.railway\.app$/i;
 
       let corsAllowed = false;
 
@@ -216,8 +223,8 @@ export function corsPolicy() {
         if (allowedOrigins.includes(origin)) {
           corsAllowed = true;
         }
-        // Pattern match for Replit domains
-        else if (replitAppPattern.test(origin)) {
+        // Pattern match for Replit or Railway domains
+        else if (replitAppPattern.test(origin) || railwayAppPattern.test(origin)) {
           corsAllowed = true;
         }
       }

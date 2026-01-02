@@ -405,70 +405,67 @@ export class InvoiceNFTService {
    * All minted NFTs will reference this collection
    */
   private async createCollectionNFT(): Promise<void> {
-    try {
-      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+    // try/catch removed to allow error propagation to doInitialize
+    const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
 
-      // Collection metadata
-      const collectionMetadata = {
-        name: "INVOIX Genesis Collection",
-        symbol: "INVX",
-        uri: "",
-        description: "Official INVOIX Genesis NFT Collection. Limited to 1000 unique pieces across 4 rarity tiers.",
-        image: `${apiUrl}/uploads/invoix-exclusive.jpg`, // Use main NFT as collection image
-        attributes: [
-          { trait_type: "Collection", value: "Genesis" },
-          { trait_type: "Total Supply", value: "1000" },
-        ],
-        properties: {
-          category: "image",
-          creators: [{ address: this.umi.identity.publicKey.toString(), share: 100, verified: true }]
+    // Collection metadata
+    const collectionMetadata = {
+      name: "INVOIX Genesis Collection",
+      symbol: "INVX",
+      uri: "",
+      description: "Official INVOIX Genesis NFT Collection. Limited to 1000 unique pieces across 4 rarity tiers.",
+      image: `${apiUrl}/uploads/invoix-exclusive.jpg`, // Use main NFT as collection image
+      attributes: [
+        { trait_type: "Collection", value: "Genesis" },
+        { trait_type: "Total Supply", value: "1000" },
+      ],
+      properties: {
+        category: "image",
+        creators: [{ address: this.umi.identity.publicKey.toString(), share: 100, verified: true }]
+      }
+    };
+
+    // Upload collection metadata
+    // Retry metadata upload as well
+    const storageService = getMetadataStorageService();
+    const metadataResult = await this.executeWithRetry(() =>
+      storageService.uploadMetadata(collectionMetadata, "invoix-genesis-collection", { isPrivate: false } as any)
+    );
+
+    // Create Collection NFT
+    const collectionSigner = generateSigner(this.umi);
+
+    const createCollectionIx = createNft(this.umi, {
+      mint: collectionSigner,
+      name: "INVOIX Genesis Collection",
+      symbol: "INVX",
+      uri: metadataResult.uri,
+      sellerFeeBasisPoints: percentAmount(5) as any, // 5% royalties on all trades
+      isCollection: true,
+      tokenStandard: TokenStandard.NonFungible,
+      creators: [
+        {
+          address: this.umi.identity.publicKey,
+          verified: true,
+          share: 100,
         }
-      };
+      ],
+    } as any);
 
-      // Upload collection metadata
-      const storageService = getMetadataStorageService();
-      const metadataResult = await storageService.uploadMetadata(collectionMetadata, "invoix-genesis-collection", { isPrivate: false } as any);
+    // Use retry logic for the transaction
+    await this.executeWithRetry(() => createCollectionIx.sendAndConfirm(this.umi));
 
-      // Create Collection NFT
-      const collectionSigner = generateSigner(this.umi);
+    this.collectionMint = collectionSigner.publicKey.toString();
+    logger.info(`Created Collection NFT: ${this.collectionMint}`, "nft");
 
-      const createCollectionIx = createNft(this.umi, {
-        mint: collectionSigner,
-        name: "INVOIX Genesis Collection",
-        symbol: "INVX",
-        uri: metadataResult.uri,
-        sellerFeeBasisPoints: percentAmount(5) as any, // 5% royalties on all trades
-        isCollection: true,
-        tokenStandard: TokenStandard.NonFungible,
-        creators: [
-          {
-            address: this.umi.identity.publicKey,
-            verified: true,
-            share: 100,
-          }
-        ],
-      } as any);
-
-      await createCollectionIx.sendAndConfirm(this.umi);
-
-      this.collectionMint = collectionSigner.publicKey.toString();
-      logger.info(`Created Collection NFT: ${this.collectionMint}`, "nft");
-
-      // Persist to DB
-      const { systemSettings } = await import("@shared/invoice-schema");
-      await db.insert(systemSettings).values({
-        key: "genesis_collection_mint",
-        value: this.collectionMint,
-        description: "INVOIX Genesis Collection NFT Address",
-      });
-      logger.info("Persisted Collection NFT to DB", "nft");
-
-    } catch (error) {
-      logger.error("Failed to create Collection NFT", "nft", { error });
-      // CRITICAL: Explicitly set to null so we don't try to use an invalid collection
-      this.collectionMint = null;
-      logger.warn("Continuing without collection. NFTs will still work but won't be grouped on marketplaces.", "nft");
-    }
+    // Persist to DB
+    const { systemSettings } = await import("@shared/invoice-schema");
+    await db.insert(systemSettings).values({
+      key: "genesis_collection_mint",
+      value: this.collectionMint,
+      description: "INVOIX Genesis Collection NFT Address",
+    });
+    logger.info("Persisted Collection NFT to DB", "nft");
   }
 
   /**

@@ -299,6 +299,26 @@ app.use((req, res, next) => {
       }
     }, 5000);
 
+
+    // 10. Self-Healing / Retry Monitor (background)
+    setInterval(async () => {
+      // Retry NFT Service if needed
+      if (process.env.PAYER_PRIVATE_KEY) {
+        try {
+          const { getInvoiceNFTService } = await import("./nft-service");
+          const nftService = getInvoiceNFTService();
+          if (!nftService.isReady() || (process.env.ENABLE_NFT_MINTING === 'true' && !nftService.hasCollection())) {
+            logger.info("Attempting to self-heal NFT Service...", "system");
+            const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+            await nftService.initialize(payerKeypair);
+          }
+        } catch (e) {
+          // Silent failure on retry to avoid log spam, or debug log
+          logger.debug("Self-heal attempt failed", "system", { error: e });
+        }
+      }
+    }, 60000); // Check every minute
+
   } catch (error: any) {
     logger.error("Startup Failure", "boot", { error: error.message || error, stack: error.stack });
     captureError(error, { phase: startupPhase });
