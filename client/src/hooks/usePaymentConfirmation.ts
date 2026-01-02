@@ -24,7 +24,7 @@ export function usePaymentConfirmation({ connection, signature, invoiceId }: Use
             // The server records payment immediately after relay, so this should return 'paid' quickly
             if (invoiceId) {
                 try {
-                    const res = await fetch(`/api/invoices/${invoiceId}`);
+                    const res = await fetch(`/api/invoices/${invoiceId}`, { credentials: 'include' });
                     const data = await res.json();
 
                     if (data.invoice && (data.invoice.status === 'paid' || data.invoice.status === 'processing')) {
@@ -42,10 +42,17 @@ export function usePaymentConfirmation({ connection, signature, invoiceId }: Use
             const confirmationStatus = result.value?.confirmationStatus;
 
             if (confirmationStatus === 'confirmed' || confirmationStatus === 'finalized') {
-                // If chain is verified but DB isn't yet, we might be in a race condition
-                // But we can trust the chain context if needed, or just keep polling for DB
-                // For now, if we have an invoiceId, we prefer to wait for DB to match 'paid'
+                // Chain confirms the transaction
                 if (!invoiceId) {
+                    // No invoice to track, just verify from chain
+                    setStatus('verified');
+                    return;
+                }
+
+                // If we've already polled a few times and chain says confirmed,
+                // trust the chain to avoid UI getting stuck on DB sync delay
+                if (confirmations >= 5) {
+                    console.log("Chain confirmed after multiple polls, trusting chain status");
                     setStatus('verified');
                     return;
                 }

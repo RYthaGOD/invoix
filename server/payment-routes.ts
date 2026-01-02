@@ -17,7 +17,7 @@ import { logger } from "./logger";
 const router = Router();
 
 // Configuration
-const GAS_FEE_USDC = 0.15; // 0.15 USDC Fee
+const GAS_FEE_USDC = parseFloat(process.env.GAS_FEE_USDC || "0.15"); // Default: 0.15 USDC
 const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
 
 /**

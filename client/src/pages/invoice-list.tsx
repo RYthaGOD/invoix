@@ -85,7 +85,7 @@ export default function InvoiceList() {
         ...(currencyFilter !== "all" && { currency: currencyFilter }),
       });
 
-      const response = await fetch(`/api/invoices?${params}`);
+      const response = await fetch(`/api/invoices?${params}`, { credentials: 'include' });
       if (!response.ok) {
         throw new Error("Failed to load invoices");
       }
@@ -200,7 +200,26 @@ export default function InvoiceList() {
         <h1 id="tour-welcome" className="text-3xl font-bold text-white tracking-tight">Invoices</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => window.open("/api/invoices/export?format=csv", "_blank")}
+            onClick={async () => {
+              if (!walletAddress) return;
+              try {
+                const response = await fetch(`/api/invoices/export?format=csv&wallet=${walletAddress}`, {
+                  credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Export failed');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `invoices-${walletAddress.slice(0, 8)}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+              } catch (err) {
+                console.error('Export error:', err);
+              }
+            }}
             className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium rounded-lg transition-all flex items-center gap-2"
           >
             <Download className="w-4 h-4" />

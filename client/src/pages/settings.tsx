@@ -27,7 +27,7 @@ export default function SettingsPage() {
     const { data: profileData } = useQuery({
         queryKey: ["/api/business/profile"],
         queryFn: async () => {
-            const res = await fetch("/api/business/profile");
+            const res = await fetch("/api/business/profile", { credentials: 'include' });
             if (!res.ok) throw new Error("Failed to fetch profile");
             return res.json();
         }
@@ -46,7 +46,7 @@ export default function SettingsPage() {
 
             // Use fetch to catch errors
             const url = `/api/exports/${type}?wallet=${publicKey.toBase58()}`;
-            const res = await fetch(url);
+            const res = await fetch(url, { credentials: 'include' });
 
             if (!res.ok) {
                 if (res.status === 401 || res.status === 403) {

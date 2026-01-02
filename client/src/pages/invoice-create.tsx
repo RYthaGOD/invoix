@@ -35,7 +35,7 @@ export default function InvoiceCreate() {
     async function fetchTemplates() {
       if (!wallet?.publicKey) return;
       try {
-        const res = await fetch(`/api/templates?wallet=${wallet.publicKey.toBase58()}`);
+        const res = await fetch(`/api/templates?wallet=${wallet.publicKey.toBase58()}`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           if (data.success && Array.isArray(data.templates)) {
@@ -214,6 +214,7 @@ export default function InvoiceCreate() {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(finalPayload),
       });
 
@@ -247,6 +248,7 @@ export default function InvoiceCreate() {
           // A. Request Transaction
           const mintRes = await fetch(`/api/nft/mint-invoice/${invoiceId}?wallet=${wallet.publicKey.toBase58()}`, {
             method: "POST",
+            credentials: "include",
           });
 
           if (!mintRes.ok) {
@@ -285,6 +287,7 @@ export default function InvoiceCreate() {
           await fetch(`/api/nft/confirm-mint/${invoiceId}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({ signature }),
           });
 

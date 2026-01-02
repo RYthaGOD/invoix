@@ -9,10 +9,11 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { CheckCircle, Clock, AlertCircle, ExternalLink, Copy, Check, ShieldCheck } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, ExternalLink, Copy, Check, ShieldCheck, Loader2 } from "lucide-react";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import { PaymentStatus } from "@/components/payment-status";
 import { usePaymentConfirmation } from "@/hooks/usePaymentConfirmation";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Invoice {
     id: string;
@@ -38,12 +39,19 @@ export default function PayInvoice() {
     const invoiceId = params?.invoiceId;
 
     const { connection } = useConnection();
-    const { publicKey, signTransaction } = useWallet();
+    const { publicKey, signTransaction, connected } = useWallet();
+
+    // Auth hook for SIWS authentication
+    const { isAuthenticated, login, isLoading: authLoading } = useAuth();
 
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [loading, setLoading] = useState(true);
     const [pageError, setPageError] = useState<string | null>(null);
     const [paying, setPaying] = useState(false);
+
+    // Auth state for private invoices
+    const [requiresAuth, setRequiresAuth] = useState(false);
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
 
     // Payment State
     const [txSignature, setTxSignature] = useState<string | null>(null);
@@ -60,22 +68,63 @@ export default function PayInvoice() {
         invoiceId: invoiceId
     });
 
-    // Fetch invoice details
-    useEffect(() => {
+    // Fetch invoice details - include wallet in query if connected for session-based auth
+    const fetchInvoice = async () => {
         if (!invoiceId) return;
 
-        fetch(`/api/invoices/${invoiceId}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    setInvoice(data.invoice);
-                } else {
-                    setPageError(data.message || "Invoice not found");
-                }
-            })
-            .catch(err => setPageError(err.message))
-            .finally(() => setLoading(false));
-    }, [invoiceId]);
+        setLoading(true);
+        setPageError(null);
+        setRequiresAuth(false);
+
+        try {
+            // Include wallet address in request if connected (helps backend check session)
+            const url = publicKey
+                ? `/api/invoices/${invoiceId}?wallet=${publicKey.toString()}`
+                : `/api/invoices/${invoiceId}`;
+
+            const res = await fetch(url, { credentials: 'include' });
+            const data = await res.json();
+
+            if (data.success) {
+                setInvoice(data.invoice);
+            } else if (data.code === 'AUTH_REQUIRED') {
+                // Private invoice - user needs to authenticate (not just connect)
+                setRequiresAuth(true);
+            } else if (data.code === 'ACCESS_DENIED') {
+                // User is authenticated but not authorized for this invoice
+                setPageError("You don't have access to this invoice. Only the invoicer or invoicee can view it.");
+            } else {
+                setPageError(data.message || "Invoice not found");
+            }
+        } catch (err: any) {
+            setPageError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial fetch and re-fetch when authentication state changes
+    useEffect(() => {
+        // Only fetch when auth loading is complete to avoid race conditions
+        if (!authLoading) {
+            fetchInvoice();
+        }
+    }, [invoiceId, isAuthenticated, authLoading]);
+
+    // Handle authentication for private invoices
+    const handleAuthenticate = async () => {
+        if (!connected) return; // Should not happen, button is hidden
+
+        setIsAuthenticating(true);
+        try {
+            await login();
+            // fetchInvoice will be triggered by isAuthenticated change in useEffect
+        } catch (err) {
+            // Error is already handled in useAuth hook with toast
+        } finally {
+            setIsAuthenticating(false);
+        }
+    };
 
     const copyPaymentLink = () => {
         const link = window.location.href;
@@ -229,23 +278,38 @@ export default function PayInvoice() {
             const serializedTx = signedTx.serialize({ requireAllSignatures: false });
             const txBase64 = serializedTx.toString('base64');
 
-            const relayResponse = await fetch("/api/payments/relay", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    transaction: txBase64,
-                    invoiceId: invoice.id
-                })
-            });
+            // Add timeout to prevent UI hanging if server is slow
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-            const relayResult = await relayResponse.json();
+            try {
+                const relayResponse = await fetch("/api/payments/relay", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        transaction: txBase64,
+                        invoiceId: invoice.id
+                    })
+                });
 
-            if (!relayResult.success) {
-                throw new Error(relayResult.message || "Payment relay failed");
+                clearTimeout(timeoutId);
+                const relayResult = await relayResponse.json();
+
+                if (!relayResult.success) {
+                    throw new Error(relayResult.message || "Payment relay failed");
+                }
+
+                // Success! We have a signature. Use Hook to track confirmation.
+                setTxSignature(relayResult.signature);
+            } catch (fetchErr: any) {
+                clearTimeout(timeoutId);
+                if (fetchErr.name === 'AbortError') {
+                    throw new Error("Payment request timed out. Please check your wallet or Explorer.");
+                }
+                throw fetchErr;
             }
-
-            // Success! We have a signature. Use Hook to track confirmation.
-            setTxSignature(relayResult.signature);
 
             // NOTE: Payment recording is handled by the relay endpoint's
             // confirmPaymentAndMintOutcome() call. We don't call POST /api/payments
@@ -270,6 +334,67 @@ export default function PayInvoice() {
                 <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
                     <p className="text-gray-400 mt-4">Loading invoice...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Private invoice - show connect wallet / authenticate prompt
+    if (requiresAuth) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(225 20% 8%)" }}>
+                <div className="glass-card p-8 max-w-md text-center">
+                    <ShieldCheck className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                    <h1 className="text-2xl font-bold text-white mb-2">Private Invoice</h1>
+                    <p className="text-gray-400 mb-6">
+                        This invoice is confidential. {!connected
+                            ? "Connect your wallet to verify your identity and view the details."
+                            : "Sign a message to verify your identity and view the details."}
+                    </p>
+
+                    {/* Step 1: Connect Wallet */}
+                    {!connected && (
+                        <div className="flex justify-center">
+                            <WalletMultiButton />
+                        </div>
+                    )}
+
+                    {/* Step 2: Authenticate (Sign Message) */}
+                    {connected && !isAuthenticated && (
+                        <div className="space-y-4">
+                            <p className="text-sm text-gray-500">
+                                Wallet connected: <span className="text-purple-400 font-mono">{publicKey?.toString().slice(0, 8)}...</span>
+                            </p>
+                            <button
+                                onClick={handleAuthenticate}
+                                disabled={isAuthenticating}
+                                className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isAuthenticating ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Signing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShieldCheck className="w-4 h-4" />
+                                        Verify Identity
+                                    </>
+                                )}
+                            </button>
+                            <p className="text-xs text-gray-500">
+                                You'll be asked to sign a message to prove wallet ownership
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Loading state after authentication */}
+                    {connected && isAuthenticated && (
+                        <div className="flex items-center justify-center gap-2 text-purple-400">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Loading invoice...</span>
+                        </div>
+                    )}
                 </div>
             </div>
         );

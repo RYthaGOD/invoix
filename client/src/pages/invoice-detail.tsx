@@ -170,7 +170,7 @@ export default function InvoiceDetail() {
 
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/invoices/${invoice.id}?wallet=${walletAddress}`);
+        const res = await fetch(`/api/invoices/${invoice.id}?wallet=${walletAddress}`, { credentials: 'include' });
         if (!res.ok) return;
 
         const data = await res.json();
@@ -215,7 +215,7 @@ export default function InvoiceDetail() {
 
       try {
         // 1. Fetch On-Chain Metadata (via Proxy to avoid CORS/RPC complexity)
-        const response = await fetch(`/api/nft-metadata/invoice-${invoice.id}`);
+        const response = await fetch(`/api/nft-metadata/invoice-${invoice.id}`, { credentials: 'include' });
         if (!response.ok) return; // Silent fail if not minted/found
 
         const metadata = await response.json();
@@ -266,7 +266,7 @@ export default function InvoiceDetail() {
 
     try {
       // Load invoice
-      const invoiceResponse = await fetch(`/api/invoices/${invoiceId}?wallet=${walletAddress}`);
+      const invoiceResponse = await fetch(`/api/invoices/${invoiceId}?wallet=${walletAddress}`, { credentials: 'include' });
       if (!invoiceResponse.ok) {
         throw new Error("Failed to load invoice");
       }
@@ -280,7 +280,7 @@ export default function InvoiceDetail() {
       }
 
       // Load payments
-      const paymentsResponse = await fetch(`/api/invoices/${invoiceId}/payments?wallet=${walletAddress}`);
+      const paymentsResponse = await fetch(`/api/invoices/${invoiceId}/payments?wallet=${walletAddress}`, { credentials: 'include' });
       if (paymentsResponse.ok) {
         const paymentsData = await paymentsResponse.json();
         setPayments(paymentsData.payments || []);
@@ -306,6 +306,7 @@ export default function InvoiceDetail() {
       const response = await fetch(`/api/invoices/${invoice.id}?wallet=${walletAddress}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           status: "sent",
           customerEmail: customerEmail // Send provided email

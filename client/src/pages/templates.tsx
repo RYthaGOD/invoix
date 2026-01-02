@@ -40,7 +40,7 @@ export default function Templates() {
         if (!walletAddress) return;
 
         try {
-            const response = await fetch(`/api/templates?wallet=${walletAddress}`);
+            const response = await fetch(`/api/templates?wallet=${walletAddress}`, { credentials: 'include' });
             const data = await response.json();
 
             if (data.success) {

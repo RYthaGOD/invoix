@@ -22,7 +22,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const { publicKey, signMessage, connected } = useWallet();
+    const { publicKey, signMessage, connected, disconnect } = useWallet();
     const { toast } = useToast();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -32,6 +32,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         checkAuth();
     }, [publicKey]);
+
+    // Detect wallet/session mismatch and auto-logout stale session
+    useEffect(() => {
+        if (isAuthenticated && walletAddress && connected && publicKey) {
+            const connectedWallet = publicKey.toBase58();
+            if (connectedWallet !== walletAddress) {
+                console.warn(`[AUTH] Wallet mismatch detected: Session=${walletAddress.slice(0, 8)}... Connected=${connectedWallet.slice(0, 8)}...`);
+
+                toast({
+                    title: "Session Expired",
+                    description: "You switched wallets. Please sign in again.",
+                    variant: "destructive",
+                });
+
+                // Clear the stale session
+                fetch("/api/auth/logout", {
+                    method: "POST",
+                    credentials: "include"
+                }).then(() => {
+                    setIsAuthenticated(false);
+                    setWalletAddress(null);
+                }).catch(console.error);
+            }
+        }
+    }, [isAuthenticated, walletAddress, connected, publicKey]);
 
     const checkAuth = async () => {
         try {

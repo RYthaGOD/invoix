@@ -71,11 +71,19 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
 
         logger.info(`Verified amount: ${verification.amount} ${verification.currency}`, "payment");
 
-        // 3. Insert Payment Record with idempotent duplicate detection
-        // FIX R2-1: Use invoiceStorage.createPayment which checks for duplicate signatures
+        // 3. Check if payment already exists (recorded by relay endpoint for fast UI)
+        // If it exists, we skip creation but continue to NFT minting
+        const existingPayments = await db.select()
+            .from(payments)
+            .where(eq(payments.txSignature, signature))
+            .limit(1);
+
+        let paymentRecord = existingPayments[0];
+        let paymentAlreadyExists = !!paymentRecord;
+
         const paymentData = {
             invoiceId: invoiceId,
-            amount: invoice.remainingAmount, // Assuming full payment
+            amount: invoice.remainingAmount,
             currency: invoice.currency,
             txSignature: signature,
             fromAddress: payerAddress,
@@ -84,14 +92,32 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             confirmedAt: new Date(),
         };
 
-        try {
-            await invoiceStorage.createPayment(paymentData as any);
-        } catch (e: any) {
-            if (e.message?.includes("already")) {
-                logger.info(`Duplicate payment detected for ${signature}, skipping`, "payment");
-                return; // Idempotent - already processed
+        if (paymentAlreadyExists) {
+            logger.info(`Payment already recorded for ${signature}, skipping creation`, "payment");
+
+            // Check if NFT was already minted for this payment
+            if (paymentRecord.nftReceiptMinted) {
+                logger.info(`NFT already minted for payment ${signature}, skipping entire process`, "nft");
+                return; // Fully idempotent - everything already done
             }
-            throw e;
+        } else {
+            // Create payment record
+            try {
+                paymentRecord = await invoiceStorage.createPayment(paymentData as any);
+                logger.info(`Payment recorded for ${signature}`, "payment");
+            } catch (e: any) {
+                if (e.message?.includes("already")) {
+                    logger.info(`Race condition: Payment created by another process for ${signature}`, "payment");
+                    // Refetch to get the record for NFT check
+                    const refetch = await db.select().from(payments).where(eq(payments.txSignature, signature)).limit(1);
+                    paymentRecord = refetch[0];
+                    if (paymentRecord?.nftReceiptMinted) {
+                        return; // Already fully processed
+                    }
+                } else {
+                    throw e;
+                }
+            }
         }
 
         // Note: invoiceStorage.createPayment automatically updates invoice status
