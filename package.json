@@ -63,6 +63,8 @@
     "@replit/vite-plugin-cartographer": "^0.3.1",
     "@replit/vite-plugin-dev-banner": "^0.1.1",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
+    "@sentry/node": "^10.32.1",
+    "@sentry/profiling-node": "^10.32.1",
     "@solana/pay": "^0.2.6",
     "@solana/spl-account-compression": "^0.4.1",
     "@solana/spl-token": "^0.4.14",

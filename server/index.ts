@@ -1,7 +1,11 @@
 // Load environment variables from .env file
 import 'dotenv/config';
-import dns from 'node:dns';
 
+// Initialize Sentry FIRST for complete error capture
+import { initSentry, sentryRequestHandler, setupSentryErrorHandler, captureError } from './sentry';
+initSentry();
+
+import dns from 'node:dns';
 // Force IPv4 resolution to prevent connection issues on some networks (like Railway Internal)
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
@@ -114,6 +118,9 @@ app.use((req, res, next) => {
 app.get("/health", healthCheck);
 app.get("/health/live", liveness);
 app.get("/health/ready", readiness);
+
+// Sentry request handler (must be first middleware)
+app.use(sentryRequestHandler());
 
 // Global rate limiting for all API routes
 app.use("/api", globalRateLimit);
@@ -294,6 +301,7 @@ app.use((req, res, next) => {
 
   } catch (error: any) {
     logger.error("Startup Failure", "boot", { error: error.message || error, stack: error.stack });
+    captureError(error, { phase: startupPhase });
     lastStartupError = error.message;
     startupPhase = "failed";
     // We do NOT exit, to keep the port open for logs and status visibility
