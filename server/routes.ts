@@ -23,11 +23,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", service: "Invoix B2B Invoicing Platform" });
   });
 
-  // Debug Sentry (Only for verifiable testing)
-  app.get("/debug-sentry", (_req, res) => {
-    throw new Error("Sentry Debug Error (Production Test)");
-  });
-
   // ================================================
   // DYNAMIC IMAGE ROUTES (8K 3D Upgrade)
   // ================================================
