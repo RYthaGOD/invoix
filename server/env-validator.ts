@@ -28,6 +28,11 @@ const ENVIRONMENT_VARIABLES: EnvVar[] = [
     defaultValue: "temporary-session-secret-change-in-prod-please",
   },
   {
+    key: "SENTRY_DSN",
+    required: false, // Recommended for monitoring
+    description: "Sentry DSN for error tracking (Backend & Frontend)",
+  },
+  {
     key: "FRONTEND_URL",
     required: false, // Recommended for CORS
     description: "URL of the frontend (e.g. https://your-app.up.railway.app) for CORS policy",

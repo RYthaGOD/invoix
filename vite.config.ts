@@ -54,6 +54,8 @@ export default defineConfig({
     'import.meta.env.VITE_SOLANA_RPC_URL': JSON.stringify(
       process.env.VITE_SOLANA_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=f901ea4c-bd09-48be-9e7c-43f35d35bcf5'
     ),
+    // Pass Sentry DSN to Client
+    'import.meta.env.VITE_SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN || ""),
   },
   optimizeDeps: {
     esbuildOptions: {
