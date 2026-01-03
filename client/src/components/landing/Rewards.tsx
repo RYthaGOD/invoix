@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Check, TrendingUp, Users, Activity, Twitter } from "lucide-react";
+import { Check, TrendingUp, Users, Activity, Twitter, Flame, Coins, RefreshCw } from "lucide-react";
 import { useAnalyticsStats } from "@/hooks/use-analytics";
+import { Link } from "wouter";
 
 export function Rewards() {
     const { pageViews, uniqueWallets, isLoading } = useAnalyticsStats();
@@ -23,23 +24,36 @@ export function Rewards() {
                         >
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold font-mono mb-8 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-default">
                                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                PHASE 2 ROADMAP
+                                POST-MAINNET ROADMAP
                             </div>
 
                             <h2 className="font-heading font-bold text-5xl md:text-7xl mb-8 leading-[0.95] tracking-tighter">
-                                The Future of <br />
-                                <span className="gradient-text">B2B Value.</span>
+                                The <span className="gradient-text">$INVOIX</span><br />
+                                Rewards System
                             </h2>
 
                             <p className="text-xl text-muted-foreground mb-12 leading-relaxed max-w-xl text-balance">
-                                Invoix is exploring ways to reward early adopters. We're designing a system to turn transaction volume into protocol ownership for active merchants.
+                                Built on real transaction volume, real merchants, and real fees.
+                                Not speculation—<span className="text-white font-medium">ownership through contribution.</span>
                             </p>
 
                             <div className="flex flex-col gap-5">
                                 {[
-                                    { title: "Early Adopter Rewards", desc: "Planned: Recognition and benefits for beta testers." },
-                                    { title: "Fee Rebates", desc: "Planned: Reduced platform fees for high-volume users." },
-                                    { title: "Community Governance", desc: "Planned: Influence over protocol development." }
+                                    {
+                                        icon: Coins,
+                                        title: "50/50 Revenue Split",
+                                        desc: "Half to token holders, half to protocol treasury."
+                                    },
+                                    {
+                                        icon: Flame,
+                                        title: "Burn-to-Claim",
+                                        desc: "Small token burn to claim rewards. Anti-rent-seeking."
+                                    },
+                                    {
+                                        icon: RefreshCw,
+                                        title: "Fee Recycling",
+                                        desc: "Fees flow back into liquidity and the marketplace."
+                                    }
                                 ].map((item, i) => (
                                     <motion.div
                                         key={i}
@@ -49,7 +63,7 @@ export function Rewards() {
                                         className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 group"
                                     >
                                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
-                                            <Check className="w-5 h-5" />
+                                            <item.icon className="w-5 h-5" />
                                         </div>
                                         <div>
                                             <div className="font-bold text-white text-lg">{item.title}</div>
@@ -58,6 +72,12 @@ export function Rewards() {
                                     </motion.div>
                                 ))}
                             </div>
+
+                            <Link href="/tokenomics">
+                                <button className="mt-8 px-6 py-3 text-sm font-bold text-primary border border-primary/30 rounded-full hover:bg-primary/10 transition-colors">
+                                    Read Full Tokenomics →
+                                </button>
+                            </Link>
                         </motion.div>
                     </div>
 

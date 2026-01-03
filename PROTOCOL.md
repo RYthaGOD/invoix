@@ -59,3 +59,41 @@ The **Solana B2B Invoicing System** is a production-hardened settlement layer th
 - **Authentication**: SIWS (Sign In With Solana) standard.
 - **Session**: Secure, HTTP-only cookies.
 - **Validation**: Strict Zod schema validation on all inputs.
+
+## 5. Tokenomics: The $INVOIX Rewards System
+
+> **Status**: Planned (Phase 2 Roadmap)
+
+Invoix is not a speculative experiment. It's a protocol built around **real transaction volume, real merchants, and real fees**. The tokenomics are designed to align long-term incentives between the protocol and its users.
+
+### Core Principles
+1. **Usage Over Hoarding**: Holding tokens alone does not grant disproportionate control. The protocol rewards those who **move volume** (active merchants).
+2. **Anti-Extraction Design**: The system is built to prevent pure rent-seeking and short-term extraction.
+3. **Transparency**: Step-by-step build process with real audits and constraints.
+
+### Revenue Split Model
+| Allocation | Destination |
+|------------|-------------|
+| **50%** | Token holders / Participants |
+| **50%** | Protocol Treasury (Development, Liquidity, Operations) |
+
+### Participation-Based Yield
+- Yield is tied to **protocol activity**, not passive holding.
+- Merchants who use the system benefit as it grows.
+- Ownership is earned through **contribution** (invoice volume).
+
+### Burn-to-Claim Mechanism
+To claim protocol rewards, a small token burn is required. This:
+- Prevents pure rent-seeking behavior.
+- Ensures rewards go to **committed participants**.
+- Introduces **deflationary pressure** tied to actual usage.
+- Supports long-term stability over short-term extraction.
+
+### Fee Recycling
+Token-side fees are recycled into the ecosystem to:
+- Deepen liquidity pools.
+- Strengthen price stability.
+- Back the future Invoix Invoice Marketplace.
+
+### Why This Design?
+Invoix is designed for those who want to build and earn, not extract and exit. The protocol remains independent of external pressures that could compromise its integrity. Every mechanism is designed to reward **real merchants** who drive **real transaction volume**.
