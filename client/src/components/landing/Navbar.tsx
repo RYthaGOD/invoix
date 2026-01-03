@@ -52,16 +52,17 @@ export function Navbar() {
                 `}>
                     {/* Logo */}
                     <Link href="/">
-                        <a className="flex items-center space-x-3 group min-w-max">
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full group-hover:bg-primary/40 transition-colors" />
-                                <img src="/logo.png" alt="Invoix Logo" className="relative w-10 h-10 object-contain rounded-xl shadow-lg border border-white/10" />
+                        <div className="flex items-center gap-2 cursor-pointer group">
+                            <div className="relative w-8 h-8 flex items-center justify-center bg-gradient-to-tr from-primary to-accent rounded-lg shadow-lg group-hover:shadow-[0_0_20px_rgba(236,72,153,0.5)] transition-all duration-500">
+                                <span className="font-bold text-white text-lg group-hover:scale-110 transition-transform">I</span>
                             </div>
-                            <span className="text-2xl font-bold font-heading tracking-tight hidden sm:block">
-                                <span className="text-foreground">Inv</span>
-                                <span className="gradient-text">oix</span>
+                            <span className="font-heading font-bold text-xl tracking-tight hidden sm:block">
+                                Invoix
+                                <span className="ml-2 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/20 align-top relative -top-1">
+                                    Beta
+                                </span>
                             </span>
-                        </a>
+                        </div>
                     </Link>
 
                     {/* Nav Links - Desktop */}

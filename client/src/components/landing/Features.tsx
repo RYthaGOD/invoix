@@ -40,8 +40,8 @@ export function Features() {
                         </div>
                         <h3 className="text-3xl font-bold font-heading mb-4">400ms Settlement</h3>
                         <p className="text-muted-foreground text-lg leading-relaxed max-w-md mb-auto">
-                            Net-30 is history. Invoix leverages Solana's speed to settle global transactions in under half a second.
-                            Instantly realize revenue with zero counterparty risk.
+                            Net-30 is history. Invoix leverages Solana's ~400ms block times to settle global transactions instantly.
+                            Realize revenue immediately with cryptographic proof of payment.
                         </p>
 
                         <div className="mt-12 h-48 relative rounded-2xl border border-white/5 bg-black/40 overflow-hidden group-hover:border-primary/20 transition-colors">
@@ -128,8 +128,8 @@ export function Features() {
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">ACTIVE</span>
                             </h3>
                             <p className="text-muted-foreground text-sm leading-relaxed">
-                                Client data encrypted with Arcium MXE. Public payments, private details.
-                                Compliant with enterprise requirements while maintaining blockchain transparency.
+                                Invoice details encrypted with Arcium (SDK mode). Public payments, private line items.
+                                Designed for enterprise confidentiality on a transparent blockchain.
                             </p>
                         </div>
                     </div>

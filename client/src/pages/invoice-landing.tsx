@@ -1,4 +1,4 @@
-import { Navbar, Hero, Features, HowItWorks, Rewards, Pricing, Footer } from "@/components/landing";
+import { Navbar, Hero, Features, HowItWorks, Rewards, Pricing, FAQ, Footer } from "@/components/landing";
 
 export default function InvoiceLanding() {
   return (
@@ -9,6 +9,7 @@ export default function InvoiceLanding() {
       <Features />
       <Rewards />
       <Pricing />
+      <FAQ />
       <Footer />
     </div>
   );

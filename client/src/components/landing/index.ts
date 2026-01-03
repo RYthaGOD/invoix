@@ -5,3 +5,4 @@ export * from "./Footer";
 export * from "./Rewards";
 export * from "./HowItWorks";
 export * from "./Navbar";
+export * from "./FAQ";

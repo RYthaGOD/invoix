@@ -28,7 +28,7 @@ export function Hero() {
                             </span>
                             <span className="mx-2 text-white/30">|</span>
                             <span className="text-sm text-muted-foreground">
-                                Private. Auditable. Unstoppable.
+                                Private Data. Public Proof.
                             </span>
                         </motion.div>
 
@@ -51,9 +51,9 @@ export function Hero() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.2 }}
                         >
-                            Create professional invoices. Get paid in USDC, USDT, or SOL in under 400ms.
-                            Every payment mints an NFT receipt for your permanent, auditable records.
-                            <span className="block mt-2 text-emerald-400/80 font-medium">Enterprise privacy meets public proof.</span>
+                            Create professional invoices. Get paid in USDC, SOL, or EURC with sub-second finality.
+                            Every payment automatically mints an NFT receipt for immutable, auditable records.
+                            <span className="block mt-2 text-emerald-400/80 font-medium">Currently live on Devnet for public beta testing.</span>
                         </motion.p>
 
                         <motion.div
@@ -73,10 +73,10 @@ export function Hero() {
                             </Link>
 
                             <button
-                                onClick={() => setIsWaitlistOpen(true)}
+                                onClick={() => window.location.href = '#docs'}
                                 className="btn-secondary h-14 px-10 text-lg flex items-center justify-center hover:bg-white/10 border border-white/10 backdrop-blur-md"
                             >
-                                Request API Access
+                                Read Docs
                             </button>
                         </motion.div>
 

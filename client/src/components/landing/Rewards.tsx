@@ -32,14 +32,14 @@ export function Rewards() {
                             </h2>
 
                             <p className="text-xl text-muted-foreground mb-12 leading-relaxed max-w-xl text-balance">
-                                Invoix is building the first protocol that turns transaction volume into ownership. We are designing a system to reward active merchants with real protocol yield.
+                                Invoix is exploring ways to reward early adopters. We're designing a system to turn transaction volume into protocol ownership for active merchants.
                             </p>
 
                             <div className="flex flex-col gap-5">
                                 {[
-                                    { title: "Earn $INVOIX Yield", desc: "Future automatic airdrops for every invoice settled." },
-                                    { title: "Fee Rebates", desc: "Planned staking to reduce platform fees to 0%." },
-                                    { title: "Governance Rights", desc: "Vote on future treasury allocations." }
+                                    { title: "Early Adopter Rewards", desc: "Planned: Recognition and benefits for beta testers." },
+                                    { title: "Fee Rebates", desc: "Planned: Reduced platform fees for high-volume users." },
+                                    { title: "Community Governance", desc: "Planned: Influence over protocol development." }
                                 ].map((item, i) => (
                                     <motion.div
                                         key={i}
