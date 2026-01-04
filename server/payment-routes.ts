@@ -1,6 +1,6 @@
 
 import { Router } from "express";
-import { Connection, Keypair, Transaction, PublicKey } from "@solana/web3.js";
+import { Connection, Keypair, Transaction, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import { db } from "./db";
 import { invoices } from "@shared/invoice-schema";
@@ -72,13 +72,41 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             return res.status(400).json({ success: false, message: `Invoice is already ${invoice.status}` });
         }
 
-        // 2. Decode Transaction
+        // 2. Decode Transaction (Support Legacy & Versioned)
         const txBuffer = Buffer.from(txBase64, "base64");
-        const transaction = Transaction.from(txBuffer);
+        let transaction: Transaction | VersionedTransaction;
+        let isVersioned = false;
 
-        // 3. Validation: Check Fee Payer matches Protocol
+        try {
+            // Attempt Versioned first (modern standard)
+            transaction = VersionedTransaction.deserialize(txBuffer);
+            isVersioned = true;
+        } catch (e) {
+            try {
+                // Fallback to Legacy
+                transaction = Transaction.from(txBuffer);
+                isVersioned = false;
+            } catch (legacyErr) {
+                return res.status(400).json({ success: false, message: "Invalid transaction format" });
+            }
+        }
+
         const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
-        if (!transaction.feePayer?.equals(payerKeypair.publicKey)) {
+        const protocolPubkeyStr = payerKeypair.publicKey.toString();
+
+        // 3. Validation: Check Fee Payer
+        let txFeePayer: PublicKey | null | undefined;
+
+        if (isVersioned) {
+            const vTx = transaction as VersionedTransaction;
+            // In V0, fee payer is the first static account key
+            txFeePayer = vTx.message.staticAccountKeys[0];
+        } else {
+            const lTx = transaction as Transaction;
+            txFeePayer = lTx.feePayer;
+        }
+
+        if (!txFeePayer || !txFeePayer.equals(payerKeypair.publicKey)) {
             return res.status(400).json({ success: false, message: "Transaction fee payer must be the protocol" });
         }
 
@@ -109,21 +137,45 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             const SYSTEM_PROGRAM_ID = "11111111111111111111111111111111";
 
             // Iterate over instructions to sum up SOL transfers
-            for (const ix of transaction.instructions) {
-                if (ix.programId.toString() === SYSTEM_PROGRAM_ID) {
-                    // Check instruction type (Transfer is type 2)
-                    if (ix.data.length >= 12 && ix.data.readUInt32LE(0) === 2) {
-                        const lamports = ix.data.readBigUInt64LE(4);
-                        const dest = ix.keys[1].pubkey;
+            if (isVersioned) {
+                const vTx = transaction as VersionedTransaction;
+                const accountKeys = vTx.message.staticAccountKeys;
+                for (const ix of vTx.message.compiledInstructions) {
+                    const progId = accountKeys[ix.programIdIndex].toString();
+                    if (progId === SYSTEM_PROGRAM_ID) {
+                        // System Program instruction data for Transfer (type 2)
+                        const instructionData = Buffer.from(ix.data);
+                        if (instructionData.length >= 12 && instructionData.readUInt32LE(0) === 2) {
+                            const lamports = instructionData.readBigUInt64LE(4);
+                            const dest = accountKeys[ix.accountKeyIndexes[1]]; // Destination is the second account in System Transfer
 
-                        if (dest.equals(treasuryPubkey)) {
-                            treasuryPaidAmount += lamports;
-                        } else if (dest.equals(sellerPubkey)) {
-                            sellerPaidAmount += lamports;
+                            if (dest.equals(treasuryPubkey)) {
+                                treasuryPaidAmount += lamports;
+                            } else if (dest.equals(sellerPubkey)) {
+                                sellerPaidAmount += lamports;
+                            }
+                        }
+                    }
+                }
+            } else {
+                const lTx = transaction as Transaction;
+                for (const ix of lTx.instructions) {
+                    if (ix.programId.toString() === SYSTEM_PROGRAM_ID) {
+                        // Check instruction type (Transfer is type 2)
+                        if (ix.data.length >= 12 && ix.data.readUInt32LE(0) === 2) {
+                            const lamports = ix.data.readBigUInt64LE(4);
+                            const dest = ix.keys[1].pubkey;
+
+                            if (dest.equals(treasuryPubkey)) {
+                                treasuryPaidAmount += lamports;
+                            } else if (dest.equals(sellerPubkey)) {
+                                sellerPaidAmount += lamports;
+                            }
                         }
                     }
                 }
             }
+
 
             if (sellerPaidAmount < requiredSellerLamports) {
                 return res.status(400).json({
@@ -156,29 +208,59 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             const requiredSellerAmount = toAtomic(sellerAmount);
 
             // Iterate over instructions to sum up transfers
-            for (const ix of transaction.instructions) {
-                if (ix.programId.toString() === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") {
-                    if (ix.keys.length >= 2) {
-                        const dest = ix.keys[1].pubkey;
-                        let amount = BigInt(0);
+            const TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 
-                        if (ix.data.length >= 9) {
+            if (isVersioned) {
+                const vTx = transaction as VersionedTransaction;
+                const accountKeys = vTx.message.staticAccountKeys;
+                for (const ix of vTx.message.compiledInstructions) {
+                    const progId = accountKeys[ix.programIdIndex].toString();
+                    if (progId === TOKEN_PROGRAM_ID) {
+                        const instructionData = Buffer.from(ix.data);
+                        if (instructionData.length >= 9) {
                             try {
-                                const type = ix.data[0];
-                                if (type === 3 || type === 12) {
-                                    amount = ix.data.subarray(1, 9).readBigUInt64LE(0);
+                                const type = instructionData[0];
+                                if (type === 3 || type === 12) { // Transfer or TransferChecked
+                                    const amount = instructionData.subarray(1, 9).readBigUInt64LE(0);
+                                    const dest = accountKeys[ix.accountKeyIndexes[1]]; // Destination is the second account in Token Transfer
+
+                                    if (dest.equals(treasuryAta)) {
+                                        treasuryPaidAmount += amount;
+                                    } else if (dest.equals(sellerAta)) {
+                                        sellerPaidAmount += amount;
+                                    }
                                 }
                             } catch (e) { console.error("Parse error", e); }
                         }
+                    }
+                }
+            } else {
+                const lTx = transaction as Transaction;
+                for (const ix of lTx.instructions) {
+                    if (ix.programId.toString() === TOKEN_PROGRAM_ID) {
+                        if (ix.keys.length >= 2) {
+                            const dest = ix.keys[1].pubkey;
+                            let amount = BigInt(0);
 
-                        if (dest.equals(treasuryAta)) {
-                            treasuryPaidAmount += amount;
-                        } else if (dest.equals(sellerAta)) {
-                            sellerPaidAmount += amount;
+                            if (ix.data.length >= 9) {
+                                try {
+                                    const type = ix.data[0];
+                                    if (type === 3 || type === 12) {
+                                        amount = ix.data.subarray(1, 9).readBigUInt64LE(0);
+                                    }
+                                } catch (e) { console.error("Parse error", e); }
+                            }
+
+                            if (dest.equals(treasuryAta)) {
+                                treasuryPaidAmount += amount;
+                            } else if (dest.equals(sellerAta)) {
+                                sellerPaidAmount += amount;
+                            }
                         }
                     }
                 }
             }
+
 
             const requiredTreasuryBigInt = BigInt(requiredTreasuryAmount);
             const requiredSellerBigInt = BigInt(requiredSellerAmount);
@@ -198,108 +280,120 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             }
         }
 
-        // SECURITY CHECK: PREVENT PROTOCOL WALLET DRAIN
-        // The Protocol Keypair can ONLY sign instructions if it is paying rent (CreateAccount).
-        // It MUST NOT sign Transfers (System or Token) or other interactions.
-
-        const protocolPubkeyStr = payerKeypair.publicKey.toString();
-
-        // Detect the actual payer (User)
-        // The transaction comes with the User's signature. 
-        // The Fee Payer (Protocol) is added at index 0 or via partialSign later, but we can look for the other signer.
-        let userPayer = transaction.feePayer?.toString();
-
-        // Iterate signatures to find the one that is NOT the fee payer (Protocol)
-        // The client signed it, so it must be in the signatures list
-        for (const sigPair of transaction.signatures) {
-            if (!sigPair.publicKey.equals(payerKeypair.publicKey) && sigPair.signature !== null) {
-                userPayer = sigPair.publicKey.toString();
-                break;
-            }
-        }
-
+        // 4. Security Check: Prevent Protocol Wallet Drain
         const SYSTEM_PROGRAM_ID = "11111111111111111111111111111111";
         const ASSOCIATED_TOKEN_PROGRAM_ID = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 
-        // EXCEPTION: If the User IS the Protocol Admin (Testing/Dev), allow everything.
-        // If they signed the tx, they hold the private key, so we don't need to protect them from themselves.
-        if (userPayer === protocolPubkeyStr) {
-            logger.warn(`Security check skipped: User is Protocol Admin (${userPayer})`, "security");
-        } else {
-            for (const ix of transaction.instructions) {
-                const progId = ix.programId.toString();
+        // Helper to check if protocol is signing a dangerous instruction
+        const isDangerous = (programId: string, instructionData: Buffer) => {
+            // Safe: ATA Creation
+            if (programId === ASSOCIATED_TOKEN_PROGRAM_ID) return false;
 
-                for (const key of ix.keys) {
-                    if (key.pubkey.toString() === protocolPubkeyStr) {
-                        // Protocol is an account in this instruction.
-                        if (key.isSigner) {
-                            // Protocol is SIGNING this instruction. This is dangerous.
-                            // WHITELIST: Only allow specific safe operations.
+            // Safe: System CreateAccount (Rent)
+            if (programId === SYSTEM_PROGRAM_ID) {
+                if (instructionData.length >= 4 && instructionData.readUInt32LE(0) === 0) return false;
+            }
+            return true; // Everything else (Transfer, etc) is dangerous if Protocol Signs
+        };
 
-                            let isAllowed = false;
+        if (isVersioned) {
+            // --- VERSIONED TRANSACTION SECURITY ---
+            const vTx = transaction as VersionedTransaction;
+            const accountKeys = vTx.message.staticAccountKeys;
 
-                            // Allow: Associated Token Account Creation (Idempotent)
-                            if (progId === ASSOCIATED_TOKEN_PROGRAM_ID) {
-                                isAllowed = true;
-                            }
+            // Find protocol index in static keys (it should be 0, but check)
+            const protocolIndex = accountKeys.findIndex(k => k.equals(payerKeypair.publicKey));
 
-                            // Allow: System Program Create Account (Rent Payment)
-                            if (progId === SYSTEM_PROGRAM_ID) {
-                                // Check instruction type. CreateAccount is index 0.
-                                if (ix.data.length >= 4) {
-                                    const instructionType = ix.data.readUInt32LE(0);
-                                    if (instructionType === 0) { // CreateAccount means OK
-                                        isAllowed = true;
-                                    }
-                                }
-                            }
+            if (protocolIndex !== -1) {
+                // Iterate compiled instructions
+                for (const ix of vTx.message.compiledInstructions) {
+                    const progId = accountKeys[ix.programIdIndex].toString();
 
-                            if (!isAllowed) {
-                                logger.error("Blocked instruction signed by protocol", "security", {
-                                    program: progId,
-                                    instructionData: ix.data.toString('hex'),
-                                    protocolPubkey: protocolPubkeyStr
-                                });
+                    // Check if protocol is a signer in this instruction
+                    // In V0 message, header defines signer counts.
+                    // The first `numRequiredSignatures` accounts in staticAccountKeys are signers.
+                    const isProtocolSigner = protocolIndex < vTx.message.header.numRequiredSignatures;
 
-                                return res.status(403).json({
-                                    success: false,
-                                    message: "Security Alert: Protocol wallet unauthorized signature detected. Transaction rejected."
-                                });
-                            }
+                    // We care if the protocol is USED in this instruction AND is a signer.
+                    if (ix.accountKeyIndexes.includes(protocolIndex) && isProtocolSigner) {
+                        // Protocol is involved and is a signer. Check if dangerous.
+                        // Getting instruction data: ix.data is Uint8Array
+                        if (isDangerous(progId, Buffer.from(ix.data))) {
+                            logger.error("Blocked Versioned Instruction", "security", { program: progId });
+                            return res.status(403).json({ success: false, message: "Security Alert: Unauthorized protocol signature." });
                         }
+                    }
+                }
+            }
+
+        } else {
+            // --- LEGACY TRANSACTION SECURITY ---
+            const lTx = transaction as Transaction;
+            for (const ix of lTx.instructions) {
+                // Check if protocol is a signer in this instruction
+                const protocolSigner = ix.keys.find(k => k.pubkey.equals(payerKeypair.publicKey) && k.isSigner);
+                if (protocolSigner) {
+                    if (isDangerous(ix.programId.toString(), ix.data)) {
+                        logger.error("Blocked Legacy Instruction", "security", { program: ix.programId.toString() });
+                        return res.status(403).json({ success: false, message: "Security Alert: Unauthorized protocol signature." });
                     }
                 }
             }
         }
 
-
         // 5. Sign and Send
         try {
-            transaction.partialSign(payerKeypair);
+            let signature: string;
+            let rawTransaction: Buffer | Uint8Array;
 
-            // Serialize and send
-            // We keep requireAllSignatures: false because we are partial signing
-            const rawTransaction = transaction.serialize({
-                requireAllSignatures: false
-            });
+            if (isVersioned) {
+                const vTx = transaction as VersionedTransaction;
+                vTx.sign([payerKeypair]);
+                rawTransaction = vTx.serialize();
+            } else {
+                const lTx = transaction as Transaction;
+                lTx.partialSign(payerKeypair);
+                rawTransaction = lTx.serialize({ requireAllSignatures: false });
+            }
 
-            const signature = await connection.sendRawTransaction(rawTransaction, {
+            signature = await connection.sendRawTransaction(rawTransaction, {
                 skipPreflight: false,
                 preflightCommitment: "confirmed"
             });
 
-            logger.info("Relay transaction sent", "payment", { signature, invoiceId });
+            logger.info("Relay transaction sent", "payment", { signature, invoiceId, isVersioned });
 
-            // 6. Record Payment in Database (Immediate)
+            // 6. Record Payment (Immediate)
             if (invoiceId) {
-                // IMMEDIATE: Update invoice status to 'paid' so client polling succeeds
+                let userPayer = "unknown";
                 try {
+                    // Try to find user payer for record
+                    if (isVersioned) {
+                        const vTx = transaction as VersionedTransaction;
+                        // The user is likely the 2nd signer (index 1) if fee payer is 0
+                        if (vTx.message.header.numRequiredSignatures > 1) {
+                            userPayer = vTx.message.staticAccountKeys[1].toString();
+                        }
+                    } else {
+                        const lTx = transaction as Transaction;
+                        // First signer that isn't protocol
+                        // ... logic to find other signer ...
+                        if (lTx.signatures) {
+                            for (const sig of lTx.signatures) {
+                                if (sig.publicKey && !sig.publicKey.equals(payerKeypair.publicKey)) {
+                                    userPayer = sig.publicKey.toString();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
                     const paymentData = {
                         invoiceId: invoiceId,
                         amount: invoice.remainingAmount,
                         currency: invoice.currency,
                         txSignature: signature,
-                        fromAddress: userPayer || "unknown",
+                        fromAddress: userPayer,
                         toAddress: invoice.invoicerWalletAddress,
                         status: "confirmed",
                         confirmedAt: new Date(),
@@ -307,13 +401,12 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                     await invoiceStorage.createPayment(paymentData as any);
                     logger.info("Payment recorded locally", "payment", { signature, invoiceId });
                 } catch (paymentErr: any) {
-                    // Don't fail the request if just DB recording fails (chain is truth)
                     logger.error("Error recording payment", "payment", { error: paymentErr.message || paymentErr });
                 }
 
-                // ASYNC: Mint NFT receipt in background (non-blocking)
                 import("./payment-confirmation-service").then(service => {
-                    service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer || "unknown");
+                    // Pass the determined userPayer to the confirmation service
+                    service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer);
                 }).catch(err => logger.error("Failed to start NFT minting", "nft", { error: err.message || err }));
             }
 
@@ -322,17 +415,9 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         } catch (sendErr: any) {
             logger.error("Transaction Send Failed", "payment", {
                 error: sendErr.message || sendErr,
-                logs: sendErr.logs,
-                feePayer: transaction.feePayer?.toString()
+                logs: sendErr.logs
             });
-
-            // Extract log messages if available
-            const errorMsg = sendErr.message || "Relay processing failed";
-            if (sendErr.logs) {
-                logger.error("Transaction Logs", "payment", { logs: sendErr.logs });
-            }
-
-            throw new Error(errorMsg);
+            throw new Error(sendErr.message || "Relay processing failed");
         }
 
     } catch (error: any) {
