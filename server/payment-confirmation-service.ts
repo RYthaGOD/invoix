@@ -149,7 +149,9 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             }
 
             const nftService = getInvoiceNFTService();
-            if (nftService.isReady()) {
+            const isReady = await waitForNftService(nftService);
+
+            if (isReady) {
                 try {
                     // Query current minted counts by rarity for proper supply tracking
                     const rarityCounts = await db.select({
@@ -196,7 +198,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                     logger.error("Failed to mint special NFT", "nft", { error: mintError });
                 }
             } else {
-                logger.warn(`Skipped Special NFT mint for ${invoiceId} - NFT Service not ready (Merkle Tree not loaded)`, "nft");
+                logger.warn(`Skipped Special NFT mint for ${invoiceId} - NFT Service not ready after retries`, "nft");
             }
             return;
         }
@@ -204,7 +206,9 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
         // 6. Standard Receipt NFT
         logger.info("Minting Receipt NFT...", "nft");
         const nftService = getInvoiceNFTService();
-        if (nftService.isReady()) {
+        const isReady = await waitForNftService(nftService);
+
+        if (isReady) {
 
             // Construct the payment object expected by the service
             // We use 'as any' safely here because paymentData matches the DB schema expected by SelectPayment
@@ -223,10 +227,31 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
 
             logger.info("Payment record updated with NFT success flag", "nft");
         } else {
-            logger.warn(`Skipped Receipt NFT mint for invoice ${invoiceId} - NFT Service not ready`, "nft");
+            logger.warn(`Skipped Receipt NFT mint for invoice ${invoiceId} - NFT Service not ready after retries`, "nft");
         }
 
     } catch (error) {
         logger.error(`Error confirming/minting for ${signature}`, "payment", { error });
     }
+}
+
+/**
+ * Helper: Waits for NFT service to be ready (Merkle tree loaded)
+ * Retries 5 times with 2 second delay.
+ */
+async function waitForNftService(service: any): Promise<boolean> {
+    if (service.isReady()) return true;
+
+    logger.info("NFT Service not ready, waiting...", "nft");
+
+    for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+        if (service.isReady()) {
+            logger.info("NFT Service became ready!", "nft");
+            return true;
+        }
+        logger.debug(`Waiting for NFT service... attempt ${i + 1}/5`, "nft");
+    }
+
+    return false;
 }
