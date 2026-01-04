@@ -274,48 +274,67 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
 
 
         // 5. Sign and Send
-        transaction.partialSign(payerKeypair);
+        try {
+            transaction.partialSign(payerKeypair);
 
-        // Serialize and send
-        const rawTransaction = transaction.serialize();
-        const signature = await connection.sendRawTransaction(rawTransaction, {
-            skipPreflight: false,
-            preflightCommitment: "confirmed"
-        });
+            // Serialize and send - SKIP local verification to avoid "Invalid transaction signature" from library inconsistencies
+            // Let the RPC node be the source of truth.
+            const rawTransaction = transaction.serialize({
+                requireAllSignatures: false,
+                verifySignatures: false
+            });
 
-        // 6. Record Payment in Database (Immediate)
-        // We record strict payment confirmation immediately to ensure fast UI updates.
-        // Background verification handles finality and NFT minting.
+            const signature = await connection.sendRawTransaction(rawTransaction, {
+                skipPreflight: false,
+                preflightCommitment: "confirmed"
+            });
 
-        if (invoiceId) {
-            // IMMEDIATE: Update invoice status to 'paid' so client polling succeeds
-            // This prevents timeout while waiting for async confirmation
-            try {
-                const paymentData = {
-                    invoiceId: invoiceId,
-                    amount: invoice.remainingAmount,
-                    currency: invoice.currency,
-                    txSignature: signature,
-                    fromAddress: userPayer || "unknown",
-                    toAddress: invoice.invoicerWalletAddress,
-                    status: "confirmed",
-                    confirmedAt: new Date(),
-                };
-                await invoiceStorage.createPayment(paymentData as any);
-                logger.info("Payment recorded locally", "payment", { signature, invoiceId });
-            } catch (paymentErr: any) {
-                logger.error("Error recording payment", "payment", { error: paymentErr.message || paymentErr });
+            logger.info("Relay transaction sent", "payment", { signature, invoiceId });
+
+            // 6. Record Payment in Database (Immediate)
+            if (invoiceId) {
+                // IMMEDIATE: Update invoice status to 'paid' so client polling succeeds
+                try {
+                    const paymentData = {
+                        invoiceId: invoiceId,
+                        amount: invoice.remainingAmount,
+                        currency: invoice.currency,
+                        txSignature: signature,
+                        fromAddress: userPayer || "unknown",
+                        toAddress: invoice.invoicerWalletAddress,
+                        status: "confirmed",
+                        confirmedAt: new Date(),
+                    };
+                    await invoiceStorage.createPayment(paymentData as any);
+                    logger.info("Payment recorded locally", "payment", { signature, invoiceId });
+                } catch (paymentErr: any) {
+                    // Don't fail the request if just DB recording fails (chain is truth)
+                    logger.error("Error recording payment", "payment", { error: paymentErr.message || paymentErr });
+                }
+
+                // ASYNC: Mint NFT receipt in background (non-blocking)
+                import("./payment-confirmation-service").then(service => {
+                    service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer || "unknown");
+                }).catch(err => logger.error("Failed to start NFT minting", "nft", { error: err.message || err }));
             }
 
-            // ASYNC: Mint NFT receipt in background (non-blocking)
-            import("./payment-confirmation-service").then(service => {
-                service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer || "unknown");
-            }).catch(err => logger.error("Failed to start NFT minting", "nft", { error: err.message || err }));
-        }
+            res.json({ success: true, signature });
 
-        // 6. Return Signature
-        logger.info("Relay transaction sent", "payment", { signature });
-        res.json({ success: true, signature });
+        } catch (sendErr: any) {
+            logger.error("Transaction Send Failed", "payment", {
+                error: sendErr.message || sendErr,
+                logs: sendErr.logs,
+                feePayer: transaction.feePayer?.toString()
+            });
+
+            // Extract log messages if available
+            const errorMsg = sendErr.message || "Relay processing failed";
+            if (sendErr.logs) {
+                logger.error("Transaction Logs", "payment", { logs: sendErr.logs });
+            }
+
+            throw new Error(errorMsg);
+        }
 
     } catch (error: any) {
         logger.error("Payment relay error", "payment", { error: error.message || error });

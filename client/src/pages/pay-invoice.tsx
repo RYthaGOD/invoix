@@ -318,6 +318,30 @@ export default function PayInvoice() {
 
         } catch (err: any) {
             console.error("Payment error:", err);
+
+            // RECOVERY: Check if payment actually succeeded despite error (e.g. timeout, race condition)
+            try {
+                // Wait 2s to allow propagation
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Check status directly
+                const res = await fetch(`/api/invoices/${invoiceId}`, { credentials: 'include' });
+                const data = await res.json();
+
+                if (data.success && data.invoice && (data.invoice.status === 'paid' || data.invoice.status === 'processing' || data.invoice.status === 'partial')) {
+                    console.log("Payment recovered: Invoice status is " + data.invoice.status);
+                    // Verify via hook by simulating a signature verification (or just reload)
+                    if (!txSignature) {
+                        // We don't have a signature to track, but the invoice is paid.
+                        // Force a refresh via fetchInvoice() which will update the UI state
+                        await fetchInvoice();
+                        return; // Exit error handler
+                    }
+                }
+            } catch (recoveryErr) {
+                console.warn("Payment recovery check failed:", recoveryErr);
+            }
+
             let errorMessage = err.message || "Payment failed";
             if (errorMessage.includes("Attempt to debit") || errorMessage.includes("0x1")) {
                 errorMessage = "Payment simulation failed. Ensure you have enough SOL for Rent (if creating accounts).";

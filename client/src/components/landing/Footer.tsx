@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { FileText, Github, Twitter, ArrowRight, MessageCircle } from "lucide-react";
+import { FileText, Github, Twitter, ArrowRight } from "lucide-react";
 
 export function Footer() {
     const scrollToSection = (id: string) => {
@@ -33,16 +33,13 @@ export function Footer() {
                             Powered by Solana and Arcium for speed and confidentiality.
                         </p>
 
-                        {/* Social Links - Moved here for better layout */}
+                        {/* Social Links */}
                         <div className="flex gap-3">
                             <a href="https://x.com/Invoix_Solana" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#1DA1F2]/20 group transition-colors border border-white/5 hover:border-[#1DA1F2]/30">
                                 <Twitter className="w-4 h-4 text-muted-foreground group-hover:text-[#1DA1F2]" />
                             </a>
                             <a href="https://github.com/RYthaGOD/invoix" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 group transition-colors border border-white/5 hover:border-white/20">
                                 <Github className="w-4 h-4 text-muted-foreground group-hover:text-white" />
-                            </a>
-                            <a href="https://x.com/Invoix_Solana" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-primary/20 group transition-colors border border-white/5 hover:border-primary/30">
-                                <MessageCircle className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                             </a>
                         </div>
                     </div>
@@ -93,11 +90,6 @@ export function Footer() {
                             <li>
                                 <a href="https://github.com/RYthaGOD/invoix" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
                                     GitHub
-                                </a>
-                            </li>
-                            <li>
-                                <a href="https://x.com/Invoix_Solana" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors block hover:translate-x-1 duration-200">
-                                    X Community
                                 </a>
                             </li>
                         </ul>

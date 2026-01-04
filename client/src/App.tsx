@@ -109,6 +109,7 @@ function Router() {
             </DashboardLayout>
           )}
         </Route>
+        <Route path="/coming-soon" component={ComingSoon} />
         <Route path="/dashboard/blacklist" component={ComingSoon} />
 
         <Route component={NotFound} />
