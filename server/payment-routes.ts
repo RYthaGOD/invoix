@@ -277,11 +277,10 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
         try {
             transaction.partialSign(payerKeypair);
 
-            // Serialize and send - SKIP local verification to avoid "Invalid transaction signature" from library inconsistencies
-            // Let the RPC node be the source of truth.
+            // Serialize and send
+            // We keep requireAllSignatures: false because we are partial signing
             const rawTransaction = transaction.serialize({
-                requireAllSignatures: false,
-                verifySignatures: false
+                requireAllSignatures: false
             });
 
             const signature = await connection.sendRawTransaction(rawTransaction, {
