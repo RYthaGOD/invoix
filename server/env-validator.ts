@@ -125,10 +125,18 @@ export function validateEnvironment(): void {
       }
     } else {
       // Additional validation for specific variables
-      if (envVar.key === "SESSION_SECRET" && value.length < 32) {
-        errors.push(
-          `❌ SESSION_SECRET must be at least 32 characters long (current: ${value.length})`
-        );
+      if (envVar.key === "SESSION_SECRET") {
+        if (value.length < 32) {
+          errors.push(
+            `❌ SESSION_SECRET must be at least 32 characters long (current: ${value.length})`
+          );
+        }
+        // FAIL FAST IN PRODUCTION: Do not allow default secret
+        if (process.env.NODE_ENV === "production" && value === "temporary-session-secret-change-in-prod-please") {
+          errors.push(
+            `❌ CRITICAL SECURITY FAIL: using default SESSION_SECRET in production. You MUST set a unique secret.`
+          );
+        }
       }
 
       if (envVar.key === "DATABASE_URL" && !value.startsWith("postgres://") && !value.startsWith("postgresql://")) {
@@ -166,8 +174,14 @@ export function validateEnvironment(): void {
     console.error("\n❌ Environment Validation Failed:");
     errors.forEach((msg) => console.error(msg));
     console.error("\n💡 Tip: Copy .env.example to .env and fill in the required values");
-    // process.exit(1); // DISABLED: Prevent crash to allow startup
-    console.error("⚠️  Proceeding with startup despite validation errors (Risk of instability)");
+
+    // STRICT MODE IN PRODUCTION: Fail hard on validation errors
+    if (process.env.NODE_ENV === "production") {
+      console.error("⛔ FATAL: Production environment validation failed. Exiting.");
+      process.exit(1);
+    } else {
+      console.error("⚠️  Proceeding with startup despite validation errors (Dev Mode)");
+    }
   } else {
     log("✅ Environment validation passed");
   }
