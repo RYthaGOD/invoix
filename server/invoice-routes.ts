@@ -115,11 +115,12 @@ export function registerInvoiceRoutes(app: Express): void {
         }
         logger.debug(`Verifying x402 Service Fee`, "invoice", { signature: invoiceData.x402PaymentSignature });
 
-        // Use consistent network
+        // Use shared connection
+        const { getSolanaConnection } = await import("./solana-sdk");
+        const connection = getSolanaConnection();
         const network = process.env.SOLANA_NETWORK === 'devnet' ? 'devnet' : 'mainnet-beta';
-        const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl(network);
-        logger.debug(`Connecting to Solana`, "invoice", { network, rpcUrl });
-        const connection = new Connection(rpcUrl, 'confirmed');
+
+        logger.debug(`Verifying x402 on ${network}`, "invoice");
 
         // Retry loop for propagation delay (Increased to 15s total)
         // Public RPCs on Devnet can be very slow to index

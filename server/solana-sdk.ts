@@ -37,3 +37,20 @@ export async function verifyWalletSignature(
     return false;
   }
 }
+
+// Singleton Connection Configuration
+import { Connection, clusterApiUrl } from "@solana/web3.js";
+import { logger } from "./logger";
+
+let sharedConnection: Connection | null = null;
+
+export function getSolanaConnection(): Connection {
+  if (!sharedConnection) {
+    const network = process.env.SOLANA_NETWORK === 'mainnet-beta' ? 'mainnet-beta' : 'devnet';
+    const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl(network);
+
+    logger.info(`Initializing shared Solana connection to ${network}`, "solana");
+    sharedConnection = new Connection(rpcUrl, 'confirmed');
+  }
+  return sharedConnection;
+}
