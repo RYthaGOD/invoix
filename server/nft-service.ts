@@ -359,6 +359,7 @@ export class InvoiceNFTService {
 
   /**
    * Helper: Execute a function with exponential backoff retry logic
+   * Now with Smart Error Filtering to fail fast on permanent errors.
    */
   private async executeWithRetry<T>(
     operation: () => Promise<T>,
@@ -371,9 +372,26 @@ export class InvoiceNFTService {
         return await operation();
       } catch (error: any) {
         lastError = error;
-        // Don't retry if it's a permanent error (like insufficient funds if we could detect it easily)
-        // For now, retry on all errors since RPC failures are most common
-        console.warn(`⚠️ Operation failed (attempt ${i + 1}/${maxRetries}):`, error.message || error);
+        const msg = (error.message || error.toString()).toLowerCase();
+
+        // 1. Fail Fast on known permanent errors
+        // These will never succeed on retry, so don't waste time.
+        if (
+          msg.includes("account not found") ||
+          msg.includes("insufficient funds") ||
+          msg.includes("instructionerror") ||
+          msg.includes("signature verification failed") ||
+          msg.includes("unauthorized") ||
+          msg.includes("invalid argument")
+        ) {
+          logger.warn(`⛔ Non-retryable NFT error detected: ${msg}`, "nft");
+          throw error;
+        }
+
+        // 2. Retry on known transient errors (or unknown generic ones)
+        // Common retryable: blockhash not found, timeout, socket hang up, rate limit (429)
+        logger.warn(`⚠️ NFT Operation failed (attempt ${i + 1}/${maxRetries}):`, "nft", { error: error.message || error });
+
         if (i < maxRetries - 1) {
           const delay = baseDelay * Math.pow(2, i);
           await new Promise(resolve => setTimeout(resolve, delay));
