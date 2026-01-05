@@ -30,6 +30,8 @@ const CommunityNFTDrop = lazy(() => import("@/pages/community-nft"));
 const DeveloperWaitlistPage = lazy(() => import("@/pages/developer-waitlist"));
 const DocsPage = lazy(() => import("@/pages/docs"));
 const Tokenomics = lazy(() => import("@/pages/tokenomics"));
+const Marketplace = lazy(() => import("@/pages/marketplace"));
+const MarketplaceListing = lazy(() => import("@/pages/marketplace-listing"));
 
 import { useAnalytics } from "@/hooks/use-analytics";
 
@@ -111,6 +113,36 @@ function Router() {
         </Route>
         <Route path="/coming-soon" component={ComingSoon} />
         <Route path="/dashboard/blacklist" component={ComingSoon} />
+
+        {/* Marketplace Routes */}
+        <Route path="/marketplace">
+          {() => (
+            <DashboardLayout>
+              <Marketplace />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/marketplace/:id">
+          {() => (
+            <DashboardLayout>
+              <MarketplaceListing />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/marketplace/my-listings">
+          {() => (
+            <DashboardLayout>
+              <Marketplace />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/marketplace/my-investments">
+          {() => (
+            <DashboardLayout>
+              <Marketplace />
+            </DashboardLayout>
+          )}
+        </Route>
 
         <Route component={NotFound} />
       </Switch>

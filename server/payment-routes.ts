@@ -401,6 +401,22 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                     };
                     await invoiceStorage.createPayment(paymentData as any);
                     logger.info("Payment recorded locally", "payment", { signature, invoiceId });
+
+                    // --- CREDIT SCORE UPDATE ---
+                    // Update credit scores for payer and payee (non-blocking)
+                    try {
+                        const { creditScoringService } = await import("./credit-scoring-service");
+                        creditScoringService.updateScoreOnPayment({
+                            fromAddress: userPayer,
+                            toAddress: invoice.invoicerWalletAddress,
+                            amount: invoice.remainingAmount,
+                            invoiceDueDate: new Date(invoice.dueDate),
+                            paidAt: new Date(),
+                        }).catch(err => logger.warn("Credit score update failed", "credit", { error: err.message }));
+                    } catch (creditErr) {
+                        logger.warn("Credit scoring service unavailable", "credit", { error: creditErr });
+                    }
+                    // ---------------------------
                 } catch (paymentErr: any) {
                     logger.error("Error recording payment", "payment", { error: paymentErr.message || paymentErr });
                 }

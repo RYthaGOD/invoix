@@ -81,6 +81,10 @@ interface InvoiceNFTMetadata {
       share: number;
       verified?: boolean;
     }>;
+    files?: Array<{
+      uri: string;
+      type: string;
+    }>;
   };
 }
 
@@ -1115,61 +1119,108 @@ export class InvoiceNFTService {
       };
     }
 
-    // PUBLIC LOGIC (Standard)
+    // PUBLIC LOGIC (Standard) - Enhanced for RWA Marketplace
+    // Calculate days until due for marketplace risk assessment
+    const now = new Date();
+    const dueDate = new Date(invoice.dueDate);
+    const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const isOverdue = daysUntilDue < 0;
+
+    // Build base attributes
+    const baseAttributes = [
+      {
+        trait_type: "Invoice Number",
+        value: invoice.invoiceNumber,
+      },
+      {
+        trait_type: "Visuals",
+        value: "8K Ultra-HD",
+      },
+      {
+        trait_type: "Style",
+        value: "Midnight Prism 3D",
+      },
+      {
+        trait_type: "Status",
+        value: invoice.status,
+      },
+      {
+        trait_type: "Currency",
+        value: invoice.currency,
+      },
+      {
+        trait_type: "Amount",
+        value: invoice.isArciumEncrypted ? "Encrypted" : invoice.totalAmount,
+        display_type: invoice.isArciumEncrypted ? undefined : "number",
+      },
+      {
+        trait_type: "Due Date",
+        value: new Date(invoice.dueDate).toISOString(),
+        display_type: "date",
+      },
+      {
+        trait_type: "Privacy",
+        value: "Public",
+      },
+      {
+        trait_type: "Encrypted",
+        value: invoice.isArciumEncrypted ? "Yes" : "No",
+      },
+      // RWA Marketplace Attributes
+      {
+        trait_type: "Asset Type",
+        value: "Invoice Receivable",
+      },
+      {
+        trait_type: "Asset Class",
+        value: "RWA",
+      },
+      {
+        trait_type: "Days Until Due",
+        value: daysUntilDue.toString(),
+        display_type: "number",
+      },
+      {
+        trait_type: "Overdue",
+        value: isOverdue ? "Yes" : "No",
+      },
+      {
+        trait_type: "Paid Amount",
+        value: invoice.paidAmount || "0",
+        display_type: "number",
+      },
+      {
+        trait_type: "Remaining Amount",
+        value: invoice.remainingAmount || invoice.totalAmount,
+        display_type: "number",
+      },
+      {
+        trait_type: "Marketplace Eligible",
+        value: invoice.status === "sent" && !isOverdue ? "Yes" : "No",
+      },
+    ];
+
     return {
       name: truncateNFTName(`INV ${invoice.invoiceNumber}`), // Truncated for Solana limit
       symbol: "INV",
       uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
       external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
-      description: `B2B Invoice from ${invoice.invoicerWalletAddress} to ${invoice.invoiceeWalletAddress}. Rendered in 8K Ultra-HD with Midnight Prism 3D styling.`,
+      description: `B2B Invoice from ${invoice.invoicerWalletAddress} to ${invoice.invoiceeWalletAddress}. Rendered in 8K Ultra-HD with Midnight Prism 3D styling. RWA tokenized invoice receivable.`,
       image: imageUri,
-      attributes: [
-        {
-          trait_type: "Invoice Number",
-          value: invoice.invoiceNumber,
-        },
-        {
-          trait_type: "Visuals",
-          value: "8K Ultra-HD",
-        },
-        {
-          trait_type: "Style",
-          value: "Midnight Prism 3D",
-        },
-        {
-          trait_type: "Status",
-          value: invoice.status,
-        },
-        {
-          trait_type: "Currency",
-          value: invoice.currency,
-        },
-        {
-          trait_type: "Amount",
-          value: invoice.isArciumEncrypted ? "Encrypted" : invoice.totalAmount,
-          display_type: invoice.isArciumEncrypted ? undefined : "number",
-        },
-        {
-          trait_type: "Due Date",
-          value: new Date(invoice.dueDate).toISOString(),
-          display_type: "date",
-        },
-        {
-          trait_type: "Privacy",
-          value: "Public",
-        },
-        {
-          trait_type: "Encrypted",
-          value: invoice.isArciumEncrypted ? "Yes" : "No",
-        },
-      ],
+      attributes: baseAttributes,
       properties: {
-        category: "invoice",
+        category: "rwa_invoice",
         creators: [
           {
             address: invoice.invoicerWalletAddress,
             share: 100,
             verified: true,
+          },
+        ],
+        files: [
+          {
+            uri: imageUri,
+            type: "image/svg+xml",
           },
         ],
       },

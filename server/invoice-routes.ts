@@ -261,6 +261,20 @@ export function registerInvoiceRoutes(app: Express): void {
       }
       // -----------------------------
 
+      // --- CREDIT SCORE UPDATE ---
+      // Update credit scores for both parties (non-blocking)
+      try {
+        const { creditScoringService } = await import("./credit-scoring-service");
+        creditScoringService.updateScoreOnInvoiceCreated({
+          invoicerWalletAddress: invoice.invoicerWalletAddress,
+          invoiceeWalletAddress: invoice.invoiceeWalletAddress,
+          totalAmount: invoice.totalAmount,
+        }).catch(err => logger.warn("Credit score update failed", "credit", { error: err.message }));
+      } catch (creditErr) {
+        logger.warn("Credit scoring service unavailable", "credit", { error: creditErr });
+      }
+      // ---------------------------
+
       // If Arcium encryption is requested, encrypt sensitive data
       if (req.body.encryptWithArcium) {
         if (!req.body.allowedParties || req.body.allowedParties.length < 2) {

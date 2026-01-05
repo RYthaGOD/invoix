@@ -71,7 +71,7 @@ export function useAnalyticsStats() {
             }
 
             try {
-                const res = await fetch("/api/analytics/stats");
+                const res = await fetch("/api/analytics/stats/public");
                 if (res.ok) {
                     const data = await res.json();
                     const newStats = {

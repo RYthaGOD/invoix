@@ -334,6 +334,64 @@ export const x402Micropayments = pgTable("x402_micropayments", {
 });
 
 // ============================================
+// CREDIT SCORING TABLES (Invoice Marketplace)
+// ============================================
+
+/**
+ * Business Credit Scores - Credit scoring for invoice marketplace
+ * Determines listing eligibility and risk assessment
+ */
+export const businessCreditScores = pgTable("business_credit_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull().unique(),
+
+  // Overall Score (300-850)
+  overallScore: integer("overall_score").notNull().default(500),
+  creditTier: text("credit_tier").notNull().default("new"), // prime, standard, fair, developing, new
+
+  // Component Scores (300-850 each)
+  paymentHistoryScore: integer("payment_history_score").notNull().default(500),
+  volumeScore: integer("volume_score").notNull().default(500),
+  reliabilityScore: integer("reliability_score").notNull().default(500),
+  tenureScore: integer("tenure_score").notNull().default(500),
+
+  // Payment History Metrics (as payer)
+  totalPaymentsMade: integer("total_payments_made").notNull().default(0),
+  onTimePayments: integer("on_time_payments").notNull().default(0),
+  latePayments: integer("late_payments").notNull().default(0),
+  avgDaysToPay: integer("avg_days_to_pay"),
+  lastPaymentDate: timestamp("last_payment_date"),
+
+  // Volume Metrics
+  totalVolumeUsd: decimal("total_volume_usd", { precision: 18, scale: 2 }).notNull().default("0"),
+  totalInvoicesIssued: integer("total_invoices_issued").notNull().default(0),
+  totalInvoicesReceived: integer("total_invoices_received").notNull().default(0),
+  uniqueCounterparties: integer("unique_counterparties").notNull().default(0),
+
+  // Reliability Metrics (as seller)
+  paidInvoices: integer("paid_invoices").notNull().default(0),
+  cancelledInvoices: integer("cancelled_invoices").notNull().default(0),
+  avgDaysToCollect: integer("avg_days_to_collect"),
+  topCustomerShare: decimal("top_customer_share", { precision: 5, scale: 4 }).default("0"),
+
+  // Tenure Metrics
+  firstActivityAt: timestamp("first_activity_at"),
+  monthsWithActivity: integer("months_with_activity").notNull().default(0),
+
+  // Dispute Tracking
+  disputesAsPayer: integer("disputes_as_payer").notNull().default(0),
+  disputesAsSeller: integer("disputes_as_seller").notNull().default(0),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  lastCalculatedAt: timestamp("last_calculated_at").notNull().defaultNow(),
+}, (table) => ({
+  walletIdx: index("idx_credit_scores_wallet").on(table.walletAddress),
+  tierIdx: index("idx_credit_scores_tier").on(table.creditTier),
+  scoreIdx: index("idx_credit_scores_score").on(table.overallScore),
+}));
+
+// ============================================
 // pNFT TABLES (Programmable NFTs for Invoicing)
 // ============================================
 
@@ -419,10 +477,28 @@ export const invoiceMarketplace = pgTable("invoice_marketplace", {
   discountRate: decimal("discount_rate", { precision: 5, scale: 2 }).notNull(), // % discount
   currency: text("currency").notNull(),
 
+  // Risk Assessment (snapshot at listing time)
+  riskScore: integer("risk_score"), // 1-100
+  riskLevel: text("risk_level"), // low, medium, high, very_high
+  riskFlags: text("risk_flags").array(), // Array of flag codes
+
+  // Credit Score Snapshots (at listing time)
+  sellerCreditScore: integer("seller_credit_score"),
+  sellerCreditTier: text("seller_credit_tier"),
+  customerCreditScore: integer("customer_credit_score"),
+
+  // Pricing Guidance
+  suggestedFloorPrice: decimal("suggested_floor_price", { precision: 18, scale: 9 }),
+  yieldPercentage: decimal("yield_percentage", { precision: 5, scale: 2 }), // (face-asking)/asking * 100
+
   // Listing Status
-  status: text("status").notNull().default("active"), // active, sold, cancelled
+  status: text("status").notNull().default("active"), // active, sold, cancelled, expired
   listedAt: timestamp("listed_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at"), // Optional listing expiration
+
+  // Analytics
+  viewCount: integer("view_count").notNull().default(0),
+  watchlistCount: integer("watchlist_count").notNull().default(0),
 
   // Sale Details
   soldAt: timestamp("sold_at"),
@@ -430,13 +506,23 @@ export const invoiceMarketplace = pgTable("invoice_marketplace", {
   salePrice: decimal("sale_price", { precision: 18, scale: 9 }),
   saleTxSignature: text("sale_tx_signature"),
 
+  // Settlement Tracking (after customer pays)
+  settledAt: timestamp("settled_at"),
+  settlementAmount: decimal("settlement_amount", { precision: 18, scale: 9 }),
+  daysToSettlement: integer("days_to_settlement"),
+
   // Metadata
   listingDescription: text("listing_description"),
   minBuyerRating: decimal("min_buyer_rating", { precision: 3, scale: 2 }), // e.g., 3.0 minimum
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  statusIdx: index("idx_marketplace_status").on(table.status),
+  riskIdx: index("idx_marketplace_risk").on(table.riskLevel),
+  sellerIdx: index("idx_marketplace_seller").on(table.seller),
+  currencyIdx: index("idx_marketplace_currency").on(table.currency),
+}));
 
 // ============================================
 // RELATIONS
@@ -740,6 +826,9 @@ export type InsertBusinessIdentityNFT = z.infer<typeof insertBusinessIdentityNFT
 
 export type InvoiceMarketplaceListing = typeof invoiceMarketplace.$inferSelect;
 export type InsertInvoiceMarketplaceListing = z.infer<typeof insertInvoiceMarketplaceSchema>;
+
+export type BusinessCreditScore = typeof businessCreditScores.$inferSelect;
+export type InsertBusinessCreditScore = typeof businessCreditScores.$inferInsert;
 
 // Backwards compatibility aliases
 export type SelectInvoice = Invoice;

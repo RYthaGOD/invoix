@@ -41,7 +41,32 @@ router.post("/event", globalRateLimit, async (req, res) => {
     }
 });
 
-// GET /api/analytics/stats - Get aggregate stats (Admin Only)
+// GET /api/analytics/stats/public - Get basic stats for landing page (Public - rate limited)
+router.get("/stats/public", globalRateLimit, async (req, res) => {
+    try {
+        // 1. Total Page Views
+        const [viewsResult] = await db
+            .select({ count: count() })
+            .from(analyticsEvents)
+            .where(eq(analyticsEvents.eventType, "page_view"));
+
+        // 2. Total Unique Wallets (Community Members)
+        const result = await db.execute(
+            sql`SELECT COUNT(DISTINCT ${analyticsEvents.walletAddress}) as count FROM ${analyticsEvents} WHERE ${analyticsEvents.walletAddress} IS NOT NULL`
+        );
+        const walletsResult = result.rows[0] as { count: string };
+
+        res.json({
+            pageViews: Number(viewsResult?.count || 0),
+            uniqueWallets: Number(walletsResult?.count || 0)
+        });
+    } catch (error) {
+        console.error("Public analytics error:", error);
+        res.status(500).json({ error: "Failed to fetch stats" });
+    }
+});
+
+// GET /api/analytics/stats - Get detailed aggregate stats (Admin Only)
 router.get("/stats", requireAdmin, async (req, res) => {
     try {
         // 1. Total Page Views

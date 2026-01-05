@@ -16,6 +16,8 @@ import { registerSolanaPayRoutes } from "./solana-pay-routes";
 import { registerWaitlistRoutes } from "./waitlist-routes";
 import { analyticsRouter } from "./analytics-routes";
 import { registerDynamicImageRoutes } from "./endpoints/dynamic-image";
+import { registerCreditRoutes } from "./credit-routes";
+import { registerMarketplaceRoutes } from "./marketplace-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
@@ -116,6 +118,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WAITLIST / DEVELOPER ROUTES
   // ================================================
   registerWaitlistRoutes(app);
+
+  // ================================================
+  // CREDIT SCORING ROUTES (Invoice Marketplace)
+  // ================================================
+  registerCreditRoutes(app);
+
+  // ================================================
+  // INVOICE MARKETPLACE ROUTES
+  // ================================================
+  registerMarketplaceRoutes(app);
 
   const server = createServer(app);
   return server;
