@@ -64,7 +64,7 @@ async function runTest() {
     // @ts-ignore
     service.initialized = true; // Bypass checks
     // @ts-ignore
-    service.mxePublicKey = new Uint8Array(32); // Pass isAvailable() check
+    service.serverX25519Public = new Uint8Array(32); // Pass isAvailable() check
 
     try {
         const decrypted = await service.decryptTransaction(

@@ -131,15 +131,15 @@ export function registerWaitlistRoutes(app: Express): void {
             // Send Email
             const emailResult = await emailService.sendEmail({
                 to: updatedUser.email,
-                subject: "🎉 You're In! Access Granted to PumpLeague API",
+                subject: "🎉 You're In! Access Granted to Invoix Developer API",
                 html: `
-                    <h1>Welcome to PumpLeague!</h1>
+                    <h1>Welcome to Invoix!</h1>
                     <p>Your developer application for <b>${updatedUser.projectName}</b> has been approved.</p>
                     <p>Here is your API Key. <b>Store it safely, you will not see it again!</b></p>
                     <div style="background:#f4f4f5; padding: 15px; border-radius: 8px; font-family: monospace; margin: 20px 0;">
                         ${key}
                     </div>
-                    <p>View docs at <a href="https://pumpleague.com/docs">pumpleague.com/docs</a></p>
+                    <p>View docs at <a href="https://invoix.io/docs">invoix.io/docs</a></p>
                 `
             });
 
@@ -169,10 +169,10 @@ export function registerWaitlistRoutes(app: Express): void {
             // Send Rejection Email (Polite)
             await emailService.sendEmail({
                 to: updatedUser.email,
-                subject: "Update on your PumpLeague Application",
+                subject: "Update on your Invoix Developer Application",
                 html: `
                     <p>Hi there,</p>
-                    <p>Thank you for your interest in PumpLeague.</p>
+                    <p>Thank you for your interest in the Invoix Developer API.</p>
                     <p>Unfortunately, we are unable to approve your application for <b>${updatedUser.projectName}</b> at this time due to high demand.</p>
                     <p>We've added you to our mailing list and will notify you when spots open up.</p>
                 `

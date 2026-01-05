@@ -2,11 +2,21 @@ import { Router } from "express";
 import { db } from "./db"; // Adjust import path
 import { analyticsEvents } from "@shared/invoice-schema";
 import { count, sql, eq } from "drizzle-orm";
+import { globalRateLimit } from "./security";
 
 const router = Router();
 
-// POST /api/analytics/event - Ingest a new event
-router.post("/event", async (req, res) => {
+// Admin check middleware (reusable)
+const requireAdmin = (req: any, res: any, next: any) => {
+    const adminSecret = req.headers["x-admin-secret"];
+    if (!process.env.ADMIN_SECRET_KEY || adminSecret !== process.env.ADMIN_SECRET_KEY) {
+        return res.status(403).json({ message: "Admin access denied" });
+    }
+    next();
+};
+
+// POST /api/analytics/event - Ingest a new event (Rate Limited)
+router.post("/event", globalRateLimit, async (req, res) => {
     try {
         const { eventType, path, walletAddress, visitorHash, userAgent } = req.body;
 
@@ -31,8 +41,8 @@ router.post("/event", async (req, res) => {
     }
 });
 
-// GET /api/analytics/stats - Get aggregate stats
-router.get("/stats", async (req, res) => {
+// GET /api/analytics/stats - Get aggregate stats (Admin Only)
+router.get("/stats", requireAdmin, async (req, res) => {
     try {
         // 1. Total Page Views
         const [viewsResult] = await db
