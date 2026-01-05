@@ -233,6 +233,10 @@ export function corsPolicy() {
         res.setHeader("Access-Control-Allow-Origin", origin);
         res.setHeader("Access-Control-Allow-Credentials", "true");
       } else {
+        // Log blocked origin for debugging mobile wallet issues
+        if (origin && !corsAllowed) {
+          console.warn(`[CORS] Blocked Origin: ${origin}`);
+        }
         // Reject CORS for unauthorized origins
         res.setHeader("Access-Control-Allow-Origin", "null");
       }

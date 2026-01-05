@@ -18,6 +18,19 @@ export function registerNftRoutes(app: Express): void {
             const { id } = req.params;
             const walletAddress = req.query.wallet as string;
 
+            // Debug Logging for Mobile "Load Failed" issues
+            console.log(`[NFT] Mint Request Received for ${id}`, {
+                ip: req.ip,
+                userWallet: walletAddress,
+                sessionID: req.sessionID,
+                hasSession: !!req.session,
+                sessionWallet: req.session?.walletAddress,
+                headers: {
+                    origin: req.headers.origin,
+                    userAgent: req.headers['user-agent']
+                }
+            });
+
             // 1. Get Invoice
             const invoice = await invoiceStorage.getInvoice(id);
             if (!invoice) {

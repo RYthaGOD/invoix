@@ -574,8 +574,15 @@ export default function InvoiceDetail() {
       });
 
       if (!mintRes.ok) {
-        const err = await mintRes.json();
-        throw new Error(err.message || "Failed to prepare mint transaction");
+        let errorMessage = "Failed to prepare mint transaction";
+        try {
+          const err = await mintRes.json();
+          errorMessage = err.message || errorMessage;
+        } catch (e) {
+          // Failed to parse JSON (e.g. 500 html page)
+          console.error("Non-JSON error response from mint endpoint");
+        }
+        throw new Error(errorMessage);
       }
 
       const { transaction: base64Tx } = await mintRes.json();
@@ -628,7 +635,16 @@ export default function InvoiceDetail() {
 
     } catch (err: any) {
       console.error("Minting failed:", err);
-      setMintError(err.message);
+
+      let friendlyError = err.message;
+
+      // Handle Network/CORS errors specifically
+      if (err.message && (err.message.includes("Load failed") || err.message.includes("Failed to fetch"))) {
+        friendlyError = "Network connection failed. If you are on mobile, please try refreshing the page or checking your internet.";
+        console.warn("Likely CORS or Network Error detected during mint.");
+      }
+
+      setMintError(friendlyError);
       setMintingStatus("");
     }
   };
