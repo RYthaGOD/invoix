@@ -114,35 +114,39 @@ function Router() {
         <Route path="/coming-soon" component={ComingSoon} />
         <Route path="/dashboard/blacklist" component={ComingSoon} />
 
-        {/* Marketplace Routes */}
-        <Route path="/marketplace">
-          {() => (
-            <DashboardLayout>
-              <Marketplace />
-            </DashboardLayout>
-          )}
-        </Route>
-        <Route path="/marketplace/:id">
-          {() => (
-            <DashboardLayout>
-              <MarketplaceListing />
-            </DashboardLayout>
-          )}
-        </Route>
-        <Route path="/marketplace/my-listings">
-          {() => (
-            <DashboardLayout>
-              <Marketplace />
-            </DashboardLayout>
-          )}
-        </Route>
-        <Route path="/marketplace/my-investments">
-          {() => (
-            <DashboardLayout>
-              <Marketplace />
-            </DashboardLayout>
-          )}
-        </Route>
+        {/* Marketplace Routes - Feature Flagged */}
+        {import.meta.env.VITE_ENABLE_MARKETPLACE === "true" && (
+          <>
+            <Route path="/marketplace">
+              {() => (
+                <DashboardLayout>
+                  <Marketplace />
+                </DashboardLayout>
+              )}
+            </Route>
+            <Route path="/marketplace/:id">
+              {() => (
+                <DashboardLayout>
+                  <MarketplaceListing />
+                </DashboardLayout>
+              )}
+            </Route>
+            <Route path="/marketplace/my-listings">
+              {() => (
+                <DashboardLayout>
+                  <Marketplace />
+                </DashboardLayout>
+              )}
+            </Route>
+            <Route path="/marketplace/my-investments">
+              {() => (
+                <DashboardLayout>
+                  <Marketplace />
+                </DashboardLayout>
+              )}
+            </Route>
+          </>
+        )}
 
         <Route component={NotFound} />
       </Switch>

@@ -127,7 +127,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   // INVOICE MARKETPLACE ROUTES
   // ================================================
-  registerMarketplaceRoutes(app);
+  if (process.env.ENABLE_MARKETPLACE === "true") {
+    registerMarketplaceRoutes(app);
+  }
 
   const server = createServer(app);
   return server;

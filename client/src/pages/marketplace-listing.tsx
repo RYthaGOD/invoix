@@ -8,7 +8,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { VersionedTransaction } from "@solana/web3.js";
 import {
     ArrowLeft,
     Clock,
@@ -102,7 +103,8 @@ export default function MarketplaceListing() {
     const params = useParams<{ id: string }>();
     const [, navigate] = useLocation();
     const { walletAddress } = useAuth();
-    const { connected } = useWallet();
+    const { connected, sendTransaction } = useWallet();
+    const { connection } = useConnection();
 
     const [listing, setListing] = useState<ListingDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -153,12 +155,66 @@ export default function MarketplaceListing() {
 
         setPurchasing(true);
         try {
-            // TODO: Implement actual purchase flow with NFT transfer
-            toast({
-                title: "Coming Soon",
-                description: "Invoice purchases will be available in the next release.",
+            // 1. Get Transaction from API
+            const response = await fetch("/api/marketplace/purchase", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    listingId: listing?.id,
+                }),
             });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to create purchase transaction");
+            }
+
+            if (!data.transaction) {
+                throw new Error("Invalid response: No transaction returned");
+            }
+
+            // 2. Sign and Send
+            const transactionBuffer = Uint8Array.from(atob(data.transaction), c => c.charCodeAt(0));
+            const transaction = VersionedTransaction.deserialize(transactionBuffer);
+
+            toast({
+                title: "Awaiting Signature",
+                description: "Please approve the purchase (Payment + Transfer) in your wallet.",
+            });
+
+            // Buyer signs
+            const signature = await sendTransaction(transaction, connection);
+
+            toast({
+                title: "Processing Purchase",
+                description: "Transaction sent. Waiting for blockchain confirmation...",
+            });
+
+            await connection.confirmTransaction(signature, 'confirmed');
+
+            // 3. Confirm with Backend (for DB update if not using webhooks/indexer)
+            // Optional: The API might update on next query or we can hit a confirm endpoint.
+            // But usually we just reload.
+            // Ideally we call /api/marketplace/confirm-purchase or similar if needed.
+            // Previous audit mentioned `POST /api/marketplace/confirm-purchase` implementation.
+            await fetch("/api/marketplace/confirm-purchase", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ signature, listingId: listing?.id }),
+            });
+
+            toast({
+                title: "Purchase Successful!",
+                description: "Invoice asset transferred to your wallet.",
+            });
+
+            // Reload listing to show sold status
+            loadListing();
+
         } catch (err: any) {
+            console.error("Purchase failed:", err);
             toast({
                 title: "Purchase Failed",
                 description: err.message,
@@ -326,8 +382,8 @@ export default function MarketplaceListing() {
                                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                                     <div
                                         className={`h-full rounded-full transition-all ${listing.riskScore <= 25 ? 'bg-emerald-500' :
-                                                listing.riskScore <= 50 ? 'bg-yellow-500' :
-                                                    listing.riskScore <= 75 ? 'bg-orange-500' : 'bg-red-500'
+                                            listing.riskScore <= 50 ? 'bg-yellow-500' :
+                                                listing.riskScore <= 75 ? 'bg-orange-500' : 'bg-red-500'
                                             }`}
                                         style={{ width: `${listing.riskScore}%` }}
                                     />

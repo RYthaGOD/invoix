@@ -116,7 +116,11 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             invoice.tokenMint === "So11111111111111111111111111111111111111112";
 
         const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
-        const sellerPubkey = new PublicKey(invoice.invoicerWalletAddress);
+
+        // FIX: Check if invoice was sold (NFT transferred)
+        // If so, payment goes to the new owner (investor), not the original invoicer.
+        const payeeAddress = invoice.nftTransferredTo || invoice.invoicerWalletAddress;
+        const sellerPubkey = new PublicKey(payeeAddress);
 
         // Amounts - use pre-calculated values from invoice, fallback for old invoices
         const invoiceTotal = parseFloat(invoice.remainingAmount);
@@ -290,6 +294,15 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             // Safe: ATA Creation
             if (programId === ASSOCIATED_TOKEN_PROGRAM_ID) return false;
 
+            // Safe: Memo Program
+            if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcQb") return false;
+
+            // Safe: Compute Budget (usually no signers, but safe if present)
+            if (programId === "ComputeBudget111111111111111111111111111111") return false;
+
+            // Safe: Arcium Program (for encrypted invoices)
+            if (programId === "GSu3xPJNeyG2sVbn9GbZg4CHfzzUwLbYLaxzN7cbS3x") return false;
+
             // Safe: System CreateAccount (Rent)
             if (programId === SYSTEM_PROGRAM_ID) {
                 if (instructionData.length >= 4 && instructionData.readUInt32LE(0) === 0) return false;
@@ -320,7 +333,11 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                         // Protocol is involved and is a signer. Check if dangerous.
                         // Getting instruction data: ix.data is Uint8Array
                         if (isDangerous(progId, Buffer.from(ix.data))) {
-                            logger.error("Blocked Versioned Instruction", "security", { program: progId });
+                            logger.error("Blocked Versioned Instruction", "security", {
+                                program: progId,
+                                instructionData: Buffer.from(ix.data).toString('hex'),
+                                protocolIndex
+                            });
                             return res.status(403).json({ success: false, message: "Security Alert: Unauthorized protocol signature." });
                         }
                     }
@@ -335,7 +352,10 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                 const protocolSigner = ix.keys.find(k => k.pubkey.equals(payerKeypair.publicKey) && k.isSigner);
                 if (protocolSigner) {
                     if (isDangerous(ix.programId.toString(), ix.data)) {
-                        logger.error("Blocked Legacy Instruction", "security", { program: ix.programId.toString() });
+                        logger.error("Blocked Legacy Instruction", "security", {
+                            program: ix.programId.toString(),
+                            instructionData: ix.data.toString('hex')
+                        });
                         return res.status(403).json({ success: false, message: "Security Alert: Unauthorized protocol signature." });
                     }
                 }

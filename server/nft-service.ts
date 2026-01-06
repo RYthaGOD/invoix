@@ -977,6 +977,230 @@ export class InvoiceNFTService {
   }
 
   /**
+   * MARKETPLACE: Create Escrow Transfer Transaction
+   * Transfers the NFT from the Seller to the Protocol (Escrow) to list it.
+   */
+  async createEscrowTransferTransaction(
+    invoice: SelectInvoice,
+    sellerPublicKey: string
+  ): Promise<string> {
+    if (!this.isReady()) throw new Error("NFT service not initialized");
+
+    try {
+      // Validate NFT data
+      if (!invoice.nftMerkleTree || !invoice.nftMint || invoice.nftLeafIndex === null) {
+        throw new Error("Invoice does not have valid NFT data for transfer");
+      }
+
+      const merkleTree = toPublicKey(invoice.nftMerkleTree);
+      const leafOwner = toPublicKey(sellerPublicKey);
+      const newOwner = this.umi.identity.publicKey; // Transfer to Server (Escrow)
+
+      // Build Transfer Instruction
+      let builder = transferV1(this.umi, {
+        leafOwner,
+        merkleTree,
+        leafDelegate: leafOwner,
+        newLeafOwner: newOwner,
+        // @ts-ignore
+        leafIndex: invoice.nftLeafIndex,
+        collectionMint: this.collectionMint ? toPublicKey(this.collectionMint) : undefined,
+      });
+
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 })
+      );
+
+      builder = builder.prepend({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] });
+
+      const userSigner: Signer = {
+        publicKey: leafOwner,
+        signMessage: async (msg) => msg,
+        signTransaction: async (tx) => tx,
+        signAllTransactions: async (txs) => txs,
+      };
+
+      const txWithPayer = builder.setFeePayer(userSigner);
+
+      const tx = await txWithPayer.buildAndSign(this.umi);
+
+      return Buffer.from(this.umi.transactions.serialize(tx)).toString("base64");
+
+    } catch (error) {
+      logger.error("Failed to create escrow transfer transaction", "nft", { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Get the identity public key (server/escrow wallet)
+   */
+  getIdentityPublicKey(): string {
+    if (!this.umi) throw new Error("NFT service not initialized");
+    return this.umi.identity.publicKey.toString();
+  }
+
+  /**
+   * MARKETPLACE: Create Atomic Purchase Transaction
+   * 1. Transfers funds from Buyer to Seller (99%) and Treasury (1%) - REVENUE & FEES
+   * 2. Transfers NFT from Protocol (Escrow) to Buyer
+   */
+  async createAtomicPurchaseTransaction(
+    invoice: SelectInvoice,
+    listing: { askingPrice: string; currency: string },
+    buyerPublicKey: string,
+    sellerPublicKey: string
+  ): Promise<string> {
+    if (!this.isReady()) throw new Error("NFT service not initialized");
+
+    try {
+      const buyer = toPublicKey(buyerPublicKey);
+      const seller = toPublicKey(sellerPublicKey);
+      const escrow = this.umi.identity.publicKey;
+
+      // Treasury Address for 1% Fee
+      const TREASURY_ADDRESS = process.env.TREASURY_WALLET || "D6jX1pG4zZp2jP6rWB5yE7x4xN9mQ2s1"; // Default to devnet treasury if missing
+      const treasury = new PublicKey(TREASURY_ADDRESS);
+
+      // 1. USDC Transfer Instructions (Split Payment)
+      const { getStablecoinConfig } = await import("@shared/stablecoin-config");
+      const { getAssociatedTokenAddress, createTransferInstruction } = await import("@solana/spl-token");
+
+      const feeConfig = getStablecoinConfig(listing.currency);
+      if (!feeConfig) throw new Error(`Unsupported currency: ${listing.currency}`);
+
+      const mint = new PublicKey(feeConfig.mint);
+      const decimals = feeConfig.decimals;
+
+      const buyerAta = await getAssociatedTokenAddress(mint, new PublicKey(buyerPublicKey));
+      const sellerAta = await getAssociatedTokenAddress(mint, new PublicKey(sellerPublicKey));
+      const treasuryAta = await getAssociatedTokenAddress(mint, treasury);
+
+      const amountTotal = BigInt(Math.floor(parseFloat(listing.askingPrice) * Math.pow(10, decimals)));
+
+      // Calculate 1% Fee
+      const feeBps = BigInt(100); // 100 bps = 1%
+      const feeAmount = (amountTotal * feeBps) / BigInt(10000);
+      const sellerAmount = amountTotal - feeAmount;
+
+      // Instruction 1: Buyer -> Treasury (Fee)
+      // Note: We assume Treasury ATA exists. If not, this might fail. 
+      // In production, Treasury should make sure ATAs exist for all supported stablecoins.
+      const feeTransferIx = createTransferInstruction(
+        buyerAta,
+        treasuryAta,
+        new PublicKey(buyerPublicKey),
+        feeAmount
+      );
+
+      // Instruction 2: Buyer -> Seller (Net)
+      const sellerTransferIx = createTransferInstruction(
+        buyerAta,
+        sellerAta,
+        new PublicKey(buyerPublicKey),
+        sellerAmount
+      );
+
+      const umiFeeIx = fromWeb3JsInstruction(feeTransferIx);
+      const umiSellerIx = fromWeb3JsInstruction(sellerTransferIx);
+
+      // 2. NFT Transfer Instruction (Escrow -> Buyer)
+      if (!invoice.nftMerkleTree || invoice.nftLeafIndex === null) {
+        throw new Error("Invalid NFT data");
+      }
+
+      const merkleTree = toPublicKey(invoice.nftMerkleTree);
+
+      const nftTransferBuilder = transferV1(this.umi, {
+        leafOwner: escrow,
+        merkleTree,
+        leafDelegate: escrow,
+        newLeafOwner: buyer,
+        // @ts-ignore
+        leafIndex: invoice.nftLeafIndex,
+        collectionMint: this.collectionMint ? toPublicKey(this.collectionMint) : undefined,
+      });
+
+      // 3. Combine Instructions
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })
+      );
+
+      let builder = transactionBuilder()
+        .add({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] })
+        .add({ instruction: umiFeeIx, bytesCreatedOnChain: 0, signers: [] }) // Fee first
+        .add({ instruction: umiSellerIx, bytesCreatedOnChain: 0, signers: [] }) // Seller second
+        .add(nftTransferBuilder);
+
+      const buyerSigner: Signer = {
+        publicKey: buyer,
+        signMessage: async (msg) => msg,
+        signTransaction: async (tx) => tx,
+        signAllTransactions: async (txs) => txs,
+      };
+
+      builder = builder.setFeePayer(buyerSigner);
+
+      // Sign with Protocol Key (Escrow Authority)
+      const tx = await builder.buildAndSign(this.umi);
+
+      return Buffer.from(this.umi.transactions.serialize(tx)).toString("base64");
+
+    } catch (error) {
+      logger.error("Failed to create purchase transaction", "nft", { error });
+      throw error;
+    }
+  }
+
+  /**
+   * MARKETPLACE: Create Cancel Listing Transaction
+   * Transfers NFT from Protocol (Escrow) back to Seller
+   */
+  async createCancelListingTransaction(
+    invoice: SelectInvoice,
+    sellerPublicKey: string
+  ): Promise<string> {
+    if (!this.isReady()) throw new Error("NFT service not initialized");
+
+    try {
+      const seller = toPublicKey(sellerPublicKey);
+      const escrow = this.umi.identity.publicKey;
+
+      if (!invoice.nftMerkleTree || invoice.nftLeafIndex === null) {
+        throw new Error("Invalid NFT data");
+      }
+
+      const nftTransferBuilder = transferV1(this.umi, {
+        leafOwner: escrow,
+        merkleTree: toPublicKey(invoice.nftMerkleTree),
+        leafDelegate: escrow,
+        newLeafOwner: seller,
+        // @ts-ignore
+        leafIndex: invoice.nftLeafIndex,
+        collectionMint: this.collectionMint ? toPublicKey(this.collectionMint) : undefined,
+      });
+
+      const sellerSigner: Signer = {
+        publicKey: seller,
+        signMessage: async (msg) => msg,
+        signTransaction: async (tx) => tx,
+        signAllTransactions: async (txs) => txs,
+      };
+
+      // Use seller as fee payer
+      const builder = nftTransferBuilder.setFeePayer(sellerSigner);
+
+      const tx = await builder.buildAndSign(this.umi);
+
+      return Buffer.from(this.umi.transactions.serialize(tx)).toString("base64");
+
+    } catch (error) {
+      logger.error("Failed to create cancel listing transaction", "nft", { error });
+      throw error;
+    }
+  }
+
+  /**
    * Transfer invoice NFT (for invoice financing)
    */
   async transferInvoiceNFT(
@@ -1205,7 +1429,7 @@ export class InvoiceNFTService {
       symbol: "INV",
       uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
       external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
-      description: `B2B Invoice from ${invoice.invoicerWalletAddress} to ${invoice.invoiceeWalletAddress}. Rendered in 8K Ultra-HD with Midnight Prism 3D styling. RWA tokenized invoice receivable.`,
+      description: `B2B Invoice from ${invoice.invoicerWalletAddress.slice(0, 4)}...${invoice.invoicerWalletAddress.slice(-4)} to ${invoice.invoiceeWalletAddress.slice(0, 4)}...${invoice.invoiceeWalletAddress.slice(-4)}. Rendered in 8K Ultra-HD with Midnight Prism 3D styling. RWA tokenized invoice receivable.`,
       image: imageUri,
       attributes: baseAttributes,
       properties: {

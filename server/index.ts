@@ -274,6 +274,10 @@ app.use((req, res, next) => {
     if (process.env.PAYER_PRIVATE_KEY) {
       const { startQRPaymentProcessor } = await import("./qr-payment-processor");
       startQRPaymentProcessor();
+
+      // 10. Start Marketplace Cron (Expired Listings)
+      const { startMarketplaceCron } = await import("./marketplace-cron");
+      startMarketplaceCron();
     }
 
     // Finalize

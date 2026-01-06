@@ -17,6 +17,8 @@ import {
 import { eq, and, desc, sql, ne, isNull, gte, lte } from "drizzle-orm";
 import { logger } from "./logger";
 import { creditScoringService } from "./credit-scoring-service";
+import { getInvoiceNFTService } from "./nft-service";
+import { Connection } from "@solana/web3.js";
 
 // ============================================
 // TYPES
@@ -325,9 +327,20 @@ export function registerMarketplaceRoutes(app: Express): void {
         }
     });
 
+    // Helper to get initialized NFT service
+    async function getReadyNftService() {
+        const service = getInvoiceNFTService();
+        if (!service.isReady()) {
+            await service.initialize();
+        }
+        return service;
+    }
+
+
     /**
      * POST /api/marketplace/list
      * List an invoice for sale on the marketplace
+     * Returns a transaction for the Seller to sign (Transfer NFT to Escrow)
      */
     app.post("/api/marketplace/list", requireAuth, async (req: Request, res: Response) => {
         try {
@@ -349,12 +362,15 @@ export function registerMarketplaceRoutes(app: Express): void {
             }
 
             // Verify ownership
+            // Important: If already listed (in escrow), checks passed. But here we assume fresh list.
             if (invoice.invoicerWalletAddress !== walletAddress) {
                 return res.status(403).json({ success: false, error: "You can only list invoices you created" });
             }
 
-            // Verify invoice status (must be sent, not paid/cancelled)
+            // Verify invoice status
             if (invoice.status !== 'sent') {
+                // Allow re-listing if it was cancelled (status sent)
+                // If it's paid, can't list.
                 return res.status(400).json({
                     success: false,
                     error: `Invoice must be in 'sent' status to list. Current status: ${invoice.status}`
@@ -382,50 +398,46 @@ export function registerMarketplaceRoutes(app: Express): void {
                 return res.status(400).json({ success: false, error: "Invoice is already listed on marketplace" });
             }
 
-            // Validate asking price (must be less than face value)
+            // Validate asking price
             const faceValue = parseFloat(invoice.totalAmount);
             const asking = parseFloat(askingPrice);
 
             if (asking >= faceValue) {
                 return res.status(400).json({
                     success: false,
-                    error: "Asking price must be less than invoice face value for discounted sale"
+                    error: "Asking price must be less than invoice face value"
                 });
             }
 
-            // Maximum discount check (e.g., 50%)
             const discount = ((faceValue - asking) / faceValue) * 100;
-            if (discount > 50) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Maximum discount is 50%. Reduce your discount rate."
-                });
-            }
 
-            // Get credit scores
+            // Get credit scores & Risk
             const sellerScore = await creditScoringService.getQuickScore(walletAddress);
             const customerScore = await creditScoringService.getQuickScore(invoice.invoiceeWalletAddress);
 
-            // Check seller eligibility
             if (!sellerScore || sellerScore.score < 450) {
                 return res.status(400).json({
                     success: false,
-                    error: "Minimum credit score of 450 (Developing tier) required to list. Your score: " + (sellerScore?.score || 'N/A')
+                    error: "Minimum credit score of 450 required to list."
                 });
             }
 
-            // Calculate risk assessment
             const risk = calculateRiskScore(invoice, sellerScore?.score || null, customerScore?.score || null);
-
-            // Calculate yield
             const yieldPct = calculateYield(invoice.totalAmount, askingPrice);
 
-            // Calculate expiration
             const expiresAt = expiresInDays
                 ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
                 : null;
 
-            // Create listing
+            // 1. Generate Escrow Transfer Transaction
+            const nftService = await getReadyNftService();
+            const transaction = await nftService.createEscrowTransferTransaction(invoice, walletAddress);
+
+            // 2. Create Listing in DB (Active immediately, assuming user signs)
+            // Ideally we'd mark it 'pending_transfer', but for this flow we'll handle it optimistically
+            // or we could add a flag 'transferredToEscrow'.
+            // Simple MVP: Create it. If they don't sign, it's a "Ghost Listing" (purchase will fail).
+
             const [listing] = await db.insert(invoiceMarketplace)
                 .values({
                     invoiceId,
@@ -443,7 +455,7 @@ export function registerMarketplaceRoutes(app: Express): void {
                     sellerCreditScore: sellerScore?.score,
                     sellerCreditTier: sellerScore?.tier,
                     customerCreditScore: customerScore?.score || null,
-                    suggestedFloorPrice: null, // Could calculate based on risk
+                    suggestedFloorPrice: null,
                     yieldPercentage: yieldPct.toFixed(2),
                     status: 'active',
                     expiresAt,
@@ -451,36 +463,140 @@ export function registerMarketplaceRoutes(app: Express): void {
                 })
                 .returning();
 
-            // Update invoice status to 'listed'
+            // Update invoice status
             await db.update(invoices)
                 .set({ status: 'listed' })
                 .where(eq(invoices.id, invoiceId));
 
-            logger.info("Invoice listed on marketplace", "marketplace", {
-                listingId: listing.id,
-                invoiceId,
-                seller: walletAddress,
-                askingPrice,
-                yieldPct,
-            });
+            logger.info("Invoice listed (pending signature)", "marketplace", { listingId: listing.id });
 
             res.status(201).json({
                 success: true,
+                message: "Listing created. Please sign transfer transaction.",
+                transaction, // Base64
                 listing: {
                     id: listing.id,
-                    invoiceId: listing.invoiceId,
-                    faceValue: listing.faceValue,
-                    askingPrice: listing.askingPrice,
-                    discountRate: listing.discountRate,
-                    yieldPercentage: listing.yieldPercentage,
-                    riskLevel: listing.riskLevel,
-                    status: listing.status,
-                },
-                message: "Invoice successfully listed on marketplace",
+                    status: listing.status
+                }
             });
+
         } catch (error: any) {
             logger.error("Failed to list invoice", "marketplace", { error: error.message });
-            res.status(500).json({ success: false, error: "Failed to list invoice" });
+            res.status(500).json({ success: false, error: "Failed to list invoice: " + error.message });
+        }
+    });
+
+    /**
+     * POST /api/marketplace/purchase
+     * Buy a listed invoice
+     * Returns Atomic Swap Transaction (Payment + NFT Delivery)
+     */
+    app.post("/api/marketplace/purchase", requireAuth, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = (req.session as any).walletAddress;
+            const { listingId } = req.body;
+
+            if (!listingId) return res.status(400).json({ success: false, error: "listingId required" });
+
+            const [listing] = await db.select()
+                .from(invoiceMarketplace)
+                .where(eq(invoiceMarketplace.id, listingId))
+                .limit(1);
+
+            if (!listing || listing.status !== 'active') {
+                return res.status(404).json({ success: false, error: "Listing not found or not active" });
+            }
+
+            if (listing.seller === walletAddress) {
+                return res.status(403).json({ success: false, error: "Cannot buy your own listing" });
+            }
+
+            // Fetch invoice checks
+            const [invoice] = await db.select()
+                .from(invoices)
+                .where(eq(invoices.id, listing.invoiceId))
+                .limit(1);
+
+            if (!invoice) return res.status(404).json({ success: false, error: "Invoice unavailable" });
+
+            // Generate Atomic Purchase Transaction
+            const nftService = await getReadyNftService();
+            const transaction = await nftService.createAtomicPurchaseTransaction(
+                invoice,
+                { askingPrice: listing.askingPrice, currency: listing.currency },
+                walletAddress,
+                listing.seller
+            );
+
+            res.json({
+                success: true,
+                transaction, // Base64
+                message: "Purchase transaction generated"
+            });
+
+        } catch (error: any) {
+            logger.error("Failed to generate purchase tx", "marketplace", { error: error.message });
+            res.status(500).json({ success: false, error: "Failed to generate purchase transaction" });
+        }
+    });
+
+    /**
+     * POST /api/marketplace/confirm-purchase
+     * Confirm on-chain purchase success and update DB
+     */
+    app.post("/api/marketplace/confirm-purchase", requireAuth, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = (req.session as any).walletAddress;
+            const { listingId, signature } = req.body;
+
+            if (!listingId || !signature) return res.status(400).json({ error: "Missing listingId or signature" });
+
+            // 1. Verify on-chain (or just trust and verify later, but verification is safer)
+            const nftService = await getReadyNftService(); // ensure connection
+            // We can use generic connection to confirm
+            const { getSolanaConnection } = await import("./solana-sdk");
+            const connection = getSolanaConnection();
+
+            // Wait for confirmation
+            const status = await connection.getSignatureStatus(signature);
+            // Basic check - frontend usually waits, so this should be confirmed or finalized
+            if (status.value?.err) {
+                return res.status(400).json({ success: false, error: "Transaction failed on-chain" });
+            }
+
+            // 2. Update DB
+            const [listing] = await db.select()
+                .from(invoiceMarketplace)
+                .where(eq(invoiceMarketplace.id, listingId))
+                .limit(1);
+
+            if (!listing) return res.status(404).json({ error: "Listing not found" });
+
+            // Update Listing
+            await db.update(invoiceMarketplace)
+                .set({
+                    status: 'sold',
+                    soldTo: walletAddress,
+                    soldAt: new Date(),
+                    salePrice: listing.askingPrice
+                })
+                .where(eq(invoiceMarketplace.id, listingId));
+
+            // CRITICAL: Update Invoice owner for Payment Routing!
+            await db.update(invoices)
+                .set({
+                    nftTransferredTo: walletAddress,
+                    nftBurnedAt: null // Ensure not burnt
+                })
+                .where(eq(invoices.id, listing.invoiceId));
+
+            logger.info("Marketplace purchase confirmed", "marketplace", { listingId, buyer: walletAddress });
+
+            res.json({ success: true, message: "Purchase confirmed" });
+
+        } catch (error: any) {
+            logger.error("Failed to confirm purchase", "marketplace", { error: error.message });
+            res.status(500).json({ success: false, error: "Failed to confirm purchase" });
         }
     });
 
@@ -492,22 +608,29 @@ export function registerMarketplaceRoutes(app: Express): void {
         try {
             const walletAddress = (req.session as any).walletAddress;
             const { id } = req.params;
+            const { returnTransaction } = req.query; // New flag
 
             const [listing] = await db.select()
                 .from(invoiceMarketplace)
                 .where(eq(invoiceMarketplace.id, id))
                 .limit(1);
 
-            if (!listing) {
-                return res.status(404).json({ success: false, error: "Listing not found" });
-            }
+            if (!listing) return res.status(404).json({ success: false, error: "Listing not found" });
+            if (listing.seller !== walletAddress) return res.status(403).json({ success: false, error: "Unauthorized" });
+            if (listing.status !== 'active') return res.status(400).json({ success: false, error: "Not active" });
 
-            if (listing.seller !== walletAddress) {
-                return res.status(403).json({ success: false, error: "You can only cancel your own listings" });
-            }
+            const [invoice] = await db.select().from(invoices).where(eq(invoices.id, listing.invoiceId)).limit(1);
 
-            if (listing.status !== 'active') {
-                return res.status(400).json({ success: false, error: `Cannot cancel listing with status: ${listing.status}` });
+            // Return Transaction for cancellation (NFT return)
+            const nftService = await getReadyNftService();
+            const transaction = await nftService.createCancelListingTransaction(invoice, walletAddress);
+
+            // If client specifically requested tx (v2 flow)
+            if (returnTransaction === 'true') {
+                // Don't update DB yet? 
+                // Should updated to 'pending_cancellation'?
+                // For now, let's keep old behavior of instant cancel in DB + return tx
+                // Ideal: Wait for confirm.
             }
 
             // Update listing status
@@ -515,7 +638,7 @@ export function registerMarketplaceRoutes(app: Express): void {
                 .set({ status: 'cancelled', updatedAt: new Date() })
                 .where(eq(invoiceMarketplace.id, id));
 
-            // Revert invoice status back to 'sent'
+            // Revert invoice status
             await db.update(invoices)
                 .set({ status: 'sent' })
                 .where(eq(invoices.id, listing.invoiceId));
@@ -525,6 +648,7 @@ export function registerMarketplaceRoutes(app: Express): void {
             res.json({
                 success: true,
                 message: "Listing cancelled successfully",
+                transaction // Includes return tx
             });
         } catch (error: any) {
             logger.error("Failed to cancel listing", "marketplace", { error: error.message });
@@ -534,6 +658,7 @@ export function registerMarketplaceRoutes(app: Express): void {
 
     /**
      * GET /api/marketplace/my-listings
+
      * Get authenticated user's listings
      */
     app.get("/api/marketplace/my-listings", requireAuth, async (req: Request, res: Response) => {

@@ -65,6 +65,8 @@ if (useSQLite) {
       max: 5, // Conservative limit to prevent 'terminating connection' due to overload
       idleTimeoutMillis: 60000, // Increase idle timeout
       connectionTimeoutMillis: 30000, // Increase connection timeout to 30s
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     });
 
     pool.on('error', (err: any) => {
@@ -90,12 +92,9 @@ export async function runMigrations() {
     const path = await import("path");
 
     if (useSQLite) {
-      const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
-      let migrationsFolder = path.resolve(process.cwd(), "migrations");
-      console.log(`Using SQLite migrations folder: ${migrationsFolder}`);
-      // Cast db to any because better-sqlite3 migrator expects BetterSQLite3Database
-      await migrate(db as any, { migrationsFolder });
-      console.log('✅ SQLite Migrations completed successfully');
+      // SQLite in development uses drizzle-kit schema sync, not Postgres migrations
+      // The migrations folder contains Postgres-specific SQL (CREATE EXTENSION pgcrypto, etc.)
+      console.log('✅ SQLite: Skipping Postgres migrations (schema synced via drizzle-kit)');
       return;
     }
 

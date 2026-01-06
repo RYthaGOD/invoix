@@ -1,7 +1,7 @@
 
 import { db } from "./db";
-import { payments, paymentReceiptNFTs, invoices, specialNFTMints } from "@shared/invoice-schema";
-import { eq, sql } from "drizzle-orm";
+import { payments, paymentReceiptNFTs, invoices, specialNFTMints, invoiceMarketplace } from "@shared/invoice-schema";
+import { eq, sql, and } from "drizzle-orm";
 import { getInvoiceNFTService } from "./nft-service";
 import { invoiceStorage } from "./invoice-storage";
 import { Connection } from "@solana/web3.js";
@@ -83,6 +83,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
 
         const paymentData = {
             invoiceId: invoiceId,
+            paymentNumber: `PAY-${Date.now().toString().slice(-6)}`,
             amount: invoice.remainingAmount,
             currency: invoice.currency,
             txSignature: signature,
@@ -101,26 +102,84 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                 return; // Fully idempotent - everything already done
             }
         } else {
-            // Create payment record
-            try {
-                paymentRecord = await invoiceStorage.createPayment(paymentData as any);
-                logger.info(`Payment recorded for ${signature}`, "payment");
-            } catch (e: any) {
-                if (e.message?.includes("already")) {
-                    logger.info(`Race condition: Payment created by another process for ${signature}`, "payment");
-                    // Refetch to get the record for NFT check
-                    const refetch = await db.select().from(payments).where(eq(payments.txSignature, signature)).limit(1);
-                    paymentRecord = refetch[0];
-                    if (paymentRecord?.nftReceiptMinted) {
-                        return; // Already fully processed
+            // Create new payment record
+            const [newPayment] = await db.insert(payments).values(paymentData).returning();
+            paymentRecord = newPayment;
+            logger.info(`Payment recorded: ${newPayment.id}`, "payment");
+
+            // 4. Update Invoice: Decrease remaining amount
+            const currentRemaining = parseFloat(invoice.remainingAmount);
+            const paidAmount = parseFloat(paymentRecord.amount);
+            const newRemaining = Math.max(0, currentRemaining - paidAmount).toString();
+            const newStatus = newRemaining === "0" ? "paid" : "sent";
+
+            await db.update(invoices)
+                .set({
+                    remainingAmount: newRemaining,
+                    status: newStatus,
+                    paidAmount: (parseFloat(invoice.paidAmount || "0") + paidAmount).toString()
+                })
+                .where(eq(invoices.id, invoiceId));
+
+            // === MARKETPLACE INTEGRATION: AUTO-CANCEL LISTINGS ===
+            // If the invoice was listed, the listing is now invalid due to value change.
+            // We must CANCEL the listing and RETURN the NFT to the seller.
+            const [activeListing] = await db.select()
+                .from(invoiceMarketplace)
+                .where(and(
+                    eq(invoiceMarketplace.invoiceId, invoiceId),
+                    eq(invoiceMarketplace.status, 'active')
+                ))
+                .limit(1);
+
+            if (activeListing) {
+                logger.warn(`Payment received for Listed Invoice ${invoiceId}. Auto-cancelling listing...`, "marketplace");
+
+                // 1. Mark as cancelled in DB
+                await db.update(invoiceMarketplace)
+                    .set({ status: 'cancelled', updatedAt: new Date() })
+                    .where(eq(invoiceMarketplace.id, activeListing.id));
+
+                // 2. Return NFT from Escrow (Server) to Seller
+                // Only if we hold the NFT (which we should if status was active)
+                if (invoice.nftMint && invoice.nftMerkleTree && invoice.nftLeafIndex !== null) {
+                    try {
+                        const nftService = getInvoiceNFTService();
+                        if (!nftService.isReady()) await nftService.initialize();
+
+                        // Server is Escrow Agent (Leaf Owner). Seller is original owner.
+                        // We transfer back to Seller.
+                        await nftService.transferInvoiceNFT(
+                            invoice.nftMint,
+                            invoice.nftMerkleTree,
+                            invoice.nftLeafIndex,
+                            nftService.getIdentityPublicKey(), // From Server (Escrow)
+                            activeListing.seller // To Seller
+                        );
+                        logger.info(`Auto-returned NFT to seller ${activeListing.seller}`, "marketplace");
+
+                        // Revert invoice status to what it should be (sent or paid)
+                        // The update above already set it to 'sent' or 'paid' based on remaining amount.
+                        // But listing cancellation often sets it to 'sent'. We ensure it respects 'paid' if fully paid.
+                        if (newStatus === 'paid') {
+                            // If paid, keep as paid. NFT is now in Seller's wallet as a "Paid Invoice" souvenir/record.
+                            // Or we could burn it. For now, returning it is safer.
+                        } else {
+                            // If partial payment, it remains 'sent'.
+                            await db.update(invoices)
+                                .set({ status: 'sent' }) // Ensure it's not 'listed'
+                                .where(eq(invoices.id, invoiceId));
+                        }
+
+                    } catch (err) {
+                        logger.error("Failed to auto-return NFT for cancelled listing", "marketplace", { error: err });
+                        // Critical Alert: NFT is stuck in Escrow but Listing is Cancelled.
+                        // This requires manual intervention or a recovery script.
                     }
-                } else {
-                    throw e;
                 }
             }
         }
 
-        // Note: invoiceStorage.createPayment automatically updates invoice status
 
         // 5. Special Logic: Community NFT Drop
         if (invoice.description === "Exclusive Community NFT Mint") {

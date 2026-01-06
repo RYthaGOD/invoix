@@ -7,6 +7,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { VersionedTransaction } from "@solana/web3.js";
 import {
     Dialog,
     DialogContent,
@@ -53,6 +55,8 @@ export function ListInvoiceModal({
     onListingCreated
 }: ListInvoiceModalProps) {
     const { walletAddress } = useAuth();
+    const { connection } = useConnection();
+    const { sendTransaction } = useWallet();
 
     const [eligibility, setEligibility] = useState<{
         eligible: boolean;
@@ -138,6 +142,7 @@ export function ListInvoiceModal({
 
         setSubmitting(true);
         try {
+            // 1. Get Transaction from API
             const response = await fetch("/api/marketplace/list", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -156,6 +161,28 @@ export function ListInvoiceModal({
                 throw new Error(data.error || "Failed to list invoice");
             }
 
+            if (!data.transaction) {
+                throw new Error("Invalid response from server: No transaction returned");
+            }
+
+            // 2. Sign and Send Transaction
+            const transactionBuffer = Uint8Array.from(atob(data.transaction), c => c.charCodeAt(0));
+            const transaction = VersionedTransaction.deserialize(transactionBuffer);
+
+            toast({
+                title: "Please Sign Wallet",
+                description: "Escrow transfer transaction pending approval...",
+            });
+
+            const signature = await sendTransaction(transaction, connection);
+
+            toast({
+                title: "Confirming Listing...",
+                description: "Waiting for blockchain confirmation.",
+            });
+
+            await connection.confirmTransaction(signature, 'confirmed');
+
             toast({
                 title: "Listed Successfully!",
                 description: `Invoice ${invoice.invoiceNumber} is now live on the marketplace.`,
@@ -164,9 +191,10 @@ export function ListInvoiceModal({
             onOpenChange(false);
             onListingCreated?.();
         } catch (err: any) {
+            console.error("Listing error:", err);
             toast({
                 title: "Listing Failed",
-                description: err.message,
+                description: err.message || "Failed to sign or send transaction",
                 variant: "destructive",
             });
         } finally {
@@ -204,8 +232,8 @@ export function ListInvoiceModal({
                         </div>
                     ) : eligibility && (
                         <div className={`p-4 rounded-lg border ${eligibility.eligible
-                                ? "bg-emerald-500/10 border-emerald-500/30"
-                                : "bg-red-500/10 border-red-500/30"
+                            ? "bg-emerald-500/10 border-emerald-500/30"
+                            : "bg-red-500/10 border-red-500/30"
                             }`}>
                             <div className="flex items-center gap-2 mb-2">
                                 {eligibility.eligible ? (
