@@ -492,7 +492,7 @@ export const invoiceMarketplace = pgTable("invoice_marketplace", {
   yieldPercentage: decimal("yield_percentage", { precision: 5, scale: 2 }), // (face-asking)/asking * 100
 
   // Listing Status
-  status: text("status").notNull().default("active"), // active, sold, cancelled, expired
+  status: text("status").notNull().default("pending_transfer"), // pending_transfer, active, sold, cancelled, pending_cancellation, expired
   listedAt: timestamp("listed_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at"), // Optional listing expiration
 
@@ -795,6 +795,69 @@ export const specialNFTMints = pgTable("special_nft_mints", {
   walletIdx: index("special_nft_wallet_idx").on(table.walletAddress),
   rarityIdx: index("special_nft_rarity_idx").on(table.nftRarity),
 }));
+
+// ============================================
+// RECURRING ECONOMY TABLES
+// ============================================
+
+/**
+ * Subscription Plans - Defined by businesses
+ */
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerWalletAddress: text("owner_wallet_address").notNull(),
+
+  name: text("name").notNull(),
+  description: text("description"),
+
+  amount: decimal("amount", { precision: 18, scale: 9 }).notNull(),
+  currency: text("currency").notNull().default("USDC"),
+
+  interval: text("interval").notNull(), // weekly, monthly, yearly
+  intervalCount: integer("interval_count").notNull().default(1),
+
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * Subscriptions - Active recurring billing
+ */
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planId: varchar("plan_id").notNull().references(() => subscriptionPlans.id),
+
+  invoicerWalletAddress: text("invoicer_wallet_address").notNull(),
+  customerWalletAddress: text("customer_wallet_address").notNull(),
+
+  status: text("status").notNull().default("active"), // active, paused, cancelled, past_due
+
+  startDate: timestamp("start_date").notNull().defaultNow(),
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+
+  cancelledAt: timestamp("cancelled_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * Milestones - For project-based billing
+ */
+export const milestones = pgTable("milestones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: varchar("invoice_id").references(() => invoices.id), // Optional: link to parent invoice
+
+  title: text("title").notNull(),
+  description: text("description"),
+
+  amount: decimal("amount", { precision: 18, scale: 9 }).notNull(),
+  currency: text("currency").notNull().default("USDC"),
+
+  status: text("status").notNull().default("pending"), // pending, in_progress, completed, paid
+  dueDate: timestamp("due_date"),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 // ============================================
 // TYPE EXPORTS

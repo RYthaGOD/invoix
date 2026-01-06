@@ -7,6 +7,7 @@ import { CurrencySelector } from "@/components/currency-selector";
 import { LineItemEditor } from "@/components/line-item-editor";
 import { safeAdd, safeMultiply, safeSubtract } from "@shared/math";
 import { useAuth } from "@/hooks/use-auth";
+import { getCurrencySymbol } from "@/lib/currency-utils";
 
 export interface LineItem {
     description: string;
@@ -39,6 +40,7 @@ interface InvoiceFormProps {
     className?: string;
     templates?: any[]; // Pass templates if available
     onTemplateSelect?: (templateId: string) => void;
+    solPrice?: number | null; // For USD conversion display
 }
 
 export function InvoiceForm({
@@ -49,7 +51,8 @@ export function InvoiceForm({
     connected,
     className,
     templates = [],
-    onTemplateSelect
+    onTemplateSelect,
+    solPrice
 }: InvoiceFormProps) {
     const { register, control, handleSubmit, watch, reset, formState: { errors } } = useForm<InvoiceFormData>({
         defaultValues: {
@@ -70,6 +73,8 @@ export function InvoiceForm({
     const lineItems = watch("lineItems");
     const taxRate = watch("taxRate");
     const discountAmount = watch("discountAmount");
+    const currency = watch("currency");
+    const currencySymbol = getCurrencySymbol(currency || "USDC");
 
     // Calculate Totals Live
     const subtotal = lineItems.reduce((acc, item) => {
@@ -241,6 +246,8 @@ export function InvoiceForm({
                     control={control}
                     errors={errors}
                     watch={watch}
+                    currency={currency}
+                    solPrice={solPrice}
                 />
             </div>
 
@@ -249,7 +256,7 @@ export function InvoiceForm({
                 <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-4 max-w-md ml-auto">
                         <div className="text-right text-gray-400">Subtotal:</div>
-                        <div className="text-right text-white font-medium">${parseFloat(subtotal).toFixed(2)}</div>
+                        <div className="text-right text-white font-medium">{currencySymbol}{parseFloat(subtotal).toFixed(2)}</div>
 
                         <div className="text-right text-gray-400">
                             <input
@@ -263,10 +270,10 @@ export function InvoiceForm({
                             />
                             % Tax:
                         </div>
-                        <div className="text-right text-white">${parseFloat(taxAmount).toFixed(2)}</div>
+                        <div className="text-right text-white">{currencySymbol}{parseFloat(taxAmount).toFixed(2)}</div>
 
                         <div className="text-right text-gray-400">
-                            Discount: $
+                            Discount: {currencySymbol}
                             <input
                                 {...register("discountAmount")}
                                 type="number"
@@ -276,13 +283,20 @@ export function InvoiceForm({
                                 placeholder="0"
                             />
                         </div>
-                        <div className="text-right text-white">-${parseFloat(discountVal).toFixed(2)}</div>
+                        <div className="text-right text-white">-{currencySymbol}{parseFloat(discountVal).toFixed(2)}</div>
 
                         <div className="text-right text-gray-300 font-semibold text-lg pt-3 border-t border-white/10">
                             Total:
                         </div>
-                        <div className="text-right text-purple-400 font-bold text-xl pt-3 border-t border-white/10">
-                            ${parseFloat(total).toFixed(2)}
+                        <div className="text-right pt-3 border-t border-white/10">
+                            <div className="text-purple-400 font-bold text-xl">
+                                {currencySymbol}{parseFloat(total).toFixed(2)}
+                            </div>
+                            {currency === "SOL" && solPrice && (
+                                <div className="text-sm text-gray-400 mt-1">
+                                    ≈ ${(parseFloat(total) * solPrice).toFixed(2)} USD
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 import React from "react";
 import { UseFormRegister, Control, useFieldArray, FieldErrors } from "react-hook-form";
 import { Plus, Trash2, DollarSign } from "lucide-react";
+import { getCurrencySymbol } from "@/lib/currency-utils";
 
 interface LineItem {
     description: string;
@@ -13,15 +14,18 @@ interface LineItemEditorProps {
     control: Control<any>;
     errors: FieldErrors<{ lineItems: LineItem[] }>;
     watch: any;
+    currency?: string;
+    solPrice?: number | null;
 }
 
-export function LineItemEditor({ register, control, errors, watch }: LineItemEditorProps) {
+export function LineItemEditor({ register, control, errors, watch, currency = "USDC", solPrice }: LineItemEditorProps) {
     const { fields, append, remove } = useFieldArray({
         control,
         name: "lineItems",
     });
 
     const lineItems = watch("lineItems");
+    const currencySymbol = getCurrencySymbol(currency);
 
     return (
         <div className="glass-card p-6">
@@ -92,8 +96,15 @@ export function LineItemEditor({ register, control, errors, watch }: LineItemEdi
                                 placeholder="Price"
                             />
                         </div>
-                        <div className="col-span-10 md:col-span-2 text-right text-white pt-2 font-mono">
-                            ${((parseFloat(lineItems[index]?.quantity || "0") * parseFloat(lineItems[index]?.unitPrice || "0"))).toFixed(2)}
+                        <div className="col-span-10 md:col-span-2 text-right pt-2">
+                            <div className="text-white font-mono">
+                                {currencySymbol}{((parseFloat(lineItems[index]?.quantity || "0") * parseFloat(lineItems[index]?.unitPrice || "0"))).toFixed(2)}
+                            </div>
+                            {currency === "SOL" && solPrice && (
+                                <div className="text-xs text-gray-400">
+                                    ≈ ${((parseFloat(lineItems[index]?.quantity || "0") * parseFloat(lineItems[index]?.unitPrice || "0")) * solPrice).toFixed(2)} USD
+                                </div>
+                            )}
                         </div>
                         <div className="col-span-2 md:col-span-1 flex justify-end">
                             {fields.length > 1 && (

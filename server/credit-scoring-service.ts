@@ -522,15 +522,22 @@ export class CreditScoringService {
         invoicerWalletAddress: string;
         invoiceeWalletAddress: string;
         totalAmount: string;
+        currency?: string; // FIX: Add currency for proper USD conversion
     }): Promise<void> {
-        const { invoicerWalletAddress, invoiceeWalletAddress, totalAmount } = invoice;
+        const { invoicerWalletAddress, invoiceeWalletAddress, totalAmount, currency } = invoice;
 
         // Ensure both parties have credit score records
         await this.getOrCreateCreditScore(invoicerWalletAddress);
         await this.getOrCreateCreditScore(invoiceeWalletAddress);
 
-        // Update invoicer metrics
-        const amountUsd = parseFloat(totalAmount); // Assuming stablecoin for now
+        // FIX: Convert to USD based on currency
+        let amountUsd = parseFloat(totalAmount);
+        if (currency === 'SOL') {
+            const solPriceEstimate = 200; // Conservative USD estimate
+            amountUsd = parseFloat(totalAmount) * solPriceEstimate;
+        } else if (currency === 'EURC') {
+            amountUsd = parseFloat(totalAmount) * 1.1; // EUR to USD estimate
+        }
 
         await db.update(businessCreditScores)
             .set({

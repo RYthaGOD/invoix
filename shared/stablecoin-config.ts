@@ -59,7 +59,16 @@ export const STABLECOINS: Record<string, StablecoinConfig> = {
 };
 
 // Devnet Test Tokens (for development)
+// FIX: Added SOL and other currencies for devnet compatibility
 export const DEVNET_STABLECOINS: Record<string, StablecoinConfig> = {
+    SOL: {
+        symbol: 'SOL',
+        name: 'Solana (Devnet)',
+        mint: 'So11111111111111111111111111111111111111112', // Same wrapped SOL mint
+        decimals: 9,
+        icon: '◎',
+        network: 'devnet',
+    },
     USDC: {
         symbol: 'USDC',
         name: 'USD Coin (Devnet)',

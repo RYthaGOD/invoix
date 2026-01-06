@@ -363,6 +363,7 @@ export default function InvoiceCreate() {
           templates={templates}
           onTemplateSelect={setSelectedTemplateId}
           defaultValues={templateData}
+          solPrice={solPrice}
         />
 
       </div>

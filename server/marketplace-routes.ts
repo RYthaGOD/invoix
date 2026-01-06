@@ -429,9 +429,22 @@ export function registerMarketplaceRoutes(app: Express): void {
                 ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
                 : null;
 
-            // 1. Generate Escrow Transfer Transaction
-            const nftService = await getReadyNftService();
-            const transaction = await nftService.createEscrowTransferTransaction(invoice, walletAddress);
+            // 1. Generate Escrow Transfer Transaction (Non-Custodial List)
+            const { marketplaceService } = await import("./marketplace-service");
+            // Assuming we have the assetId (mint) and currency mint address
+            // Need to look up currency mint address from config or DB
+            const { getStablecoinConfig } = await import("@shared/stablecoin-config");
+            const stablecoin = getStablecoinConfig(invoice.currency);
+
+            if (!stablecoin) throw new Error("Unsupported currency " + invoice.currency);
+
+            const transaction = await marketplaceService.createListInvoiceTransaction(
+                walletAddress,
+                invoiceId,
+                invoice.nftMint, // Asset ID
+                parseFloat(askingPrice) * Math.pow(10, stablecoin.decimals), // Convert to atomic units
+                stablecoin.mint
+            );
 
             // 2. Create Listing in DB (Active immediately, assuming user signs)
             // Ideally we'd mark it 'pending_transfer', but for this flow we'll handle it optimistically
@@ -520,12 +533,17 @@ export function registerMarketplaceRoutes(app: Express): void {
             if (!invoice) return res.status(404).json({ success: false, error: "Invoice unavailable" });
 
             // Generate Atomic Purchase Transaction
-            const nftService = await getReadyNftService();
-            const transaction = await nftService.createAtomicPurchaseTransaction(
-                invoice,
-                { askingPrice: listing.askingPrice, currency: listing.currency },
+            const { marketplaceService } = await import("./marketplace-service");
+            const { getStablecoinConfig } = await import("@shared/stablecoin-config");
+            const stablecoin = getStablecoinConfig(listing.currency);
+
+            if (!stablecoin) throw new Error("Unsupported currency " + listing.currency);
+
+            const transaction = await marketplaceService.createBuyInvoiceTransaction(
                 walletAddress,
-                listing.seller
+                listing.seller,
+                listing.nftMint,
+                stablecoin.mint
             );
 
             res.json({

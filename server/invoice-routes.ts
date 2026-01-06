@@ -269,6 +269,7 @@ export function registerInvoiceRoutes(app: Express): void {
           invoicerWalletAddress: invoice.invoicerWalletAddress,
           invoiceeWalletAddress: invoice.invoiceeWalletAddress,
           totalAmount: invoice.totalAmount,
+          currency: invoice.currency, // FIX: Pass currency for proper USD conversion
         }).catch(err => logger.warn("Credit score update failed", "credit", { error: err.message }));
       } catch (creditErr) {
         logger.warn("Credit scoring service unavailable", "credit", { error: creditErr });
@@ -606,19 +607,24 @@ export function registerInvoiceRoutes(app: Express): void {
             // PRIORITY:
             // 1. Explicit email provided in request (from "Send Invoice" dialog)
             // 2. Email from Customer Profile
-            // 3. Fallback placeholder
-            const emailTo = req.body.customerEmail || customerProfile?.customerEmail || "customer@example.com";
+            // 3. Skip if no valid email (FIX: don't send to placeholder)
+            const emailTo = req.body.customerEmail || customerProfile?.customerEmail;
 
-            const emailService = getEmailService();
-            await emailService.sendInvoiceEmail({
-              to: emailTo,
-              invoiceNumber: fullInvoice.invoiceNumber,
-              amount: fullInvoice.totalAmount.toString(),
-              currency: fullInvoice.currency,
-              dueDate: new Date(fullInvoice.dueDate).toLocaleDateString(),
-              payLink: `${process.env.FRONTEND_URL || "http://localhost:5000"}/pay/${fullInvoice.id}`,
-              businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
-            });
+            // FIX: Skip email if no valid address instead of sending to example.com
+            if (!emailTo || emailTo === "customer@example.com" || !emailTo.includes("@")) {
+              logger.debug("No valid customer email found, skipping notification", "invoice");
+            } else {
+              const emailService = getEmailService();
+              await emailService.sendInvoiceEmail({
+                to: emailTo,
+                invoiceNumber: fullInvoice.invoiceNumber,
+                amount: fullInvoice.totalAmount.toString(),
+                currency: fullInvoice.currency,
+                dueDate: new Date(fullInvoice.dueDate).toLocaleDateString(),
+                payLink: `${process.env.FRONTEND_URL || "http://localhost:5000"}/pay/${fullInvoice.id}`,
+                businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
+              });
+            }
           }
         } catch (emailErr: any) {
           logger.error("Failed to trigger email notification", "invoice", { error: emailErr });

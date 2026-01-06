@@ -1,0 +1,24 @@
+[package]
+name = "marketplace-program"
+version = "0.1.0"
+description = "Non-custodial marketplace for Invoix cNFTs"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "marketplace_program"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+anchor-spl = "0.29.0"
+mpl-bubblegum = { version = "1.0.0", features = ["cpi"] }
+solana-program = "1.16"
+spl-account-compression = { version = "0.2.0", features = ["cpi"] }
+spl-token = "4.0"

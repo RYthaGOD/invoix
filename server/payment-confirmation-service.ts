@@ -55,11 +55,14 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
 
         // 2.5 STRICT VERIFICATION: Verify Amount and Recipient
         // Prevents "Pay Gas Only" attacks where a valid tx is sent but doesn't pay the invoice
+        // FIX: For marketplace-sold invoices, payment goes to the NFT buyer (nftTransferredTo)
+        const expectedRecipient = invoice.nftTransferredTo || invoice.invoicerWalletAddress;
+
         const verification = await verifyStablecoinPayment(
             connection,
             signature,
             invoice.remainingAmount, // Expected Amount (String)
-            invoice.invoicerWalletAddress, // Expected Recipient
+            expectedRecipient, // FIX: Use NFT owner if transferred, otherwise original invoicer
             invoice.currency
         );
 
