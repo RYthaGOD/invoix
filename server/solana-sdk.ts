@@ -1,9 +1,13 @@
 // Solana SDK integration or wallet signature verification
 // Optimized for B2B Invoicing Protocol
 
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Connection, clusterApiUrl, Keypair } from "@solana/web3.js";
+import { Program, AnchorProvider, Idl, Wallet } from "@coral-xyz/anchor";
 import bs58 from "bs58";
 import nacl from "tweetnacl";
+import { logger } from "./logger";
+import fs from "fs";
+import path from "path";
 
 /**
  * Verify a wallet signature to prove ownership
@@ -39,8 +43,6 @@ export async function verifyWalletSignature(
 }
 
 // Singleton Connection Configuration
-import { Connection, clusterApiUrl } from "@solana/web3.js";
-import { logger } from "./logger";
 
 let sharedConnection: Connection | null = null;
 
@@ -53,4 +55,38 @@ export function getSolanaConnection(): Connection {
     sharedConnection = new Connection(rpcUrl, 'confirmed');
   }
   return sharedConnection;
+}
+
+export async function getArciumProgram(): Promise<Program> {
+  const connection = getSolanaConnection();
+
+  // Use a dummy wallet for the provider (we purely read state)
+  const wallet = new Wallet(Keypair.generate());
+  const provider = new AnchorProvider(connection, wallet, {
+    commitment: "confirmed",
+  });
+
+  // Load IDL
+  // Assuming IDL is at root level or copied to server build
+  const idlPath = path.resolve(process.cwd(), "..", "arcium_idl.json"); // During dev, root is one level up from server
+  // Fallback for production structure if needed
+
+  let idl: Idl;
+  try {
+    const idlFile = fs.readFileSync(idlPath, "utf-8");
+    idl = JSON.parse(idlFile);
+  } catch (error) {
+    // Try local path if running from root
+    try {
+      const localIdlPath = path.resolve(process.cwd(), "arcium_idl.json");
+      const idlFile = fs.readFileSync(localIdlPath, "utf-8");
+      idl = JSON.parse(idlFile);
+    } catch (e) {
+      logger.error("Failed to load arcium_idl.json", "solana", { error: e });
+      throw new Error("IDL not found");
+    }
+  }
+
+  // @ts-ignore - Provider type mismatch between packages sometimes occurs
+  return new Program(idl, provider);
 }

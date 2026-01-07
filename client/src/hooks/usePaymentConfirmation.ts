@@ -52,7 +52,6 @@ export function usePaymentConfirmation({ connection, signature, invoiceId }: Use
                 // If we've already polled a few times and chain says confirmed,
                 // trust the chain to avoid UI getting stuck on DB sync delay
                 if (confirmations >= 5) {
-                    console.log("Chain confirmed after multiple polls, trusting chain status");
                     setStatus('verified');
                     return;
                 }

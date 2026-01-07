@@ -1,12 +1,291 @@
 {
     "version": "0.1.0",
     "name": "arcium_mxe",
+    "address": "5qs2TBEvAUEJiUVj7XupdjVxz9UyAxSy6mEkRSGyDbqe",
     "instructions": [
         {
-            "name": "initialize",
+            "name": "createInvoice",
             "accounts": [
                 {
-                    "name": "mxeAccount",
+                    "name": "invoice",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "payer",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "mint",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "invoiceId",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amount",
+                    "type": "u64"
+                },
+                {
+                    "name": "dueDate",
+                    "type": "i64"
+                },
+                {
+                    "name": "contentHash",
+                    "type": {
+                        "array": [
+                            "u8",
+                            32
+                        ]
+                    }
+                },
+                {
+                    "name": "assetId",
+                    "type": {
+                        "array": [
+                            "u8",
+                            32
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "lockInvoice",
+            "accounts": [
+                {
+                    "name": "invoice",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                }
+            ],
+            "args": [
+                {
+                    "name": "delegate",
+                    "type": "publicKey"
+                }
+            ]
+        },
+        {
+            "name": "unlockInvoice",
+            "accounts": [
+                {
+                    "name": "invoice",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "transferAuthority",
+            "accounts": [
+                {
+                    "name": "invoice",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                }
+            ],
+            "args": [
+                {
+                    "name": "newAuthority",
+                    "type": "publicKey"
+                }
+            ]
+        },
+        {
+            "name": "markInvoicePaid",
+            "accounts": [
+                {
+                    "name": "invoice",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "createSubscription",
+            "accounts": [
+                {
+                    "name": "subscription",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "payer",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "mint",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "subscriptionId",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amountPerPeriod",
+                    "type": "u64"
+                },
+                {
+                    "name": "frequencySeconds",
+                    "type": "i64"
+                },
+                {
+                    "name": "startDate",
+                    "type": "i64"
+                },
+                {
+                    "name": "assetId",
+                    "type": {
+                        "array": [
+                            "u8",
+                            32
+                        ]
+                    }
+                },
+                {
+                    "name": "totalPeriods",
+                    "type": {
+                        "option": "u32"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "lockSubscription",
+            "accounts": [
+                {
+                    "name": "subscription",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                }
+            ],
+            "args": [
+                {
+                    "name": "delegate",
+                    "type": "publicKey"
+                }
+            ]
+        },
+        {
+            "name": "unlockSubscription",
+            "accounts": [
+                {
+                    "name": "subscription",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "transferSubscription",
+            "accounts": [
+                {
+                    "name": "subscription",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                }
+            ],
+            "args": [
+                {
+                    "name": "newAuthority",
+                    "type": "publicKey"
+                }
+            ]
+        },
+        {
+            "name": "cancelSubscription",
+            "accounts": [
+                {
+                    "name": "subscription",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "mintInvoiceFromSubscription",
+            "accounts": [
+                {
+                    "name": "subscription",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "invoice",
                     "isMut": true,
                     "isSigner": false
                 },
@@ -23,57 +302,159 @@
             ],
             "args": [
                 {
-                    "name": "bump",
-                    "type": "u8"
+                    "name": "invoiceId",
+                    "type": "bytes"
+                },
+                {
+                    "name": "contentHash",
+                    "type": {
+                        "array": [
+                            "u8",
+                            32
+                        ]
+                    }
+                },
+                {
+                    "name": "assetId",
+                    "type": {
+                        "array": [
+                            "u8",
+                            32
+                        ]
+                    }
                 }
             ]
         }
     ],
     "accounts": [
         {
-            "name": "MXEAccount",
+            "name": "InvoiceAccount",
             "type": {
                 "kind": "struct",
                 "fields": [
                     {
-                        "name": "cluster",
+                        "name": "authority",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "payer",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "mint",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "amount",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "dueDate",
+                        "type": "i64"
+                    },
+                    {
+                        "name": "status",
+                        "type": {
+                            "defined": "InvoiceStatus"
+                        }
+                    },
+                    {
+                        "name": "contentHash",
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ]
+                        }
+                    },
+                    {
+                        "name": "assetId",
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ]
+                        }
+                    },
+                    {
+                        "name": "delegate",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "subscriptionId",
+                        "type": {
+                            "option": {
+                                "array": [
+                                    "u8",
+                                    32
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "name": "bump",
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "SubscriptionAccount",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "authority",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "payer",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "mint",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "amountPerPeriod",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "frequencySeconds",
+                        "type": "i64"
+                    },
+                    {
+                        "name": "startDate",
+                        "type": "i64"
+                    },
+                    {
+                        "name": "nextDueDate",
+                        "type": "i64"
+                    },
+                    {
+                        "name": "totalPeriods",
                         "type": {
                             "option": "u32"
                         }
                     },
                     {
-                        "name": "mxeProgramId",
+                        "name": "assetId",
+                        "type": {
+                            "array": [
+                                "u8",
+                                32
+                            ]
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "type": {
+                            "defined": "SubscriptionStatus"
+                        }
+                    },
+                    {
+                        "name": "delegate",
                         "type": "publicKey"
-                    },
-                    {
-                        "name": "authority",
-                        "type": {
-                            "option": "publicKey"
-                        }
-                    },
-                    {
-                        "name": "utilityPubkeys",
-                        "type": {
-                            "defined": "SetUnset"
-                        }
-                    },
-                    {
-                        "name": "fallbackClusters",
-                        "type": {
-                            "vec": "u32"
-                        }
-                    },
-                    {
-                        "name": "rejectedClusters",
-                        "type": {
-                            "vec": "u32"
-                        }
-                    },
-                    {
-                        "name": "computationDefinitions",
-                        "type": {
-                            "vec": "u32"
-                        }
                     },
                     {
                         "name": "bump",
@@ -85,87 +466,133 @@
     ],
     "types": [
         {
-            "name": "UtilityPubkeys",
+            "name": "InvoiceStatus",
             "type": {
-                "kind": "struct",
-                "fields": [
+                "kind": "enum",
+                "variants": [
                     {
-                        "name": "x25519Pubkey",
-                        "type": {
-                            "array": [
-                                "u8",
-                                32
-                            ]
-                        }
+                        "name": "Draft"
                     },
                     {
-                        "name": "ed25519VerifyingKey",
-                        "type": {
-                            "array": [
-                                "u8",
-                                32
-                            ]
-                        }
+                        "name": "Sent"
                     },
                     {
-                        "name": "elgamalPubkey",
-                        "type": {
-                            "array": [
-                                "u8",
-                                32
-                            ]
-                        }
+                        "name": "Unpaid"
                     },
                     {
-                        "name": "pubkeyValidityProof",
-                        "type": {
-                            "array": [
-                                "u8",
-                                64
-                            ]
-                        }
+                        "name": "Paid"
+                    },
+                    {
+                        "name": "Cancelled"
+                    },
+                    {
+                        "name": "Factored"
+                    },
+                    {
+                        "name": "Locked"
                     }
                 ]
             }
         },
         {
-            "name": "SetUnset",
+            "name": "SubscriptionStatus",
             "type": {
                 "kind": "enum",
                 "variants": [
                     {
-                        "name": "Set",
-                        "fields": [
-                            {
-                                "name": "0",
-                                "type": {
-                                    "defined": "UtilityPubkeys"
-                                }
-                            }
-                        ]
+                        "name": "Active"
                     },
                     {
-                        "name": "Unset",
-                        "fields": [
-                            {
-                                "name": "0",
-                                "type": {
-                                    "defined": "UtilityPubkeys"
-                                }
-                            },
-                            {
-                                "name": "1",
-                                "type": {
-                                    "vec": "bool"
-                                }
-                            }
-                        ]
+                        "name": "Paused"
+                    },
+                    {
+                        "name": "Cancelled"
+                    },
+                    {
+                        "name": "Locked"
                     }
                 ]
             }
         }
     ],
+    "events": [
+        {
+            "name": "InvoiceCreated",
+            "fields": [
+                {
+                    "name": "invoice",
+                    "type": "publicKey",
+                    "index": false
+                },
+                {
+                    "name": "authority",
+                    "type": "publicKey",
+                    "index": false
+                },
+                {
+                    "name": "amount",
+                    "type": "u64",
+                    "index": false
+                },
+                {
+                    "name": "invoiceId",
+                    "type": "bytes",
+                    "index": false
+                },
+                {
+                    "name": "assetId",
+                    "type": {
+                        "array": [
+                            "u8",
+                            32
+                        ]
+                    },
+                    "index": false
+                }
+            ]
+        },
+        {
+            "name": "InvoiceTransferred",
+            "fields": [
+                {
+                    "name": "invoice",
+                    "type": "publicKey",
+                    "index": false
+                },
+                {
+                    "name": "oldAuthority",
+                    "type": "publicKey",
+                    "index": false
+                },
+                {
+                    "name": "newAuthority",
+                    "type": "publicKey",
+                    "index": false
+                }
+            ]
+        },
+        {
+            "name": "SubscriptionTransferred",
+            "fields": [
+                {
+                    "name": "subscription",
+                    "type": "publicKey",
+                    "index": false
+                },
+                {
+                    "name": "oldAuthority",
+                    "type": "publicKey",
+                    "index": false
+                },
+                {
+                    "name": "newAuthority",
+                    "type": "publicKey",
+                    "index": false
+                }
+            ]
+        }
+    ],
     "metadata": {
-        "address": "GSu3xPJNeyG2sVbn9GbZg4CHfzzUwLbYLaxzN7cbS3x"
+        "address": "5qs2TBEvAUEJiUVj7XupdjVxz9UyAxSy6mEkRSGyDbqe"
     }
 }

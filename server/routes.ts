@@ -18,6 +18,7 @@ import { analyticsRouter } from "./analytics-routes";
 import { registerDynamicImageRoutes } from "./endpoints/dynamic-image";
 import { registerCreditRoutes } from "./credit-routes";
 import { registerMarketplaceRoutes } from "./marketplace-routes";
+import { registerSubscriptionRoutes } from "./subscription-routes";
 import webhookRouter from "./webhook-routes";
 import { startWebhookCron } from "./webhook-service";
 
@@ -132,6 +133,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (process.env.ENABLE_MARKETPLACE === "true") {
     registerMarketplaceRoutes(app);
   }
+
+  // ================================================
+  // SUBSCRIPTION / RECURRING BILLING ROUTES
+  // ================================================
+  registerSubscriptionRoutes(app);
 
   // ================================================
   // WEBHOOK ROUTES (Enterprise Oracle/ERP Integration)

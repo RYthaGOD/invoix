@@ -329,7 +329,7 @@ export default function PayInvoice() {
                 const data = await res.json();
 
                 if (data.success && data.invoice && (data.invoice.status === 'paid' || data.invoice.status === 'processing' || data.invoice.status === 'partial')) {
-                    console.log("Payment recovered: Invoice status is " + data.invoice.status);
+                    // Payment recovered: Invoice has been paid
                     // Verify via hook by simulating a signature verification (or just reload)
                     if (!txSignature) {
                         // We don't have a signature to track, but the invoice is paid.

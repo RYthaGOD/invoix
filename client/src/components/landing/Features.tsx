@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Zap, Receipt, ShieldCheck, CreditCard } from "lucide-react";
+import { Zap, Receipt, ShieldCheck, CreditCard, CalendarClock } from "lucide-react";
 
 const fadeInUp = {
     initial: { opacity: 0, y: 30 },
@@ -131,6 +131,44 @@ export function Features() {
                                 Invoice details encrypted with Arcium (SDK mode). Public payments, private line items.
                                 Designed for enterprise confidentiality on a transparent blockchain.
                             </p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* 5. Recurring Subscriptions */}
+                <motion.div
+                    className="md:col-span-4 lg:col-span-4 row-span-1 feature-card group bg-gradient-to-br from-purple-500/5 to-transparent hover:border-purple-400/40 transition-all duration-500"
+                    variants={fadeInUp}
+                    initial="initial"
+                    whileInView="whileInView"
+                    viewport={{ once: true }}
+                >
+                    <div className="flex items-start gap-6">
+                        <div className="icon-wrapper shrink-0 group-hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] bg-purple-500/10 border-purple-500/20">
+                            <CalendarClock className="w-6 h-6 text-purple-400" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-xl font-bold font-heading mb-2 flex items-center gap-2">
+                                Recurring Subscriptions
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-mono">NEW</span>
+                            </h3>
+                            <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+                                Set up automated recurring billing for your customers. Create subscription plans, track billing cycles, and mint invoices automatically. Built on Solana for instant settlement and transparent on-chain tracking.
+                            </p>
+                            <div className="grid grid-cols-3 gap-4 text-xs">
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-purple-400"></div>
+                                    <span>Auto-billing</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-purple-400"></div>
+                                    <span>On-chain tracking</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-purple-400"></div>
+                                    <span>Instant settlement</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </motion.div>

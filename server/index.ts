@@ -32,6 +32,7 @@ import {
 } from "./security";
 import { validateEnvironment } from "./env-validator";
 import { healthCheck, liveness, readiness } from "./health";
+import { getSystemMetrics } from "./metrics";
 import { initializeNFTService } from "./nft-service";
 import { initializeArciumService } from "./arcium-service";
 import { loadKeypairFromPrivateKey } from "./arcium-service";
@@ -118,6 +119,15 @@ app.use((req, res, next) => {
 app.get("/health", healthCheck);
 app.get("/health/live", liveness);
 app.get("/health/ready", readiness);
+app.get("/api/metrics", async (req, res) => {
+  try {
+    const metrics = await getSystemMetrics();
+    res.json(metrics);
+  } catch (error) {
+    logger.error("Failed to fetch metrics", "metrics", { error });
+    res.status(500).json({ error: "Failed to fetch metrics" });
+  }
+});
 
 // Sentry request handler (must be first middleware)
 app.use(sentryRequestHandler());
@@ -235,6 +245,22 @@ app.use((req, res, next) => {
       },
       name: "invoix_sid",
     }));
+
+    // 8. Start server
+    startupPhase = "server_start";
+    server.listen(port, () => {
+      log(`🚀 Server running on port ${port}`);
+      log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+      log(`   Health: http://localhost:${port}/api/health`);
+      startupPhase = "running";
+
+      // Start automated cleanup jobs
+      import('./subscription-cleanup').then(({ startCleanupJobs }) => {
+        startCleanupJobs();
+      }).catch((error) => {
+        logger.error('Failed to start cleanup jobs', 'system', { error: String(error) });
+      });
+    });
 
     // 4. Register Routes
     startupPhase = "route_registration";

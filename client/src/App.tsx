@@ -32,6 +32,9 @@ const DocsPage = lazy(() => import("@/pages/docs"));
 const Tokenomics = lazy(() => import("@/pages/tokenomics"));
 const Marketplace = lazy(() => import("@/pages/marketplace"));
 const MarketplaceListing = lazy(() => import("@/pages/marketplace-listing"));
+const SubscriptionList = lazy(() => import("@/pages/subscription-list"));
+const SubscriptionCreate = lazy(() => import("@/pages/subscription-create"));
+const SubscriptionDetail = lazy(() => import("@/pages/subscription-detail"));
 
 import { useAnalytics } from "@/hooks/use-analytics";
 
@@ -87,6 +90,29 @@ function Router() {
           {() => (
             <DashboardLayout>
               <Templates />
+            </DashboardLayout>
+          )}
+        </Route>
+
+        {/* Subscription Routes */}
+        <Route path="/subscriptions">
+          {() => (
+            <DashboardLayout>
+              <SubscriptionList />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/subscriptions/create">
+          {() => (
+            <DashboardLayout>
+              <SubscriptionCreate />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/subscriptions/:id">
+          {() => (
+            <DashboardLayout>
+              <SubscriptionDetail />
             </DashboardLayout>
           )}
         </Route>

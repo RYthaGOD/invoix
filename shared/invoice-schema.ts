@@ -830,7 +830,8 @@ export const subscriptions = pgTable("subscriptions", {
   invoicerWalletAddress: text("invoicer_wallet_address").notNull(),
   customerWalletAddress: text("customer_wallet_address").notNull(),
 
-  status: text("status").notNull().default("active"), // active, paused, cancelled, past_due
+  status: text("status").notNull().default("pending_confirmation"), // pending_confirmation, active, paused, cancelled, past_due
+  version: integer("version").notNull().default(0), // Optimistic locking
 
   startDate: timestamp("start_date").notNull().defaultNow(),
   currentPeriodStart: timestamp("current_period_start").notNull(),
@@ -838,7 +839,29 @@ export const subscriptions = pgTable("subscriptions", {
 
   cancelledAt: timestamp("cancelled_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Performance indices for common queries
+  invoicerIdx: index("sub_invoicer_idx").on(table.invoicerWalletAddress),
+  customerIdx: index("sub_customer_idx").on(table.customerWalletAddress),
+  statusIdx: index("sub_status_idx").on(table.status),
+  planIdx: index("sub_plan_idx").on(table.planId),
+  // Composite index for most common query pattern
+  invoicerStatusIdx: index("sub_invoicer_status_idx").on(table.invoicerWalletAddress, table.status),
+}));
+
+/**
+ * Confirmed Signatures - Idempotency tracking for on-chain confirmations
+ */
+export const confirmedSignatures = pgTable("confirmed_signatures", {
+  signature: text("signature").primaryKey(),
+  endpoint: text("endpoint").notNull(), // "/confirm-cancel", "/confirm-invoice", etc.
+  resourceType: text("resource_type").notNull(), // "subscription", "invoice"
+  resourceId: varchar("resource_id").notNull(),
+  confirmedAt: timestamp("confirmed_at").notNull().defaultNow(),
+}, (table) => ({
+  resourceIdx: index("confirmed_resource_idx").on(table.resourceType, table.resourceId),
+  confirmedAtIdx: index("confirmed_at_idx").on(table.confirmedAt),
+}));
 
 /**
  * Milestones - For project-based billing

@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate, Sparkles, Code } from "lucide-react";
+import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate, Sparkles, Code, CalendarClock } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -59,6 +59,13 @@ const menuItems = [
     title: "Templates",
     url: "/templates",
     icon: LayoutTemplate,
+  },
+  {
+    title: "Subscriptions",
+    url: "/subscriptions",
+    icon: CalendarClock,
+    badge: "New",
+    badgeColor: "text-green-400 bg-green-400/10 border-green-400/20",
   },
   {
     title: "Stats",
