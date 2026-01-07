@@ -39,6 +39,14 @@ const faqs: FAQItem[] = [
     {
         question: "How is my data secured?",
         answer: "All sensitive data is encrypted using Arcium's x25519 and RescueCipher algorithms before transmission. Database admins cannot view your invoice details. Authentication uses Sign In With Solana (SIWS) with replay-attack protection and strict rate limiting."
+    },
+    {
+        question: "What are recurring subscriptions?",
+        answer: "Invoix supports automated recurring billing for subscription-based services. Create subscription plans with defined billing cycles (weekly, monthly, or yearly), and the system automatically generates and tracks invoices for each period. All subscriptions are tracked on-chain for full transparency."
+    },
+    {
+        question: "How does passkey authentication work?",
+        answer: "Invoix supports LazorKit smart wallets with passkey authentication. This allows you to log in using biometrics or security keys without needing traditional wallet extensions. Your authentication is verified on-chain, providing the same security as traditional wallet signatures."
     }
 ];
 

@@ -150,10 +150,9 @@ export function Features() {
                         <div className="flex-1">
                             <h3 className="text-xl font-bold font-heading mb-2 flex items-center gap-2">
                                 Recurring Subscriptions
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-mono">NEW</span>
                             </h3>
                             <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-                                Set up automated recurring billing for your customers. Create subscription plans, track billing cycles, and mint invoices automatically. Built on Solana for instant settlement and transparent on-chain tracking.
+                                Automate recurring billing for your customers. Create subscription plans, track billing cycles, and mint invoices automatically. Powered by Solana for instant settlement and transparent on-chain tracking.
                             </p>
                             <div className="grid grid-cols-3 gap-4 text-xs">
                                 <div className="flex items-center gap-2 text-muted-foreground">

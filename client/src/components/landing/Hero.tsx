@@ -53,7 +53,7 @@ export function Hero() {
                         >
                             Create professional invoices. Get paid in USDC, SOL, or EURC with sub-second finality.
                             Every payment automatically mints an NFT receipt for immutable, auditable records.
-                            <span className="block mt-2 text-emerald-400/80 font-medium">Currently live on Devnet for public beta testing.</span>
+                            <span className="block mt-2 text-emerald-400/80 font-medium">Production-ready on Devnet with passkey authentication support.</span>
                         </motion.p>
 
                         <motion.div
