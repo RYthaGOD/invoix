@@ -235,7 +235,7 @@ export function corsPolicy() {
       } else {
         // Log blocked origin for debugging mobile wallet issues
         if (origin && !corsAllowed) {
-          console.warn(`[CORS] Blocked Origin: ${origin}`);
+          logger.warn(`CORS blocked origin: ${origin}`, "security");
         }
         // Reject CORS for unauthorized origins
         res.setHeader("Access-Control-Allow-Origin", "null");
@@ -467,6 +467,7 @@ export async function requireWalletOwnership(
     }
 
     const authenticatedWallet = req.session.walletAddress;
+    const authMode = req.session.authMode || 'traditional';  // Default to traditional for backwards compatibility
 
     // For routes that specify a wallet address in params/query, verify it matches the session
     const requestedWallet = req.params.walletAddress || req.query.wallet as string;
@@ -487,11 +488,14 @@ export async function requireWalletOwnership(
       });
     }
 
-    // Attach verified wallet to request for use in route handlers
+    // Attach verified wallet and auth mode to request for use in route handlers
     (req as any).authenticatedWallet = authenticatedWallet;
+    (req as any).authMode = authMode;
+    (req as any).smartWalletPda = req.session.smartWalletPda;  // Available for passkey mode
 
     auditLog("wallet_access_granted", {
       walletAddress: authenticatedWallet,
+      authMode,
       resource: req.path,
       method: req.method,
       ip: getClientIp(req),

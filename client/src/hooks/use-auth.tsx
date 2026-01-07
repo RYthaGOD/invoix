@@ -13,8 +13,9 @@ import bs58 from "bs58";
 interface AuthContextType {
     isAuthenticated: boolean;
     walletAddress: string | null;
+    authMode: 'traditional' | 'passkey' | null;  // Current authentication mode
     isLoading: boolean;
-    login: () => Promise<void>;
+    login: (mode?: 'traditional' | 'passkey') => Promise<void>;  // Support dual modes
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
 }
@@ -26,7 +27,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { toast } = useToast();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
+    const [authMode, setAuthMode] = useState<'traditional' | 'passkey' | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [lazorkitWallet, setLazorkitWallet] = useState<any>(null);
+
+    // Load LazorKit hook dynamically (only if enabled)
+    const passkeyEnabled = import.meta.env.VITE_ENABLE_PASSKEY_AUTH === 'true';
+
+    useEffect(() => {
+        if (passkeyEnabled && !lazorkitWallet) {
+            import('@lazorkit/wallet')
+                .then((module) => {
+                    // Create hook instance on successful import
+                    setLazorkitWallet(module.useWallet());
+                })
+                .catch((e) => {
+                    console.warn('[Auth] LazorKit not available:', e);
+                });
+        }
+    }, [passkeyEnabled]);
 
     // Check authentication status on mount and wallet change
     useEffect(() => {
@@ -68,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const data = await response.json();
                 setIsAuthenticated(data.authenticated);
                 setWalletAddress(data.walletAddress || null);
+                setAuthMode(data.authMode || 'traditional');  // Track auth mode from session
             } else {
                 setIsAuthenticated(false);
                 setWalletAddress(null);
@@ -81,7 +101,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const login = async () => {
+    const login = async (mode: 'traditional' | 'passkey' = 'traditional') => {
+        // Passkey authentication via LazorKit
+        if (mode === 'passkey') {
+            if (!passkeyEnabled || !lazorkitWallet) {
+                toast({
+                    title: "Passkey auth not available",
+                    description: "Please enable passkey authentication in settings",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            try {
+                setIsLoading(true);
+
+                // Connect with LazorKit (triggers WebAuthn prompt)
+                const walletInfo = await lazorkitWallet.connect({ feeMode: 'paymaster' });
+
+                // Defensive null checks
+                if (!walletInfo || !walletInfo.smartWallet) {
+                    throw new Error("Invalid wallet response from LazorKit");
+                }
+
+                const smartWalletAddress = walletInfo.smartWallet;
+
+                // Create message to sign
+                const timestamp = Date.now();
+                const message = `Sign in to Invoix at ${timestamp}`;
+
+                // Sign message (LazorKit handles WebAuthn signature)
+                const signature = await lazorkitWallet.signMessage(message);
+
+                if (!signature) {
+                    throw new Error("Failed to generate signature");
+                }
+
+                // Send to backend for verification
+                const response = await fetch("/api/auth/login/passkey", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        smartWalletAddress,
+                        message,
+                        signature,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || "Passkey authentication failed");
+                }
+
+                const data = await response.json();
+                setIsAuthenticated(true);
+                setWalletAddress(data.walletAddress);
+                setAuthMode('passkey');
+
+                toast({
+                    title: "Login successful",
+                    description: `Authenticated with passkey`,
+                });
+            } catch (error: any) {
+                console.error("Passkey login error:", error);
+                toast({
+                    title: "Passkey login failed",
+                    description: error.message || "Could not authenticate with passkey",
+                    variant: "destructive",
+                });
+                setIsAuthenticated(false);
+                setWalletAddress(null);
+                setAuthMode(null);
+            } finally {
+                setIsLoading(false);
+            }
+            return;
+        }
+
+        // Traditional wallet authentication
         if (!publicKey || !signMessage) {
             toast({
                 title: "Wallet not connected",
@@ -123,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await response.json();
             setIsAuthenticated(true);
             setWalletAddress(data.walletAddress);
+            setAuthMode('traditional');
 
             toast({
                 title: "Login successful",
@@ -146,6 +245,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             setIsLoading(true);
 
+            // Disconnect LazorKit if using passkey mode
+            if (authMode === 'passkey' && lazorkitWallet && lazorkitWallet.disconnect) {
+                try {
+                    await lazorkitWallet.disconnect();
+                } catch (e) {
+                    console.warn('[Auth] LazorKit disconnect failed:', e);
+                }
+            }
+
             await fetch("/api/auth/logout", {
                 method: "POST",
                 credentials: "include",
@@ -153,6 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             setIsAuthenticated(false);
             setWalletAddress(null);
+            setAuthMode(null);
 
             toast({
                 title: "Logged out",
@@ -175,6 +284,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             value={{
                 isAuthenticated,
                 walletAddress,
+                authMode,  // Expose auth mode to consumers
                 isLoading,
                 login,
                 logout,
