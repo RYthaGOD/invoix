@@ -14,7 +14,8 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { getArciumProgram, getSolanaConnection } from "./solana-sdk";
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { BN } from "@coral-xyz/anchor";
+import * as anchor from "@coral-xyz/anchor";
+const { BN } = anchor;
 import crypto from "crypto";
 import { uuidToSubscriptionSeed, deriveSubscriptionPda } from "./subscription-utils";
 

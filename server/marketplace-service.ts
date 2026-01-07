@@ -1,5 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+const { Program } = anchor;
+import type { Program as ProgramType } from "@coral-xyz/anchor";
 import { Connection, PublicKey, Transaction, SystemProgram, Keypair } from "@solana/web3.js";
 import { logger } from "./logger";
 import { dasService } from "./das-service";
@@ -95,7 +96,7 @@ const IDL: any = {
 export class MarketplaceService {
     private connection: Connection;
     private provider: anchor.AnchorProvider;
-    private program: Program;
+    private program: any;
 
     constructor() {
         const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";

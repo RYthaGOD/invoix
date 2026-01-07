@@ -5,7 +5,7 @@ const useSQLite = !process.env.DATABASE_URL;
 
 export default defineConfig({
   out: "./migrations",
-  schema: useSQLite ? "./shared/invoice-schema-sqlite.ts" : "./shared/invoice-schema.ts",
+  schema: useSQLite ? "./shared/invoice-schema-sqlite.ts" : ["./shared/invoice-schema.ts", "./shared/webhooks-schema.ts"],
   dialect: useSQLite ? "sqlite" : "postgresql",
   dbCredentials: useSQLite
     ? { url: "./data/invoices.db" }

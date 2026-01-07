@@ -2,7 +2,9 @@
 // Optimized for B2B Invoicing Protocol
 
 import { PublicKey, Connection, clusterApiUrl, Keypair } from "@solana/web3.js";
-import { Program, AnchorProvider, Idl, Wallet } from "@coral-xyz/anchor";
+import * as anchor from "@coral-xyz/anchor";
+const { Program, AnchorProvider, Wallet } = anchor;
+import type { Idl, Program as ProgramType } from "@coral-xyz/anchor";
 import bs58 from "bs58";
 import nacl from "tweetnacl";
 import { logger } from "./logger";
@@ -57,7 +59,7 @@ export function getSolanaConnection(): Connection {
   return sharedConnection;
 }
 
-export async function getArciumProgram(): Promise<Program> {
+export async function getArciumProgram(): Promise<any> {
   const connection = getSolanaConnection();
 
   // Use a dummy wallet for the provider (we purely read state)

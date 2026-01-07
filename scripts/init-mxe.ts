@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+const { Program } = anchor;
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
 import * as dotenv from "dotenv";
 import fs from "fs";
