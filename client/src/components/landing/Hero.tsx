@@ -72,12 +72,13 @@ export function Hero() {
                                 </button>
                             </Link>
 
-                            <button
-                                onClick={() => window.location.href = '#docs'}
-                                className="btn-secondary h-14 px-10 text-lg flex items-center justify-center hover:bg-white/10 border border-white/10 backdrop-blur-md"
-                            >
-                                Read Docs
-                            </button>
+                            <Link href="/docs">
+                                <button
+                                    className="btn-secondary h-14 px-10 text-lg flex items-center justify-center hover:bg-white/10 border border-white/10 backdrop-blur-md"
+                                >
+                                    Read Docs
+                                </button>
+                            </Link>
                         </motion.div>
 
                         {/* Powered By Tech Stack */}
