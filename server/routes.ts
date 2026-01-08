@@ -130,9 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   // INVOICE MARKETPLACE ROUTES
   // ================================================
-  if (process.env.ENABLE_MARKETPLACE === "true") {
-    registerMarketplaceRoutes(app);
-  }
+  registerMarketplaceRoutes(app);
 
   // ================================================
   // SUBSCRIPTION / RECURRING BILLING ROUTES
