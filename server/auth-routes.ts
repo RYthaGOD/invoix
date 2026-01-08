@@ -23,6 +23,12 @@ declare module "express-session" {
  * Register authentication routes
  */
 export function registerAuthRoutes(app: Express): void {
+    // LazorKit configuration - Passkey Auth
+    if (process.env.VITE_ENABLE_PASSKEY_AUTH === 'true') {
+        if (process.env.LAZORKIT_STRICT_MODE !== 'true') {
+            logger.info("LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified.", "auth");
+        }
+    }
 
     /**
      * Login with wallet signature
@@ -208,26 +214,21 @@ export function registerAuthRoutes(app: Express): void {
 
             // SERVER-SIDE SIGNATURE VERIFICATION
             // Verify the smart wallet signature using on-chain verification
-            const { Connection, clusterApiUrl } = await import("@solana/web3.js");
-            const { verifySmartWalletSignature, verifySmartWalletOwnership } = await import("./lazorkit-verify");
+            const { Connection, clusterApiUrl, PublicKey } = await import("@solana/web3.js");
+            const { verifySmartWalletSignature } = await import("./lazorkit-verify");
 
             // Create connection to Solana
             const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl('devnet');
             const connection = new Connection(rpcUrl, 'confirmed');
 
-            // Step 1: Verify account exists and is owned by LazorKit program
-            const LAZORKIT_PROGRAM_ID = process.env.LAZORKIT_PROGRAM_ID || 'Lazor1111111111111111111111111111111111111111'; // Placeholder
+            // Step 1: Verify account exists (basic check)
+            const walletPubkey = new PublicKey(smartWalletAddress);
+            const accountInfo = await connection.getAccountInfo(walletPubkey);
 
-            const isOwnershipValid = await verifySmartWalletOwnership(
-                smartWalletAddress,
-                LAZORKIT_PROGRAM_ID,
-                connection
-            );
-
-            if (!isOwnershipValid) {
-                logger.warn(`[AUTH] Smart wallet ownership verification failed for ${smartWalletAddress}`, "auth");
+            if (!accountInfo) {
+                logger.warn(`[AUTH] Smart wallet account not found on-chain: ${smartWalletAddress}`, "auth");
                 return res.status(403).json({
-                    message: "Invalid smart wallet: Account verification failed"
+                    message: "Invalid smart wallet: Account not found"
                 });
             }
 

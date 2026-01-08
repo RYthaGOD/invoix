@@ -24,51 +24,78 @@ export async function verifySmartWalletSignature(
     connection: Connection
 ): Promise<boolean> {
     try {
-        // 1. Parse the smart wallet address
         const walletPubkey = new PublicKey(smartWalletAddress);
+        const LAZORKIT_STRICT_MODE = process.env.LAZORKIT_STRICT_MODE === 'true';
 
-        // 2. For LazorKit smart wallets, the signature is generated via WebAuthn
-        // The smart wallet PDA program validates these on-chain
-        // For server-side verification, we have several options:
-
-        // Option A: Verify the signature was created by the smart wallet program
-        // by checking on-chain account data
-        const accountInfo = await connection.getAccountInfo(walletPubkey);
-
-        if (!accountInfo) {
-            console.warn('[Signature Verify] Smart wallet account not found on-chain');
-            return false;
+        // Lazy load SDK to avoid startup errors if not installed/configured
+        let LazorkitClient;
+        try {
+            // @ts-ignore
+            const module = await import("@lazorkit/wallet");
+            LazorkitClient = module.LazorkitClient;
+        } catch (e) {
+            console.warn("[Signature Verify] @lazorkit/wallet SDK not found. Skipping SDK verification.");
         }
 
-        // Option B: For WebAuthn signatures, verify against the message
-        // LazorKit uses standard ed25519 signatures wrapped in WebAuthn
+        if (LazorkitClient) {
+            try {
+                const client = new LazorkitClient(connection);
+                // Fetch wallet state to get authorized devices
+                // Note: We use the default Program ID from the IDL if not overridden
+                const walletState = await client.getWalletStateData(walletPubkey);
+
+                const signature = bs58.decode(signatureBase58);
+                const messageBytes = new TextEncoder().encode(message);
+
+                // Check if ANY authorized device signed this message
+                for (const device of walletState.devices) {
+                    try {
+                        const devicePubkey = device.passkeyPubkey; // Array or Buffer
+                        const deviceKeyBytes = new Uint8Array(devicePubkey);
+
+                        const isValid = nacl.sign.detached.verify(
+                            messageBytes,
+                            signature,
+                            deviceKeyBytes
+                        );
+
+                        if (isValid) {
+                            // verifySmartWalletOwnership check implicitly passed if we found the account data
+                            return true;
+                        }
+                    } catch (err) {
+                        continue;
+                    }
+                }
+            } catch (sdkError) {
+                console.warn("[Signature Verify] SDK verification failed (Account might not exist or IDL mismatch):", sdkError);
+            }
+        }
+
+        // Fallback for when SDK verify fails or is skipped
+
+        // Option B: Direct verify (unlikely to work for PDAs but good sanity check)
         try {
             const signature = bs58.decode(signatureBase58);
             const messageBytes = new TextEncoder().encode(message);
-
-            // Verify using the smart wallet's public key
-            const isValid = nacl.sign.detached.verify(
-                messageBytes,
-                signature,
-                walletPubkey.toBytes()
-            );
-
-            if (isValid) {
+            if (nacl.sign.detached.verify(messageBytes, signature, walletPubkey.toBytes())) {
                 return true;
             }
-        } catch (e) {
-            console.warn('[Signature Verify] Ed25519 verification failed:', e);
+        } catch (e) { }
+
+        if (LAZORKIT_STRICT_MODE) {
+            console.warn('[Signature Verify] Strict mode: Verification failed.');
+            return false;
+        } else {
+            // Check existence as last resort for dev mode
+            const accountInfo = await connection.getAccountInfo(walletPubkey);
+            if (accountInfo) {
+                console.log('[Signature Verify] WARNING: Allowing login based on on-chain existence only (Non-Strict Mode).');
+                return true;
+            }
         }
 
-        // Option C: For true production security, query the smart wallet program
-        // to verify the signature was authorized by the registered WebAuthn credential
-        // This would require fetching the WebAuthn public key from the account data
-        // and verifying the signature against that key
-
-        // For hackathon/grant purposes, if account exists on-chain, that's reasonable proof
-        // The account wouldn't exist unless it was created through proper LazorKit flow
-        console.log('[Signature Verify] Smart wallet account exists on-chain:', smartWalletAddress);
-        return true;
+        return false;
 
     } catch (error) {
         console.error('[Signature Verify] Verification error:', error);

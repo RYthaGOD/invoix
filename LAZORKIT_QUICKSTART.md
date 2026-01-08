@@ -13,6 +13,12 @@ VITE_ENABLE_PASSKEY_AUTH=true
 VITE_LAZORKIT_RPC_URL=https://api.devnet.solana.com
 VITE_LAZORKIT_PORTAL_URL=https://portal.lazor.sh
 VITE_LAZORKIT_PAYMASTER_URL=https://kora.devnet.lazorkit.com
+
+# SECURITY CONFIGURATION
+# LazorKit Program ID (Devnet default)
+LAZORKIT_PROGRAM_ID=Gsuz7YcA5sbMGVRXT3xSYhJBessW4xFC4xYsihNCqMFh
+# Set to 'true' to enforce strict cryptographic signature verification
+LAZORKIT_STRICT_MODE=false
 ```
 
 ### 2. Usage in Your App
