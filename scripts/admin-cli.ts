@@ -69,7 +69,7 @@ async function approveUser(id: string) {
 }
 
 async function main() {
-    console.log("\n🦁 PumpLeague Admin CLI\n");
+    console.log("\n🦁 Invoix Admin CLI\n");
 
     while (true) {
         const { action } = await inquirer.prompt([{

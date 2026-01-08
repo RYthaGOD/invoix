@@ -6,10 +6,8 @@
  */
 
 import crypto from "crypto";
-import { db } from "./db";
+import { db, schema } from "./db";
 import {
-    webhooks,
-    webhookDeliveries,
     WEBHOOK_EVENTS,
     type WebhookEventType,
     type WebhookPayload,
@@ -159,10 +157,10 @@ export async function emitWebhookEvent(
     try {
         // Find all active webhooks for this wallet that subscribe to this event
         const subscribedWebhooks = await db.select()
-            .from(webhooks)
+            .from(schema.webhooks)
             .where(and(
-                eq(webhooks.ownerWallet, ownerWallet),
-                eq(webhooks.status, "active")
+                eq(schema.webhooks.ownerWallet, ownerWallet),
+                eq(schema.webhooks.status, "active")
             ));
 
         // Filter to those subscribed to this event type
@@ -214,7 +212,7 @@ async function createDeliveryRecord(
     eventId: string,
     payload: string
 ): Promise<void> {
-    await db.insert(webhookDeliveries).values({
+    await db.insert(schema.webhookDeliveries).values({
         webhookId,
         eventType,
         eventId,
@@ -239,14 +237,14 @@ export async function processWebhookDeliveries(): Promise<void> {
 
     // Find deliveries ready for (re)try
     const pendingDeliveries = await db.select({
-        delivery: webhookDeliveries,
-        webhook: webhooks,
+        delivery: schema.webhookDeliveries,
+        webhook: schema.webhooks,
     })
-        .from(webhookDeliveries)
-        .innerJoin(webhooks, eq(webhookDeliveries.webhookId, webhooks.id))
+        .from(schema.webhookDeliveries)
+        .innerJoin(schema.webhooks, eq(schema.webhookDeliveries.webhookId, schema.webhooks.id))
         .where(and(
-            inArray(webhookDeliveries.status, ["pending", "failed"]),
-            lte(webhookDeliveries.nextRetryAt, now)
+            inArray(schema.webhookDeliveries.status, ["pending", "failed"]),
+            lte(schema.webhookDeliveries.nextRetryAt, now)
         ))
         .limit(50); // Process in batches
 
@@ -265,19 +263,19 @@ export async function processWebhookDeliveries(): Promise<void> {
  * Attempt to deliver a webhook
  */
 async function attemptDelivery(
-    delivery: typeof webhookDeliveries.$inferSelect,
+    delivery: typeof schema.webhookDeliveries.$inferSelect,
     webhook: Webhook
 ): Promise<void> {
     const attemptNumber = delivery.attempts + 1;
 
     // Mark as processing
-    await db.update(webhookDeliveries)
+    await db.update(schema.webhookDeliveries)
         .set({
             status: "processing",
             attempts: attemptNumber,
             lastAttemptAt: new Date(),
         })
-        .where(eq(webhookDeliveries.id, delivery.id));
+        .where(eq(schema.webhookDeliveries.id, delivery.id));
 
     const timestamp = Date.now();
 
@@ -367,7 +365,7 @@ async function markDeliverySuccess(
     responseBody: string,
     responseTimeMs: number
 ): Promise<void> {
-    await db.update(webhookDeliveries)
+    await db.update(schema.webhookDeliveries)
         .set({
             status: "delivered",
             responseCode,
@@ -375,14 +373,14 @@ async function markDeliverySuccess(
             responseTimeMs,
             deliveredAt: new Date(),
         })
-        .where(eq(webhookDeliveries.id, deliveryId));
+        .where(eq(schema.webhookDeliveries.id, deliveryId));
 }
 
 /**
  * Handle a failed delivery attempt
  */
 async function handleDeliveryFailure(
-    delivery: typeof webhookDeliveries.$inferSelect,
+    delivery: typeof schema.webhookDeliveries.$inferSelect,
     webhook: Webhook,
     errorMessage: string,
     responseCode: number | null,
@@ -393,7 +391,7 @@ async function handleDeliveryFailure(
 
     if (attemptNumber >= delivery.maxAttempts) {
         // Exhausted all retries
-        await db.update(webhookDeliveries)
+        await db.update(schema.webhookDeliveries)
             .set({
                 status: "exhausted",
                 errorMessage,
@@ -401,7 +399,7 @@ async function handleDeliveryFailure(
                 responseBody: responseBody?.slice(0, MAX_RESPONSE_BODY_LENGTH),
                 responseTimeMs,
             })
-            .where(eq(webhookDeliveries.id, delivery.id));
+            .where(eq(schema.webhookDeliveries.id, delivery.id));
 
         logger.warn(`Webhook delivery exhausted: ${delivery.eventType} to ${webhook.url}`, "webhook");
     } else {
@@ -409,7 +407,7 @@ async function handleDeliveryFailure(
         const delayMs = RETRY_DELAYS_MS[attemptNumber] || RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
         const nextRetryAt = new Date(Date.now() + delayMs);
 
-        await db.update(webhookDeliveries)
+        await db.update(schema.webhookDeliveries)
             .set({
                 status: "failed",
                 errorMessage,
@@ -418,7 +416,7 @@ async function handleDeliveryFailure(
                 responseTimeMs,
                 nextRetryAt,
             })
-            .where(eq(webhookDeliveries.id, delivery.id));
+            .where(eq(schema.webhookDeliveries.id, delivery.id));
 
         logger.debug(`Webhook delivery failed, retry ${attemptNumber + 1} at ${nextRetryAt.toISOString()}`, "webhook");
     }
@@ -434,12 +432,12 @@ async function updateWebhookHealth(
     success: boolean,
     errorMessage?: string
 ): Promise<void> {
-    const [webhook] = await db.select().from(webhooks).where(eq(webhooks.id, webhookId));
+    const [webhook] = await db.select().from(schema.webhooks).where(eq(schema.webhooks.id, webhookId));
     if (!webhook) return;
 
     if (success) {
         // Reset failure count on success
-        await db.update(webhooks)
+        await db.update(schema.webhooks)
             .set({
                 consecutiveFailures: 0,
                 lastDeliveryAt: new Date(),
@@ -447,12 +445,12 @@ async function updateWebhookHealth(
                 lastErrorMessage: null,
                 updatedAt: new Date(),
             })
-            .where(eq(webhooks.id, webhookId));
+            .where(eq(schema.webhooks.id, webhookId));
     } else {
         const newFailureCount = webhook.consecutiveFailures + 1;
         const shouldDisable = newFailureCount >= webhook.autoDisableThreshold;
 
-        await db.update(webhooks)
+        await db.update(schema.webhooks)
             .set({
                 consecutiveFailures: newFailureCount,
                 lastDeliveryAt: new Date(),
@@ -461,7 +459,7 @@ async function updateWebhookHealth(
                 status: shouldDisable ? "disabled" : webhook.status,
                 updatedAt: new Date(),
             })
-            .where(eq(webhooks.id, webhookId));
+            .where(eq(schema.webhooks.id, webhookId));
 
         if (shouldDisable) {
             logger.warn(`Webhook auto-disabled after ${newFailureCount} failures: ${webhookId}`, "webhook");

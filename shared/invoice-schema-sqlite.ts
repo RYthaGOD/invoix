@@ -355,9 +355,151 @@ export const invoiceMarketplace = sqliteTable("invoice_marketplace", {
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 });
 
+/**
+ * Subscription Plans
+ */
+export const subscriptionPlans = sqliteTable("subscription_plans", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    ownerWalletAddress: text("owner_wallet_address").notNull(),
+
+    name: text("name").notNull(),
+    description: text("description"),
+
+    amount: text("amount").notNull(),
+    currency: text("currency").notNull().default("USDC"),
+
+    interval: text("interval").notNull(), // weekly, monthly, yearly
+    intervalCount: integer("interval_count").notNull().default(1),
+
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+/**
+ * Subscriptions
+ */
+export const subscriptions = sqliteTable("subscriptions", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    planId: text("plan_id").notNull().references(() => subscriptionPlans.id),
+
+    invoicerWalletAddress: text("invoicer_wallet_address").notNull(),
+    customerWalletAddress: text("customer_wallet_address").notNull(),
+
+    status: text("status").notNull().default("pending_confirmation"),
+    version: integer("version").notNull().default(0),
+
+    startDate: integer("start_date", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    currentPeriodStart: integer("current_period_start", { mode: "timestamp" }).notNull(),
+    currentPeriodEnd: integer("current_period_end", { mode: "timestamp" }).notNull(),
+
+    cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+/**
+ * Confirmed Signatures
+ */
+export const confirmedSignatures = sqliteTable("confirmed_signatures", {
+    signature: text("signature").primaryKey(),
+    endpoint: text("endpoint").notNull(),
+    resourceType: text("resource_type").notNull(),
+    resourceId: text("resource_id").notNull(),
+    confirmedAt: integer("confirmed_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+/**
+ * Milestones
+ */
+export const milestones = sqliteTable("milestones", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    invoiceId: text("invoice_id").references(() => invoices.id),
+
+    title: text("title").notNull(),
+    description: text("description"),
+
+    amount: text("amount").notNull(),
+    currency: text("currency").notNull().default("USDC"),
+
+    status: text("status").notNull().default("pending"),
+    dueDate: integer("due_date", { mode: "timestamp" }),
+
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+/**
+ * Webhooks
+ */
+export const webhooks = sqliteTable("webhooks", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    ownerWallet: text("owner_wallet").notNull(),
+
+    name: text("name"),
+    url: text("url").notNull(),
+
+    secretHash: text("secret_hash").notNull(),
+    encryptedSecret: text("encrypted_secret"),
+
+    // API does not support arrays natively, store as JSON string
+    events: text("events", { mode: "json" }).$type<string[]>().notNull(),
+
+    status: text("status").notNull().default("active"),
+
+    consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+    lastDeliveryAt: integer("last_delivery_at", { mode: "timestamp" }),
+    lastDeliveryStatus: text("last_delivery_status"),
+    lastErrorMessage: text("last_error_message"),
+
+    maxRetries: integer("max_retries").notNull().default(5),
+    autoDisableThreshold: integer("auto_disable_threshold").notNull().default(10),
+
+    description: text("description"),
+
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+/**
+ * Webhook Deliveries
+ */
+export const webhookDeliveries = sqliteTable("webhook_deliveries", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    webhookId: text("webhook_id").notNull().references(() => webhooks.id, { onDelete: "cascade" }),
+
+    eventType: text("event_type").notNull(),
+    eventId: text("event_id").notNull(),
+    payload: text("payload").notNull(), // JSON string
+
+    status: text("status").notNull().default("pending"),
+
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(5),
+    lastAttemptAt: integer("last_attempt_at", { mode: "timestamp" }),
+    nextRetryAt: integer("next_retry_at", { mode: "timestamp" }),
+
+    responseCode: integer("response_code"),
+    responseBody: text("response_body"),
+    responseTimeMs: integer("response_time_ms"),
+
+    errorMessage: text("error_message"),
+
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    deliveredAt: integer("delivered_at", { mode: "timestamp" }),
+});
+
 // ============================================
 // RELATIONS
 // ============================================
+
+export const webhooksRelations = relations(webhooks, ({ many }) => ({
+    deliveries: many(webhookDeliveries),
+}));
+
+export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one }) => ({
+    webhook: one(webhooks, {
+        fields: [webhookDeliveries.webhookId],
+        references: [webhooks.id],
+    }),
+}));
 
 export const invoicesRelations = relations(invoices, ({ many }) => ({
     lineItems: many(invoiceLineItems),

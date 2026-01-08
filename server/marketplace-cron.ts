@@ -1,8 +1,6 @@
 
-import { db } from "./db";
-import { invoiceMarketplace, invoices } from "@shared/invoice-schema";
+import { db, schema } from "./db";
 import { eq, and, lt } from "drizzle-orm";
-import { getInvoiceNFTService } from "./nft-service";
 import { logger } from "./logger";
 
 /**
@@ -15,60 +13,39 @@ export async function checkExpiredListings() {
     try {
         const now = new Date();
         const expiredListings = await db.select()
-            .from(invoiceMarketplace)
+            .from(schema.invoiceMarketplace)
             .where(and(
-                eq(invoiceMarketplace.status, 'active'),
-                lt(invoiceMarketplace.expiresAt, now)
+                eq(schema.invoiceMarketplace.status, 'active'),
+                lt(schema.invoiceMarketplace.expiresAt, now)
             ));
 
         if (expiredListings.length === 0) return;
 
         logger.info(`Found ${expiredListings.length} expired listings. Processing returns...`, "cron");
 
-        const nftService = getInvoiceNFTService();
-        if (!nftService.isReady()) {
-            logger.warn("NFT Service not ready for expired listing cleanup", "cron");
-            return;
-        }
-
-        const escrowAddress = nftService.getIdentityPublicKey();
+        // Note: In non-custodial marketplace, we cannot "return" the NFT automatically
+        // because it is held in a PDA vault. The seller must initiate a "Cancel/Withdraw"
+        // transaction. We just mark it as 'expired' so the UI prompts them.
 
         for (const listing of expiredListings) {
             try {
-                // Get Invoice details for NFT data
-                const [invoice] = await db.select()
-                    .from(invoices)
-                    .where(eq(invoices.id, listing.invoiceId))
-                    .limit(1);
+                logger.info(`Marking listing ${listing.id} as expired. Seller must reclaim asset.`, "cron");
 
-                if (!invoice || !invoice.nftMint || !invoice.nftMerkleTree || invoice.nftLeafIndex === null) {
-                    logger.error(`Critical: Missing NFT data for expired listing ${listing.id}`, "cron");
-                    continue;
-                }
-
-                logger.info(`Returning expired NFT for listing ${listing.id} to ${listing.seller}`, "cron");
-
-                // 1. Return NFT from Escrow (Server) to Seller
-                await nftService.transferInvoiceNFT(
-                    invoice.nftMint,
-                    invoice.nftMerkleTree,
-                    invoice.nftLeafIndex,
-                    escrowAddress, // From (Server/Escrow)
-                    listing.seller // To (Original Seller)
-                );
-
-                // 2. Update DB Status
-                await db.update(invoiceMarketplace)
+                // Update DB Status
+                await db.update(schema.invoiceMarketplace)
                     .set({ status: 'expired', updatedAt: new Date() })
-                    .where(eq(invoiceMarketplace.id, listing.id));
+                    .where(eq(schema.invoiceMarketplace.id, listing.id));
 
-                // 3. Update Invoice Status back to 'sent' (or 'paid' if logic differs, but usually returning to inventory = sent/unpaid)
-                // If it was 'listed', it goes back to 'sent'.
-                await db.update(invoices)
-                    .set({ status: 'sent' })
-                    .where(eq(invoices.id, listing.invoiceId));
+                // Update Invoice Status back to 'sent' (technically still in escrow, but logically released from market view)
+                // Actually, if it's in escrow, we should probably keep invoice status as 'listed' until they withdraw?
+                // But for user clarity, 'expired' is fine for the listing.
+                // Invoice status: 'listed' means "in escrow".
 
-                logger.info(`Successfully returned expired item ${listing.id}`, "cron");
+                // Let's NOT change invoice status until they actually withdraw (cancel txn).
+                // So the invoice remains 'listed', listing becomes 'expired'.
+                // The UI will see "Expired Listing" and show "Reclaim" button.
+
+                logger.info(`Successfully marked item ${listing.id} as expired`, "cron");
 
             } catch (err) {
                 logger.error(`Failed to process expired listing ${listing.id}`, "cron", { error: err });

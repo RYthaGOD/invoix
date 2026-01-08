@@ -88,6 +88,24 @@ const docsContent = {
                             Businesses sign transactions without holding SOL for gas. Our relayer abstracts blockchain complexity while maintaining full decentralization.
                         </p>
                     </div>
+                    <div className="glass-card p-6 border-white/5 bg-white/5">
+                        <h4 className="font-bold mb-2 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-purple-400" />
+                            Recurring Economy
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                            Manage subscriptions with <strong className="text-white">automated recurring billing</strong>. Token extensions enable streaming payments and conditional release milestones.
+                        </p>
+                    </div>
+                    <div className="glass-card p-6 border-white/5 bg-white/5">
+                        <h4 className="font-bold mb-2 flex items-center gap-2">
+                            <BadgePercent className="w-4 h-4 text-pink-400" />
+                            Capital Markets
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                            Access instant liquidity by selling unpaid invoices in a <strong className="text-white">non-custodial marketplace</strong>. Dynamic risk scoring and transparent yield generation for investors.
+                        </p>
+                    </div>
                 </div>
             </div>
         )
@@ -202,29 +220,30 @@ const docsContent = {
                     </ul>
                 </div>
 
-                {/* Phase 2 - In Progress */}
-                <div className="glass-card p-6 border-yellow-500/30">
+                {/* Phase 2 - Complete */}
+                <div className="glass-card p-6 border-green-500/30">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 font-bold">2</div>
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-bold">2</div>
                         <h4 className="text-xl font-bold text-white">Recurring Economy</h4>
-                        <span className="ml-auto px-3 py-1 text-xs font-bold bg-yellow-500/20 text-yellow-400 rounded-full">IN PROGRESS</span>
+                        <span className="ml-auto px-3 py-1 text-xs font-bold bg-green-500/20 text-green-400 rounded-full">COMPLETE</span>
                     </div>
                     <ul className="space-y-2 text-sm text-muted-foreground pl-11">
-                        <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Subscription Streams (Token Extensions)</li>
-                        <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Conditional Invoices (Milestone Releases)</li>
-                        <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Enterprise Oracle Integration (ERP)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Subscription Streams (Token Extensions)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Enterprise Oracle Integration (Webhooks)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Recurring Billing Dashboard</li>
                     </ul>
                 </div>
 
-                {/* Phase 3 - Future */}
-                <div className="glass-card p-6 border-white/10">
+                {/* Phase 3 - In Progress */}
+                <div className="glass-card p-6 border-yellow-500/30">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white font-bold">3</div>
-                        <h4 className="text-xl font-bold text-white">Tradeable Debt</h4>
-                        <span className="ml-auto px-3 py-1 text-xs font-bold bg-white/10 text-muted-foreground rounded-full">PLANNED</span>
+                        <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 font-bold">3</div>
+                        <h4 className="text-xl font-bold text-white">Decentralized Capital Markets</h4>
+                        <span className="ml-auto px-3 py-1 text-xs font-bold bg-yellow-500/20 text-yellow-400 rounded-full">IN PROGRESS</span>
                     </div>
                     <ul className="space-y-2 text-sm text-muted-foreground pl-11">
-                        <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Invoice Factoring (RWA NFTs)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Non-Custodial Invoice Marketplace (Beta)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Risk Scoring & Credit Protocol (Beta)</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Liquidity Pools for Accounts Receivable</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Cross-Chain Settlement (Wormhole)</li>
                     </ul>
@@ -415,6 +434,16 @@ const docsContent = {
                             <span className="text-muted-foreground ml-auto text-xs">Gasless payment</span>
                         </div>
                         <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                            <span className="text-yellow-400 w-16 font-bold">POST</span>
+                            <span className="text-white">/api/v1/subscriptions</span>
+                            <span className="text-muted-foreground ml-auto text-xs">Create subscription</span>
+                        </div>
+                        <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                            <span className="text-yellow-400 w-16 font-bold">POST</span>
+                            <span className="text-white">/api/v1/marketplace/list</span>
+                            <span className="text-muted-foreground ml-auto text-xs">List invoice for sale</span>
+                        </div>
+                        <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
                             <span className="text-green-400 w-16 font-bold">GET</span>
                             <span className="text-white">/api/v1/nft/:invoiceId</span>
                             <span className="text-muted-foreground ml-auto text-xs">Get NFT metadata</span>
@@ -560,6 +589,24 @@ const docsContent = {
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">
                         <strong className="text-white">Yes, API access is available by application.</strong> You can create invoices, process payments, and mint NFT receipts programmatically. Check the <strong className="text-cyan-400">API Access</strong> section for details on how to apply.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> Can I automate recurring billing?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Absolutely.</strong> Our Subscription engine allows you to set up recurring invoices (daily, weekly, monthly) that are automatically emailed to clients. Payments are tracked and receipts minted automatically for every cycle.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> How does the Invoice Marketplace work?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Get paid instantly.</strong> You can list your unpaid invoices for sale on our non-custodial marketplace. Investors purchase the invoice (the NFT receipt rights) at a discount, giving you immediate cash flow while they earn a yield upon settlement.
                     </p>
                 </div>
             </div>

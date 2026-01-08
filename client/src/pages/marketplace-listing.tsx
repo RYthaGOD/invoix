@@ -143,6 +143,63 @@ export default function MarketplaceListing() {
         }
     };
 
+    const handleCancel = async () => {
+        if (!connected || !walletAddress) return;
+
+        setPurchasing(true); // Reuse state or add setCancelling
+        try {
+            // 1. Request Cancellation (returns transaction)
+            const response = await fetch(`/api/marketplace/listings/${listing?.id}?returnTransaction=true`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to cancel listing");
+            }
+
+            // 2. If transaction returned (Non-Custodial), Sign and Send
+            if (data.transaction) {
+                const transactionBuffer = Uint8Array.from(atob(data.transaction), c => c.charCodeAt(0));
+                const transaction = VersionedTransaction.deserialize(transactionBuffer);
+
+                toast({
+                    title: "Awaiting Signature",
+                    description: "Please sign the transaction to reclaim your asset.",
+                });
+
+                const signature = await sendTransaction(transaction, connection);
+
+                toast({
+                    title: "Processing Cancellation",
+                    description: "Reclaiming asset from marketplace...",
+                });
+
+                await connection.confirmTransaction(signature, 'confirmed');
+            }
+
+            toast({
+                title: "Listing Cancelled",
+                description: "Asset returned to your wallet.",
+            });
+
+            navigate("/marketplace");
+
+        } catch (err: any) {
+            console.error("Cancellation failed:", err);
+            toast({
+                title: "Cancellation Failed",
+                description: err.message,
+                variant: "destructive",
+            });
+        } finally {
+            setPurchasing(false);
+        }
+    };
+
     const handlePurchase = async () => {
         if (!connected || !walletAddress) {
             toast({
@@ -194,11 +251,7 @@ export default function MarketplaceListing() {
 
             await connection.confirmTransaction(signature, 'confirmed');
 
-            // 3. Confirm with Backend (for DB update if not using webhooks/indexer)
-            // Optional: The API might update on next query or we can hit a confirm endpoint.
-            // But usually we just reload.
-            // Ideally we call /api/marketplace/confirm-purchase or similar if needed.
-            // Previous audit mentioned `POST /api/marketplace/confirm-purchase` implementation.
+            // 3. Confirm with Backend (for DB update)
             await fetch("/api/marketplace/confirm-purchase", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -497,6 +550,28 @@ export default function MarketplaceListing() {
                             </p>
                         </CardContent>
                     </Card>
+
+                    {/* ACTION CONTROLS: Cancel / Reclaim */}
+                    {listing && walletAddress && listing.seller === walletAddress && (
+                        <Card className="glass-card border-red-500/30 bg-red-500/5">
+                            <CardContent className="pt-6">
+                                <h3 className="text-white font-semibold mb-2">Manage Listing</h3>
+                                <p className="text-sm text-gray-400 mb-4">
+                                    {listing.status === 'expired'
+                                        ? "This listing has expired. Reclaim your asset to return it to your wallet."
+                                        : "You can cancel this active listing to return the asset to your wallet."}
+                                </p>
+                                <Button
+                                    variant="destructive"
+                                    className="w-full"
+                                    onClick={handleCancel}
+                                    disabled={purchasing}
+                                >
+                                    {listing.status === 'expired' ? "Reclaim Asset" : "Cancel Listing"}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Seller Info */}
                     <Card className="glass-card border-white/10">

@@ -7,11 +7,8 @@
  */
 
 import type { Express, Request, Response, NextFunction } from "express";
-import { db } from "./db";
+import { db, schema } from "./db";
 import {
-    invoiceMarketplace,
-    invoices,
-    businessCreditScores,
     type InvoiceMarketplaceListing,
 } from "@shared/invoice-schema";
 import { eq, and, desc, sql, ne, isNull, gte, lte } from "drizzle-orm";
@@ -173,50 +170,69 @@ export function registerMarketplaceRoutes(app: Express): void {
                 sortOrder = 'desc',
                 limit = 20,
                 offset = 0,
+                status, // Optional status filter
+                seller, // Optional seller filter
             } = req.query;
 
             // Build query
             let query = db.select({
-                listing: invoiceMarketplace,
-                invoice: invoices,
+                listing: schema.invoiceMarketplace,
+                invoice: schema.invoices,
             })
-                .from(invoiceMarketplace)
-                .innerJoin(invoices, eq(invoiceMarketplace.invoiceId, invoices.id))
-                .where(eq(invoiceMarketplace.status, 'active'))
+                .from(schema.invoiceMarketplace)
+                .innerJoin(schema.invoices, eq(schema.invoiceMarketplace.invoiceId, schema.invoices.id))
                 .$dynamic();
+
+            // Apply status filter (default to 'active' if not specified, unless seller is viewing their own history maybe? No, be explicit)
+            if (status && status !== 'all') {
+                query = query.where(eq(schema.invoiceMarketplace.status, status as string));
+            } else if (!status || status === 'active') {
+                // Default to active if not asking for 'all' or specific status
+                // BUT if asking for a specific seller, we might want all by default? 
+                // Let's stick to: if status NOT provided, default to active.
+                // If status='all', no filter.
+                if (status !== 'all') {
+                    query = query.where(eq(schema.invoiceMarketplace.status, 'active'));
+                }
+            }
+
+            // Apply Seller Filter
+            if (seller) {
+                query = query.where(eq(schema.invoiceMarketplace.seller, seller as string));
+            }
 
             // Apply filters
             if (currency) {
-                query = query.where(eq(invoiceMarketplace.currency, currency as string));
+                query = query.where(eq(schema.invoiceMarketplace.currency, currency as string));
             }
 
             if (riskLevel) {
-                query = query.where(eq(invoiceMarketplace.riskLevel, riskLevel as string));
+                query = query.where(eq(schema.invoiceMarketplace.riskLevel, riskLevel as string));
             }
 
             if (minYield) {
-                query = query.where(gte(invoiceMarketplace.yieldPercentage, minYield as string));
+                query = query.where(gte(schema.invoiceMarketplace.yieldPercentage, minYield as string));
             }
 
             if (maxPrice) {
-                query = query.where(lte(invoiceMarketplace.askingPrice, maxPrice as string));
+                query = query.where(lte(schema.invoiceMarketplace.askingPrice, maxPrice as string));
             }
 
             // Apply sorting
             if (sortBy === 'price') {
                 query = query.orderBy(sortOrder === 'asc'
-                    ? invoiceMarketplace.askingPrice
-                    : desc(invoiceMarketplace.askingPrice));
+                    ? schema.invoiceMarketplace.askingPrice
+                    : desc(schema.invoiceMarketplace.askingPrice));
             } else if (sortBy === 'yield') {
                 query = query.orderBy(sortOrder === 'asc'
-                    ? invoiceMarketplace.yieldPercentage
-                    : desc(invoiceMarketplace.yieldPercentage));
+                    ? schema.invoiceMarketplace.yieldPercentage
+                    : desc(schema.invoiceMarketplace.yieldPercentage));
             } else if (sortBy === 'risk') {
                 query = query.orderBy(sortOrder === 'asc'
-                    ? invoiceMarketplace.riskScore
-                    : desc(invoiceMarketplace.riskScore));
+                    ? schema.invoiceMarketplace.riskScore
+                    : desc(schema.invoiceMarketplace.riskScore));
             } else {
-                query = query.orderBy(desc(invoiceMarketplace.listedAt));
+                query = query.orderBy(desc(schema.invoiceMarketplace.listedAt));
             }
 
             // Apply pagination
@@ -270,12 +286,12 @@ export function registerMarketplaceRoutes(app: Express): void {
             const { id } = req.params;
 
             const [result] = await db.select({
-                listing: invoiceMarketplace,
-                invoice: invoices,
+                listing: schema.invoiceMarketplace,
+                invoice: schema.invoices,
             })
-                .from(invoiceMarketplace)
-                .innerJoin(invoices, eq(invoiceMarketplace.invoiceId, invoices.id))
-                .where(eq(invoiceMarketplace.id, id))
+                .from(schema.invoiceMarketplace)
+                .innerJoin(schema.invoices, eq(schema.invoiceMarketplace.invoiceId, schema.invoices.id))
+                .where(eq(schema.invoiceMarketplace.id, id))
                 .limit(1);
 
             if (!result) {
@@ -283,9 +299,9 @@ export function registerMarketplaceRoutes(app: Express): void {
             }
 
             // Increment view count
-            await db.update(invoiceMarketplace)
-                .set({ viewCount: sql`${invoiceMarketplace.viewCount} + 1` })
-                .where(eq(invoiceMarketplace.id, id));
+            await db.update(schema.invoiceMarketplace)
+                .set({ viewCount: sql`${schema.invoiceMarketplace.viewCount} + 1` })
+                .where(eq(schema.invoiceMarketplace.id, id));
 
             const { listing, invoice } = result;
 
@@ -353,8 +369,8 @@ export function registerMarketplaceRoutes(app: Express): void {
 
             // Fetch the invoice
             const [invoice] = await db.select()
-                .from(invoices)
-                .where(eq(invoices.id, invoiceId))
+                .from(schema.invoices)
+                .where(eq(schema.invoices.id, invoiceId))
                 .limit(1);
 
             if (!invoice) {
@@ -387,10 +403,10 @@ export function registerMarketplaceRoutes(app: Express): void {
 
             // Check if already listed
             const [existingListing] = await db.select()
-                .from(invoiceMarketplace)
+                .from(schema.invoiceMarketplace)
                 .where(and(
-                    eq(invoiceMarketplace.invoiceId, invoiceId),
-                    eq(invoiceMarketplace.status, 'active')
+                    eq(schema.invoiceMarketplace.invoiceId, invoiceId),
+                    eq(schema.invoiceMarketplace.status, 'active')
                 ))
                 .limit(1);
 
@@ -450,8 +466,9 @@ export function registerMarketplaceRoutes(app: Express): void {
             // Ideally we'd mark it 'pending_transfer', but for this flow we'll handle it optimistically
             // or we could add a flag 'transferredToEscrow'.
             // Simple MVP: Create it. If they don't sign, it's a "Ghost Listing" (purchase will fail).
+            // or we could add a flag 'transferredToEscrow'.
 
-            const [listing] = await db.insert(invoiceMarketplace)
+            const [listing] = await db.insert(schema.invoiceMarketplace)
                 .values({
                     invoiceId,
                     nftMint: invoice.nftMint,
@@ -477,9 +494,9 @@ export function registerMarketplaceRoutes(app: Express): void {
                 .returning();
 
             // Update invoice status
-            await db.update(invoices)
+            await db.update(schema.invoices)
                 .set({ status: 'listed' })
-                .where(eq(invoices.id, invoiceId));
+                .where(eq(schema.invoices.id, invoiceId));
 
             logger.info("Invoice listed (pending signature)", "marketplace", { listingId: listing.id });
 
@@ -512,8 +529,8 @@ export function registerMarketplaceRoutes(app: Express): void {
             if (!listingId) return res.status(400).json({ success: false, error: "listingId required" });
 
             const [listing] = await db.select()
-                .from(invoiceMarketplace)
-                .where(eq(invoiceMarketplace.id, listingId))
+                .from(schema.invoiceMarketplace)
+                .where(eq(schema.invoiceMarketplace.id, listingId))
                 .limit(1);
 
             if (!listing || listing.status !== 'active') {
@@ -526,8 +543,8 @@ export function registerMarketplaceRoutes(app: Express): void {
 
             // Fetch invoice checks
             const [invoice] = await db.select()
-                .from(invoices)
-                .where(eq(invoices.id, listing.invoiceId))
+                .from(schema.invoices)
+                .where(eq(schema.invoices.id, listing.invoiceId))
                 .limit(1);
 
             if (!invoice) return res.status(404).json({ success: false, error: "Invoice unavailable" });
@@ -584,29 +601,29 @@ export function registerMarketplaceRoutes(app: Express): void {
 
             // 2. Update DB
             const [listing] = await db.select()
-                .from(invoiceMarketplace)
-                .where(eq(invoiceMarketplace.id, listingId))
+                .from(schema.invoiceMarketplace)
+                .where(eq(schema.invoiceMarketplace.id, listingId))
                 .limit(1);
 
             if (!listing) return res.status(404).json({ error: "Listing not found" });
 
             // Update Listing
-            await db.update(invoiceMarketplace)
+            await db.update(schema.invoiceMarketplace)
                 .set({
                     status: 'sold',
                     soldTo: walletAddress,
                     soldAt: new Date(),
                     salePrice: listing.askingPrice
                 })
-                .where(eq(invoiceMarketplace.id, listingId));
+                .where(eq(schema.invoiceMarketplace.id, listingId));
 
             // CRITICAL: Update Invoice owner for Payment Routing!
-            await db.update(invoices)
+            await db.update(schema.invoices)
                 .set({
                     nftTransferredTo: walletAddress,
                     nftBurnedAt: null // Ensure not burnt
                 })
-                .where(eq(invoices.id, listing.invoiceId));
+                .where(eq(schema.invoices.id, listing.invoiceId));
 
             logger.info("Marketplace purchase confirmed", "marketplace", { listingId, buyer: walletAddress });
 
@@ -629,19 +646,32 @@ export function registerMarketplaceRoutes(app: Express): void {
             const { returnTransaction } = req.query; // New flag
 
             const [listing] = await db.select()
-                .from(invoiceMarketplace)
-                .where(eq(invoiceMarketplace.id, id))
+                .from(schema.invoiceMarketplace)
+                .where(eq(schema.invoiceMarketplace.id, id))
                 .limit(1);
 
             if (!listing) return res.status(404).json({ success: false, error: "Listing not found" });
             if (listing.seller !== walletAddress) return res.status(403).json({ success: false, error: "Unauthorized" });
             if (listing.status !== 'active') return res.status(400).json({ success: false, error: "Not active" });
 
-            const [invoice] = await db.select().from(invoices).where(eq(invoices.id, listing.invoiceId)).limit(1);
+            const [invoice] = await db.select().from(schema.invoices).where(eq(schema.invoices.id, listing.invoiceId)).limit(1);
 
-            // Return Transaction for cancellation (NFT return)
-            const nftService = await getReadyNftService();
-            const transaction = await nftService.createCancelListingTransaction(invoice, walletAddress);
+            // Return Transaction for cancellation (NFT return from PDA)
+            // Use Marketplace Service (Non-Custodial)
+            const { marketplaceService } = await import("./marketplace-service");
+
+            // We need the asset mint (nftMint) to derive the PDA
+            if (!listing.nftMint) {
+                // If missing in listing, check invoice?
+                // listing.nftMint should be there.
+                throw new Error("Listing matches, but NFT Mint missing in record");
+            }
+
+            const transaction = await marketplaceService.createCancelListingTransaction(
+                walletAddress,
+                listing.invoiceId,
+                listing.nftMint
+            );
 
             // If client specifically requested tx (v2 flow)
             if (returnTransaction === 'true') {
@@ -652,14 +682,14 @@ export function registerMarketplaceRoutes(app: Express): void {
             }
 
             // Update listing status
-            await db.update(invoiceMarketplace)
+            await db.update(schema.invoiceMarketplace)
                 .set({ status: 'cancelled', updatedAt: new Date() })
-                .where(eq(invoiceMarketplace.id, id));
+                .where(eq(schema.invoiceMarketplace.id, id));
 
             // Revert invoice status
-            await db.update(invoices)
+            await db.update(schema.invoices)
                 .set({ status: 'sent' })
-                .where(eq(invoices.id, listing.invoiceId));
+                .where(eq(schema.invoices.id, listing.invoiceId));
 
             logger.info("Marketplace listing cancelled", "marketplace", { listingId: id, seller: walletAddress });
 
@@ -684,13 +714,13 @@ export function registerMarketplaceRoutes(app: Express): void {
             const walletAddress = (req.session as any).walletAddress;
 
             const listings = await db.select({
-                listing: invoiceMarketplace,
-                invoice: invoices,
+                listing: schema.invoiceMarketplace,
+                invoice: schema.invoices,
             })
-                .from(invoiceMarketplace)
-                .innerJoin(invoices, eq(invoiceMarketplace.invoiceId, invoices.id))
-                .where(eq(invoiceMarketplace.seller, walletAddress))
-                .orderBy(desc(invoiceMarketplace.listedAt));
+                .from(schema.invoiceMarketplace)
+                .innerJoin(schema.invoices, eq(schema.invoiceMarketplace.invoiceId, schema.invoices.id))
+                .where(eq(schema.invoiceMarketplace.seller, walletAddress))
+                .orderBy(desc(schema.invoiceMarketplace.listedAt));
 
             res.json({
                 success: true,
@@ -724,13 +754,13 @@ export function registerMarketplaceRoutes(app: Express): void {
             const walletAddress = (req.session as any).walletAddress;
 
             const investments = await db.select({
-                listing: invoiceMarketplace,
-                invoice: invoices,
+                listing: schema.invoiceMarketplace,
+                invoice: schema.invoices,
             })
-                .from(invoiceMarketplace)
-                .innerJoin(invoices, eq(invoiceMarketplace.invoiceId, invoices.id))
-                .where(eq(invoiceMarketplace.soldTo, walletAddress))
-                .orderBy(desc(invoiceMarketplace.soldAt));
+                .from(schema.invoiceMarketplace)
+                .innerJoin(schema.invoices, eq(schema.invoiceMarketplace.invoiceId, schema.invoices.id))
+                .where(eq(schema.invoiceMarketplace.soldTo, walletAddress))
+                .orderBy(desc(schema.invoiceMarketplace.soldAt));
 
             res.json({
                 success: true,
@@ -763,27 +793,27 @@ export function registerMarketplaceRoutes(app: Express): void {
         try {
             // Active listings count
             const [activeCount] = await db.select({ count: sql<number>`count(*)` })
-                .from(invoiceMarketplace)
-                .where(eq(invoiceMarketplace.status, 'active'));
+                .from(schema.invoiceMarketplace)
+                .where(eq(schema.invoiceMarketplace.status, 'active'));
 
             // Total volume sold
             const [volumeSold] = await db.select({
-                total: sql<string>`COALESCE(SUM(${invoiceMarketplace.salePrice}), 0)`
+                total: sql<string>`COALESCE(SUM(${schema.invoiceMarketplace.salePrice}), 0)`
             })
-                .from(invoiceMarketplace)
-                .where(eq(invoiceMarketplace.status, 'sold'));
+                .from(schema.invoiceMarketplace)
+                .where(eq(schema.invoiceMarketplace.status, 'sold'));
 
             // Count sold
             const [soldCount] = await db.select({ count: sql<number>`count(*)` })
-                .from(invoiceMarketplace)
-                .where(eq(invoiceMarketplace.status, 'sold'));
+                .from(schema.invoiceMarketplace)
+                .where(eq(schema.invoiceMarketplace.status, 'sold'));
 
             // Average yield
             const [avgYield] = await db.select({
-                avg: sql<string>`COALESCE(AVG(${invoiceMarketplace.yieldPercentage}::numeric), 0)`
+                avg: sql<string>`COALESCE(AVG(${schema.invoiceMarketplace.yieldPercentage}::numeric), 0)`
             })
-                .from(invoiceMarketplace)
-                .where(eq(invoiceMarketplace.status, 'active'));
+                .from(schema.invoiceMarketplace)
+                .where(eq(schema.invoiceMarketplace.status, 'active'));
 
             res.json({
                 success: true,

@@ -5,15 +5,20 @@ import pg from 'pg';
 const { Pool } = pg;
 
 import Database from 'better-sqlite3';
-import * as schemaPg from "@shared/invoice-schema";
+import * as schemaPgCore from "@shared/invoice-schema";
+import * as schemaWebhooks from "@shared/webhooks-schema";
 import * as schemaSqlite from "@shared/invoice-schema-sqlite";
+
+const schemaPg = { ...schemaPgCore, ...schemaWebhooks };
 
 // Use SQLite for local development (no DATABASE_URL needed)
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 const useSQLite = isDevelopment && !process.env.DATABASE_URL;
 
 // Export the schema so other files can use the correct one (SQLite vs Postgres)
-export const schema = useSQLite ? schemaSqlite : schemaPg;
+// WE CAST TO schemaPg TYPE TO SATISFY TYPESCRIPT
+// The structural compatibility is ensured by the similar definitions
+export const schema = (useSQLite ? schemaSqlite : schemaPg) as unknown as typeof schemaPg;
 
 // Export strictly typed DB instance using Postgres schema (Production Priority)
 export type AppDatabase = NodePgDatabase<typeof schemaPg>;

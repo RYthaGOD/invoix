@@ -6,10 +6,8 @@
  */
 
 import { Router, type Request, type Response } from "express";
-import { db } from "./db";
+import { db, schema } from "./db";
 import {
-    webhooks,
-    webhookDeliveries,
     insertWebhookSchema,
     updateWebhookSchema,
     ALL_WEBHOOK_EVENTS,
@@ -39,19 +37,19 @@ router.get("/", requireWalletOwnership, async (req: Request, res: Response) => {
         }
 
         const userWebhooks = await db.select({
-            id: webhooks.id,
-            name: webhooks.name,
-            url: webhooks.url,
-            events: webhooks.events,
-            status: webhooks.status,
-            consecutiveFailures: webhooks.consecutiveFailures,
-            lastDeliveryAt: webhooks.lastDeliveryAt,
-            lastDeliveryStatus: webhooks.lastDeliveryStatus,
-            createdAt: webhooks.createdAt,
+            id: schema.webhooks.id,
+            name: schema.webhooks.name,
+            url: schema.webhooks.url,
+            events: schema.webhooks.events,
+            status: schema.webhooks.status,
+            consecutiveFailures: schema.webhooks.consecutiveFailures,
+            lastDeliveryAt: schema.webhooks.lastDeliveryAt,
+            lastDeliveryStatus: schema.webhooks.lastDeliveryStatus,
+            createdAt: schema.webhooks.createdAt,
         })
-            .from(webhooks)
-            .where(eq(webhooks.ownerWallet, walletAddress))
-            .orderBy(desc(webhooks.createdAt));
+            .from(schema.webhooks)
+            .where(eq(schema.webhooks.ownerWallet, walletAddress))
+            .orderBy(desc(schema.webhooks.createdAt));
 
         return res.json({ webhooks: userWebhooks });
 
@@ -80,25 +78,25 @@ router.get("/:id", requireWalletOwnership, async (req: Request, res: Response) =
 
         // Get webhook
         const [webhook] = await db.select({
-            id: webhooks.id,
-            name: webhooks.name,
-            url: webhooks.url,
-            events: webhooks.events,
-            status: webhooks.status,
-            consecutiveFailures: webhooks.consecutiveFailures,
-            lastDeliveryAt: webhooks.lastDeliveryAt,
-            lastDeliveryStatus: webhooks.lastDeliveryStatus,
-            lastErrorMessage: webhooks.lastErrorMessage,
-            description: webhooks.description,
-            maxRetries: webhooks.maxRetries,
-            autoDisableThreshold: webhooks.autoDisableThreshold,
-            createdAt: webhooks.createdAt,
-            updatedAt: webhooks.updatedAt,
+            id: schema.webhooks.id,
+            name: schema.webhooks.name,
+            url: schema.webhooks.url,
+            events: schema.webhooks.events,
+            status: schema.webhooks.status,
+            consecutiveFailures: schema.webhooks.consecutiveFailures,
+            lastDeliveryAt: schema.webhooks.lastDeliveryAt,
+            lastDeliveryStatus: schema.webhooks.lastDeliveryStatus,
+            lastErrorMessage: schema.webhooks.lastErrorMessage,
+            description: schema.webhooks.description,
+            maxRetries: schema.webhooks.maxRetries,
+            autoDisableThreshold: schema.webhooks.autoDisableThreshold,
+            createdAt: schema.webhooks.createdAt,
+            updatedAt: schema.webhooks.updatedAt,
         })
-            .from(webhooks)
+            .from(schema.webhooks)
             .where(and(
-                eq(webhooks.id, id),
-                eq(webhooks.ownerWallet, walletAddress)
+                eq(schema.webhooks.id, id),
+                eq(schema.webhooks.ownerWallet, walletAddress)
             ));
 
         if (!webhook) {
@@ -107,20 +105,20 @@ router.get("/:id", requireWalletOwnership, async (req: Request, res: Response) =
 
         // Get recent deliveries
         const recentDeliveries = await db.select({
-            id: webhookDeliveries.id,
-            eventType: webhookDeliveries.eventType,
-            eventId: webhookDeliveries.eventId,
-            status: webhookDeliveries.status,
-            attempts: webhookDeliveries.attempts,
-            responseCode: webhookDeliveries.responseCode,
-            responseTimeMs: webhookDeliveries.responseTimeMs,
-            errorMessage: webhookDeliveries.errorMessage,
-            createdAt: webhookDeliveries.createdAt,
-            deliveredAt: webhookDeliveries.deliveredAt,
+            id: schema.webhookDeliveries.id,
+            eventType: schema.webhookDeliveries.eventType,
+            eventId: schema.webhookDeliveries.eventId,
+            status: schema.webhookDeliveries.status,
+            attempts: schema.webhookDeliveries.attempts,
+            responseCode: schema.webhookDeliveries.responseCode,
+            responseTimeMs: schema.webhookDeliveries.responseTimeMs,
+            errorMessage: schema.webhookDeliveries.errorMessage,
+            createdAt: schema.webhookDeliveries.createdAt,
+            deliveredAt: schema.webhookDeliveries.deliveredAt,
         })
-            .from(webhookDeliveries)
-            .where(eq(webhookDeliveries.webhookId, id))
-            .orderBy(desc(webhookDeliveries.createdAt))
+            .from(schema.webhookDeliveries)
+            .where(eq(schema.webhookDeliveries.webhookId, id))
+            .orderBy(desc(schema.webhookDeliveries.createdAt))
             .limit(20);
 
         return res.json({
@@ -166,9 +164,9 @@ router.post("/", requireWalletOwnership, strictRateLimit, async (req: Request, r
         const data = validationResult.data;
 
         // Check webhook limit (max 10 per wallet)
-        const existingCount = await db.select({ id: webhooks.id })
-            .from(webhooks)
-            .where(eq(webhooks.ownerWallet, walletAddress));
+        const existingCount = await db.select({ id: schema.webhooks.id })
+            .from(schema.webhooks)
+            .where(eq(schema.webhooks.ownerWallet, walletAddress));
 
         if (existingCount.length >= 10) {
             return res.status(400).json({
@@ -180,7 +178,7 @@ router.post("/", requireWalletOwnership, strictRateLimit, async (req: Request, r
         const { secret, hash, encryptedSecret } = generateWebhookSecret();
 
         // Create webhook
-        const [newWebhook] = await db.insert(webhooks)
+        const [newWebhook] = await db.insert(schema.webhooks)
             .values({
                 ownerWallet: walletAddress,
                 name: data.name || null,
@@ -234,10 +232,10 @@ router.patch("/:id", requireWalletOwnership, async (req: Request, res: Response)
 
         // Verify ownership
         const [existingWebhook] = await db.select()
-            .from(webhooks)
+            .from(schema.webhooks)
             .where(and(
-                eq(webhooks.id, id),
-                eq(webhooks.ownerWallet, walletAddress)
+                eq(schema.webhooks.id, id),
+                eq(schema.webhooks.ownerWallet, walletAddress)
             ));
 
         if (!existingWebhook) {
@@ -257,7 +255,7 @@ router.patch("/:id", requireWalletOwnership, async (req: Request, res: Response)
         const data = validationResult.data;
 
         // Update webhook
-        const [updatedWebhook] = await db.update(webhooks)
+        const [updatedWebhook] = await db.update(schema.webhooks)
             .set({
                 ...data,
                 updatedAt: new Date(),
@@ -267,7 +265,7 @@ router.patch("/:id", requireWalletOwnership, async (req: Request, res: Response)
                     : {}
                 ),
             })
-            .where(eq(webhooks.id, id))
+            .where(eq(schema.webhooks.id, id))
             .returning();
 
         logger.info(`Webhook updated: ${id}`, "api");
@@ -307,12 +305,12 @@ router.delete("/:id", requireWalletOwnership, async (req: Request, res: Response
         }
 
         // Verify ownership and delete
-        const result = await db.delete(webhooks)
+        const result = await db.delete(schema.webhooks)
             .where(and(
-                eq(webhooks.id, id),
-                eq(webhooks.ownerWallet, walletAddress)
+                eq(schema.webhooks.id, id),
+                eq(schema.webhooks.ownerWallet, walletAddress)
             ))
-            .returning({ id: webhooks.id });
+            .returning({ id: schema.webhooks.id });
 
         if (result.length === 0) {
             return res.status(404).json({ error: "Webhook not found" });
@@ -347,10 +345,10 @@ router.post("/:id/rotate-secret", requireWalletOwnership, strictRateLimit, async
 
         // Verify ownership
         const [existingWebhook] = await db.select()
-            .from(webhooks)
+            .from(schema.webhooks)
             .where(and(
-                eq(webhooks.id, id),
-                eq(webhooks.ownerWallet, walletAddress)
+                eq(schema.webhooks.id, id),
+                eq(schema.webhooks.ownerWallet, walletAddress)
             ));
 
         if (!existingWebhook) {
@@ -360,13 +358,13 @@ router.post("/:id/rotate-secret", requireWalletOwnership, strictRateLimit, async
         // Generate new secret
         const { secret, hash, encryptedSecret } = generateWebhookSecret();
 
-        await db.update(webhooks)
+        await db.update(schema.webhooks)
             .set({
                 secretHash: hash,
                 encryptedSecret: encryptedSecret, // FIX: Store encrypted secret for signing
                 updatedAt: new Date(),
             })
-            .where(eq(webhooks.id, id));
+            .where(eq(schema.webhooks.id, id));
 
         logger.info(`Webhook secret rotated: ${id}`, "api");
 
@@ -400,10 +398,10 @@ router.post("/:id/test", requireWalletOwnership, strictRateLimit, async (req: Re
 
         // Verify ownership
         const [existingWebhook] = await db.select()
-            .from(webhooks)
+            .from(schema.webhooks)
             .where(and(
-                eq(webhooks.id, id),
-                eq(webhooks.ownerWallet, walletAddress)
+                eq(schema.webhooks.id, id),
+                eq(schema.webhooks.ownerWallet, walletAddress)
             ));
 
         if (!existingWebhook) {

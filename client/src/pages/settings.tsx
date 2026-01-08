@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Shield, Database, FileSpreadsheet } from 'lucide-react';
+import { Download, Shield, Database, FileSpreadsheet, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useToast } from '@/hooks/use-toast';
 import { BusinessProfileForm } from '@/components/business-profile-form';
+import { WebhookManager } from '@/components/webhook-manager';
 import { Connection, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { Buffer } from 'buffer';
 
@@ -97,6 +98,10 @@ export default function SettingsPage() {
                     <TabsTrigger value="profile" className="gap-2">
                         <Shield className="w-4 h-4" />
                         Profile & Security
+                    </TabsTrigger>
+                    <TabsTrigger value="developers" className="gap-2">
+                        <Code className="w-4 h-4" />
+                        Developers
                     </TabsTrigger>
                 </TabsList>
 
@@ -407,6 +412,10 @@ export default function SettingsPage() {
 
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="developers" className="space-y-6">
+                    <WebhookManager />
                 </TabsContent>
             </Tabs>
         </div>

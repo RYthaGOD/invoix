@@ -260,6 +260,13 @@ app.use((req, res, next) => {
       }).catch((error) => {
         logger.error('Failed to start cleanup jobs', 'system', { error: String(error) });
       });
+
+      // Start Subscription Biller
+      import('./subscription-biller').then(({ startBillingCron }) => {
+        startBillingCron();
+      }).catch((error) => {
+        logger.error('Failed to start billing cron', 'system', { error: String(error) });
+      });
     });
 
     // 4. Register Routes
@@ -304,6 +311,10 @@ app.use((req, res, next) => {
       // 10. Start Marketplace Cron (Expired Listings)
       const { startMarketplaceCron } = await import("./marketplace-cron");
       startMarketplaceCron();
+
+      // 11. Start Webhook Delivery Cron (Retry Failed Deliveries)
+      const { startWebhookCron } = await import("./webhook-service");
+      startWebhookCron();
     }
 
     // Finalize

@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 const { Program } = anchor;
 import type { Program as ProgramType } from "@coral-xyz/anchor";
 import { Connection, PublicKey, Transaction, SystemProgram, Keypair } from "@solana/web3.js";
+import bs58 from "bs58";
 import { logger } from "./logger";
 import { dasService } from "./das-service";
 import { getInvoiceNFTService } from "./nft-service";
@@ -127,23 +128,26 @@ export class MarketplaceService {
             const assetProof = await dasService.getAssetProof(assetId);
             const { root, proof, node_index, leaf, tree_id } = assetProof;
 
-            // 2. Fetch Asset Data (for dataHash/creatorHash) - simplified here
-            // In a real app, we'd fetch the full asset to reproduce hashes. 
-            // For MVP, we assume client/server verification or fetch from DAS "getAsset".
-            // We'll need `getAsset` in das-service too, but for now let's pretend we have them
-            // or pass dummy if verification is loose (NOT RECCOMENDED)
-            // Ideally: const asset = await dasService.getAsset(assetId);
+            // 2. Fetch Asset Data (for dataHash/creatorHash)
+            const asset = await dasService.getAsset(assetId);
+            if (!asset.compression) {
+                throw new Error("Invalid asset: Not a compressed NFT");
+            }
 
-            // Hardcoded Placeholders to allow compilation. 
-            // TODO: Implement dasService.getAsset() to get real hashes
-            const dataHash = new Array(32).fill(0);
-            const creatorHash = new Array(32).fill(0);
-            const rootBytes = Array.from(Buffer.from(root, 'hex')); // Convert hex string to u8 array?
+            const dataHash = Array.from(bs58.decode(asset.compression.data_hash));
+            const creatorHash = Array.from(bs58.decode(asset.compression.creator_hash));
+            // DAS returns root as Base58 string (usually)
+            // If it fails, fallback to hex or verify structure.
+            const rootBytes = Array.from(bs58.decode(root));
 
             // 3. Derive PDA
+            // Seed: "listing", seller, assetId
+            // TODO: Ensure Anchor program supports this seed structure. If strictly "listing" + seller, limit is 1.
             const seller = new PublicKey(sellerPublicKey);
+            const assetMint = new PublicKey(assetId);
+
             const [listingState] = PublicKey.findProgramAddressSync(
-                [Buffer.from("listing"), seller.toBuffer()],
+                [Buffer.from("listing"), seller.toBuffer(), assetMint.toBuffer()],
                 this.program.programId
             );
 
@@ -208,8 +212,10 @@ export class MarketplaceService {
 
             const buyer = new PublicKey(buyerPublicKey);
             const seller = new PublicKey(sellerPublicKey);
+            const assetMint = new PublicKey(assetId);
+
             const [listingState] = PublicKey.findProgramAddressSync(
-                [Buffer.from("listing"), seller.toBuffer()],
+                [Buffer.from("listing"), seller.toBuffer(), assetMint.toBuffer()],
                 this.program.programId
             );
 
@@ -220,10 +226,13 @@ export class MarketplaceService {
 
             const treeAuthority = await this.getTreeAuthority(new PublicKey(tree_id));
 
-            // Placeholders
-            const dataHash = new Array(32).fill(0);
-            const creatorHash = new Array(32).fill(0);
-            const rootBytes = Array.from(Buffer.from(root, 'hex'));
+            // Fetch Real Hashes
+            const asset = await dasService.getAsset(assetId);
+            if (!asset.compression) throw new Error("Invalid Asset");
+
+            const dataHash = Array.from(bs58.decode(asset.compression.data_hash));
+            const creatorHash = Array.from(bs58.decode(asset.compression.creator_hash));
+            const rootBytes = Array.from(bs58.decode(root));
 
             const ix = await this.program.methods
                 .buyInvoice(
@@ -267,6 +276,82 @@ export class MarketplaceService {
 
         } catch (error: any) {
             logger.error("Failed to create buy tx", "marketplace", { error: error.message });
+            throw error;
+        }
+    }
+
+    /**
+     * Create Cancel Listing Transaction
+     * Retruns the NFT from PDA to Seller
+     */
+    async createCancelListingTransaction(
+        sellerPublicKey: string,
+        invoiceId: string,
+        assetId: string
+    ): Promise<string> {
+        try {
+            // 1. Fetch Asset Proof from DAS (needed to verify leaf ownership in program)
+            const assetProof = await dasService.getAssetProof(assetId);
+            const { root, proof, node_index, leaf, tree_id } = assetProof;
+
+            // 2. Fetch Asset Data (for dataHash/creatorHash)
+            const asset = await dasService.getAsset(assetId);
+            if (!asset.compression) {
+                throw new Error("Invalid asset: Not a compressed NFT");
+            }
+
+            const dataHash = Array.from(bs58.decode(asset.compression.data_hash));
+            const creatorHash = Array.from(bs58.decode(asset.compression.creator_hash));
+            const rootBytes = Array.from(bs58.decode(root));
+
+            // 3. Derive PDA
+            // Must match seeds used in listInvoice: "listing", seller, assetMint
+            const seller = new PublicKey(sellerPublicKey);
+            const assetMint = new PublicKey(assetId);
+
+            const [listingState] = PublicKey.findProgramAddressSync(
+                [Buffer.from("listing"), seller.toBuffer(), assetMint.toBuffer()],
+                this.program.programId
+            );
+
+            // 4. Build Cancel Instruction
+            // Arguments: root, dataHash, creatorHash, nonce, index
+            const ix = await this.program.methods
+                .cancelListing(
+                    rootBytes,
+                    dataHash,
+                    creatorHash,
+                    new anchor.BN(node_index), // nonce
+                    node_index // index
+                )
+                .accounts({
+                    seller: seller,
+                    listingState: listingState,
+                    merkleTree: new PublicKey(tree_id),
+                    // Anchor handles systemProgram, logWrapper, bubblegumProgram if defined in IDL
+                })
+                .remainingAccounts(
+                    proof.map(p => ({
+                        pubkey: new PublicKey(p),
+                        isWritable: false,
+                        isSigner: false
+                    }))
+                )
+                .instruction();
+
+            // 5. Build Transaction
+            const tx = new Transaction().add(ix);
+            tx.feePayer = seller;
+
+            // We need a blockhash. Since we are on server, we can fetch it.
+            const latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+            tx.recentBlockhash = latestBlockhash.blockhash;
+
+            // Serialize for client signature
+            return tx.serialize({ requireAllSignatures: false }).toString("base64");
+
+        } catch (error: any) {
+            logger.error("Failed to create cancel listing tx", "marketplace", { error: error.message });
             throw error;
         }
     }

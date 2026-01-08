@@ -522,6 +522,8 @@ export const invoiceMarketplace = pgTable("invoice_marketplace", {
   riskIdx: index("idx_marketplace_risk").on(table.riskLevel),
   sellerIdx: index("idx_marketplace_seller").on(table.seller),
   currencyIdx: index("idx_marketplace_currency").on(table.currency),
+  priceIdx: index("idx_marketplace_price").on(table.askingPrice),
+  yieldIdx: index("idx_marketplace_yield").on(table.yieldPercentage),
 }));
 
 // ============================================

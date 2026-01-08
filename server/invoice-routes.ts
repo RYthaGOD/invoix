@@ -15,12 +15,6 @@ import {
   insertPaymentSchema,
   insertBusinessProfileSchema,
   insertCustomerProfileSchema,
-  customerProfiles, // Import table definition
-  payments,
-  businessProfiles,
-  businessIdentityNFTs,
-  invoices,
-  invoiceLineItems,
   type Invoice
 } from "@shared/invoice-schema";
 import { fromZodError } from "zod-validation-error";
@@ -29,7 +23,8 @@ import { validateApiKey } from "./middleware/api-auth";
 import { getArciumService, loadKeypairFromPrivateKey } from "./arcium-service";
 import { getInvoiceNFTService } from "./nft-service";
 import { getEmailService } from "./email-service"; // Import Email Service
-import { db } from "./db";
+import { emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
+import { db, schema } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
@@ -236,17 +231,17 @@ export function registerInvoiceRoutes(app: Express): void {
         try {
           // Check if profile exists
           const existingProfile = await db.query.customerProfiles.findFirst({
-            where: eq(customerProfiles.customerWalletAddress, invoiceData.invoiceeWalletAddress)
+            where: eq(schema.customerProfiles.customerWalletAddress, invoiceData.invoiceeWalletAddress)
           });
 
           if (existingProfile) {
             // Update if email changed and not empty
-            await db.update(customerProfiles)
+            await db.update(schema.customerProfiles)
               .set({ customerEmail: req.body.customerEmail })
-              .where(eq(customerProfiles.id, existingProfile.id));
+              .where(eq(schema.customerProfiles.id, existingProfile.id));
           } else {
             // Create new profile
-            await db.insert(customerProfiles).values({
+            await db.insert(schema.customerProfiles).values({
               customerWalletAddress: invoiceData.invoiceeWalletAddress, // The payer
               businessWalletAddress: authenticatedWallet, // The invoicer (owner of this profile)
               customerEmail: req.body.customerEmail,
@@ -341,6 +336,22 @@ export function registerInvoiceRoutes(app: Express): void {
       }
 
       // AUTO-MINT Invoice NFT (Removed: Now Client-Side & User-Paid)
+
+      // --- EMIT WEBHOOK: INVOICE.CREATED ---
+      emitWebhookEvent(
+        authenticatedWallet,
+        WEBHOOK_EVENTS.INVOICE_CREATED,
+        {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.totalAmount,
+          currency: invoice.currency,
+          dueDate: invoice.dueDate,
+          customerWallet: invoice.invoiceeWalletAddress,
+          status: invoice.status
+        }
+      ).catch(err => logger.error("Failed to emit invoice.created webhook", "webhook", { error: err }));
+      // -------------------------------------
 
       res.status(201).json({
         success: true,
@@ -601,7 +612,7 @@ export function registerInvoiceRoutes(app: Express): void {
             // Try to find customer profile details linked to this invoicee wallet
             // This is a "best effort" look up
             const customerProfile = await db.query.customerProfiles.findFirst({
-              where: eq(customerProfiles.customerWalletAddress, fullInvoice.invoiceeWalletAddress)
+              where: eq(schema.customerProfiles.customerWalletAddress, fullInvoice.invoiceeWalletAddress)
             });
 
             // PRIORITY:
@@ -632,6 +643,25 @@ export function registerInvoiceRoutes(app: Express): void {
         }
       }
       // --------------------------------
+
+      // --- EMIT WEBHOOK: INVOICE.UPDATED ---
+      // TODO: Add INVOICE_UPDATED to webhook schema if generic updates are needed
+      /*
+      emitWebhookEvent(
+        invoice.invoicerWalletAddress,
+        // @ts-ignore - Event type not yet defined
+        "invoice.updated",
+        {
+          invoiceId: id,
+          invoiceNumber: invoice.invoiceNumber,
+          status: updates.status || invoice.status,
+          updatedFields: Object.keys(updates),
+          timestamp: new Date().toISOString()
+        }
+      ).catch(err => logger.error("Failed to emit invoice.updated webhook", "webhook", { error: err }));
+      */
+      // -------------------------------------
+      // -------------------------------------
 
       res.json({
         success: true,
@@ -733,7 +763,7 @@ export function registerInvoiceRoutes(app: Express): void {
       }
 
       // Check max line items (DoS protection)
-      const currentItems = await db.select().from(invoiceLineItems).where(eq(invoiceLineItems.invoiceId, id));
+      const currentItems = await db.select().from(schema.invoiceLineItems).where(eq(schema.invoiceLineItems.invoiceId, id));
       if (currentItems.length >= 100) {
         return res.status(400).json({ message: "Limit reached: Maximum 100 line items allowed per invoice" });
       }
@@ -770,9 +800,9 @@ export function registerInvoiceRoutes(app: Express): void {
 
       // Security Check: Ensure user owns the invoice this line item belongs to
       const lineItemResult = await db.select()
-        .from(invoiceLineItems)
-        .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
-        .where(eq(invoiceLineItems.id, id))
+        .from(schema.invoiceLineItems)
+        .innerJoin(schema.invoices, eq(schema.invoiceLineItems.invoiceId, schema.invoices.id))
+        .where(eq(schema.invoiceLineItems.id, id))
         .limit(1);
 
       if (lineItemResult.length === 0) {
@@ -815,9 +845,9 @@ export function registerInvoiceRoutes(app: Express): void {
 
       // Security Check: Ensure user owns the invoice this line item belongs to
       const lineItemResult = await db.select()
-        .from(invoiceLineItems)
-        .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
-        .where(eq(invoiceLineItems.id, id))
+        .from(schema.invoiceLineItems)
+        .innerJoin(schema.invoices, eq(schema.invoiceLineItems.invoiceId, schema.invoices.id))
+        .where(eq(schema.invoiceLineItems.id, id))
         .limit(1);
 
       if (lineItemResult.length === 0) {
@@ -956,7 +986,7 @@ export function registerInvoiceRoutes(app: Express): void {
         try {
           // Best effort customer email lookup
           const customerProfile = await db.query.customerProfiles.findFirst({
-            where: eq(customerProfiles.customerWalletAddress, updatedInvoice.invoiceeWalletAddress)
+            where: eq(schema.customerProfiles.customerWalletAddress, updatedInvoice.invoiceeWalletAddress)
           });
 
           const emailTo = customerProfile?.customerEmail || "customer@example.com";
@@ -994,9 +1024,9 @@ export function registerInvoiceRoutes(app: Express): void {
           logger.info(`Receipt NFT Minted: ${receiptResult.mint}`, "nft");
 
           // Update payment record with NFT mint info
-          await db.update(payments)
+          await db.update(schema.payments)
             .set({ nftReceiptMinted: true })
-            .where(eq(payments.txSignature, validatedData.txSignature));
+            .where(eq(schema.payments.txSignature, validatedData.txSignature));
         } else {
           logger.warn(`Skipped Receipt NFT - NFT Service not ready or invoice not found`, "nft");
         }
@@ -1479,7 +1509,7 @@ export function registerInvoiceRoutes(app: Express): void {
   app.get("/nft-metadata/payment/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const paymentData = await db.select().from(payments).where(eq(payments.id, id)).limit(1).then((r: any[]) => r[0]);
+      const paymentData = await db.select().from(schema.payments).where(eq(schema.payments.id, id)).limit(1).then((r: any[]) => r[0]);
 
       if (!paymentData) {
         return res.status(404).json({ error: "Payment not found" });
@@ -1502,15 +1532,15 @@ export function registerInvoiceRoutes(app: Express): void {
   app.get("/nft-metadata/business/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const businessData = await db.select().from(businessProfiles).where(eq(businessProfiles.id, id)).limit(1).then(r => r[0]);
+      const businessData = await db.select().from(schema.businessProfiles).where(eq(schema.businessProfiles.id, id)).limit(1).then(r => r[0]);
 
       if (!businessData) {
         return res.status(404).json({ error: "Business profile not found" });
       }
 
-      const identity = await db.select().from(businessIdentityNFTs)
-        .where(eq(businessIdentityNFTs.businessProfileId, id))
-        .orderBy(desc(businessIdentityNFTs.createdAt))
+      const identity = await db.select().from(schema.businessIdentityNFTs)
+        .where(eq(schema.businessIdentityNFTs.businessProfileId, id))
+        .orderBy(desc(schema.businessIdentityNFTs.createdAt))
         .limit(1).then(r => r[0]);
 
       const verificationLevel = identity?.verificationLevel || "basic";
@@ -1770,7 +1800,7 @@ export function registerInvoiceRoutes(app: Express): void {
         // I will implement "invoice" and "business" first as they are guaranteed.
         // For payment, I'll attempt a direct DB find using the "payments" schema which is imported.
 
-        const paymentList = await db.select().from(payments).where(eq(payments.id, id));
+        const paymentList = await db.select().from(schema.payments).where(eq(schema.payments.id, id));
         const payment = paymentList[0];
 
         if (!payment) {
@@ -1793,16 +1823,14 @@ export function registerInvoiceRoutes(app: Express): void {
         // `getBusinessProfile` takes wallet address. 
         // We need getBusinessProfileById.
 
-        const profileList = await db.select().from(businessProfiles).where(eq(businessProfiles.id, id));
+        const profileList = await db.select().from(schema.businessProfiles).where(eq(schema.businessProfiles.id, id));
+        if (profileList.length === 0) {
+          return res.status(404).json({ success: false, message: "Business profile not found" });
+        }
         const profile = profileList[0];
 
-        if (!profile) {
-          return res.status(404).json({ message: "Business profile not found" });
-        }
-
-        // We need verification level. We can default to "verified" if they have an NFT.
-        // Or check the NFT table.
-        const nftRecord = await db.select().from(businessIdentityNFTs).where(eq(businessIdentityNFTs.businessProfileId, id));
+        // Fetch Arcium Identity
+        const nftRecord = await db.select().from(schema.businessIdentityNFTs).where(eq(schema.businessIdentityNFTs.businessProfileId, id));
         const level = nftRecord[0]?.verificationLevel || "verified";
 
         const metadata = nftService.generateBusinessIdentityMetadata(profile, level);

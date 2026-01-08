@@ -100,12 +100,14 @@ const tierConfig: Record<string, { color: string }> = {
 };
 
 export default function Marketplace() {
-    const [, navigate] = useLocation();
+    const [location, navigate] = useLocation();
     const { walletAddress } = useAuth();
     const [listings, setListings] = useState<MarketplaceListing[]>([]);
     const [stats, setStats] = useState<MarketplaceStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const isMyListings = location === '/marketplace/my-listings';
 
     // Filters
     const [searchTerm, setSearchTerm] = useState("");
@@ -116,8 +118,10 @@ export default function Marketplace() {
 
     useEffect(() => {
         loadListings();
-        loadStats();
-    }, [currencyFilter, riskFilter, sortBy, sortOrder]);
+        if (!isMyListings) {
+            loadStats();
+        }
+    }, [currencyFilter, riskFilter, sortBy, sortOrder, location, walletAddress]);
 
     const loadListings = async () => {
         setLoading(true);
@@ -130,6 +134,7 @@ export default function Marketplace() {
                 sortOrder,
                 ...(currencyFilter !== "all" && { currency: currencyFilter }),
                 ...(riskFilter !== "all" && { riskLevel: riskFilter }),
+                ...(isMyListings && walletAddress && { seller: walletAddress, status: "all" }),
             });
 
             const response = await fetch(`/api/marketplace/listings?${params}`, {
@@ -300,15 +305,17 @@ export default function Marketplace() {
                 <div>
                     <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
                         <Store className="w-8 h-8 text-purple-400" />
-                        Invoice Marketplace
+                        {isMyListings ? "My Listings" : "Invoice Marketplace"}
                     </h1>
                     <p className="text-gray-400 mt-1">
-                        Purchase discounted invoices for yield • Powered by RWA tokenization
+                        {isMyListings
+                            ? "Manage your active and expired listings"
+                            : "Purchase discounted invoices for yield • Powered by RWA tokenization"}
                     </p>
                 </div>
 
                 <div className="flex gap-3">
-                    {walletAddress && (
+                    {walletAddress && !isMyListings && (
                         <>
                             <Link href="/marketplace/my-listings">
                                 <Button variant="outline" className="border-white/10 hover:bg-white/5">
@@ -321,6 +328,13 @@ export default function Marketplace() {
                                 </Button>
                             </Link>
                         </>
+                    )}
+                    {isMyListings && (
+                        <Link href="/marketplace">
+                            <Button variant="outline" className="border-white/10 hover:bg-white/5">
+                                Back to Browse
+                            </Button>
+                        </Link>
                     )}
                     <Button
                         onClick={loadListings}

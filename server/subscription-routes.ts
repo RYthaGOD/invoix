@@ -6,9 +6,8 @@
 
 import type { Express } from "express";
 import { logger } from "./logger";
-import { db } from "./db";
+import { db, schema } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { subscriptionPlans, subscriptions } from "@shared/invoice-schema";
 import { requireWalletOwnership, strictRateLimit } from "./security";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -18,6 +17,7 @@ import * as anchor from "@coral-xyz/anchor";
 const { BN } = anchor;
 import crypto from "crypto";
 import { uuidToSubscriptionSeed, deriveSubscriptionPda } from "./subscription-utils";
+import { emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
 
 // ============================================
 // VALIDATION SCHEMAS
@@ -93,7 +93,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             const planData = validation.data;
 
-            const [newPlan] = await db.insert(subscriptionPlans).values({
+            const [newPlan] = await db.insert(schema.subscriptionPlans).values({
                 ownerWalletAddress: authenticatedWallet,
                 name: planData.name,
                 description: planData.description,
@@ -124,9 +124,9 @@ export function registerSubscriptionRoutes(app: Express): void {
             const authenticatedWallet = (req as any).authenticatedWallet;
 
             const plans = await db.select()
-                .from(subscriptionPlans)
-                .where(eq(subscriptionPlans.ownerWalletAddress, authenticatedWallet))
-                .orderBy(desc(subscriptionPlans.createdAt));
+                .from(schema.subscriptionPlans)
+                .where(eq(schema.subscriptionPlans.ownerWalletAddress, authenticatedWallet))
+                .orderBy(desc(schema.subscriptionPlans.createdAt));
 
             res.json({
                 success: true,
@@ -149,10 +149,10 @@ export function registerSubscriptionRoutes(app: Express): void {
             const { id } = req.params;
 
             const [plan] = await db.select()
-                .from(subscriptionPlans)
+                .from(schema.subscriptionPlans)
                 .where(and(
-                    eq(subscriptionPlans.id, id),
-                    eq(subscriptionPlans.ownerWalletAddress, authenticatedWallet)
+                    eq(schema.subscriptionPlans.id, id),
+                    eq(schema.subscriptionPlans.ownerWalletAddress, authenticatedWallet)
                 ));
 
             if (!plan) {
@@ -193,10 +193,10 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // Verify plan exists and belongs to this user
             const [plan] = await db.select()
-                .from(subscriptionPlans)
+                .from(schema.subscriptionPlans)
                 .where(and(
-                    eq(subscriptionPlans.id, planId),
-                    eq(subscriptionPlans.ownerWalletAddress, authenticatedWallet)
+                    eq(schema.subscriptionPlans.id, planId),
+                    eq(schema.subscriptionPlans.ownerWalletAddress, authenticatedWallet)
                 ));
 
             if (!plan) {
@@ -270,7 +270,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // Persist "Pending" subscription to DB so we can track it
             // We use the generated UUID
-            const [newSubscription] = await db.insert(subscriptions).values({
+            const [newSubscription] = await db.insert(schema.subscriptions).values({
                 id: subscriptionId,
                 planId,
                 invoicerWalletAddress: authenticatedWallet,
@@ -321,16 +321,15 @@ export function registerSubscriptionRoutes(app: Express): void {
             const { signature, invoicePda } = validation.data;
 
             // STEP 2: Idempotency Check
-            const { confirmedSignatures } = await import('@shared/invoice-schema');
             const [existing] = await db.select()
-                .from(confirmedSignatures)
-                .where(eq(confirmedSignatures.signature, signature))
+                .from(schema.confirmedSignatures)
+                .where(eq(schema.confirmedSignatures.signature, signature))
                 .limit(1);
 
             if (existing) {
                 const [subscription] = await db.select()
-                    .from(subscriptions)
-                    .where(eq(subscriptions.id, id))
+                    .from(schema.subscriptions)
+                    .where(eq(schema.subscriptions.id, id))
                     .limit(1);
 
                 logger.info("Idempotent confirm-invoice request", "subscription", {
@@ -348,10 +347,10 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // STEP 3: Fetch subscription for optimistic locking
             const [subscription] = await db.select()
-                .from(subscriptions)
+                .from(schema.subscriptions)
                 .where(and(
-                    eq(subscriptions.id, id),
-                    eq(subscriptions.invoicerWalletAddress, authenticatedWallet)
+                    eq(schema.subscriptions.id, id),
+                    eq(schema.subscriptions.invoicerWalletAddress, authenticatedWallet)
                 ))
                 .limit(1);
 
@@ -421,16 +420,16 @@ export function registerSubscriptionRoutes(app: Express): void {
             });
 
             // STEP 6: Atomic database update with optimistic locking
-            const result = await db.update(subscriptions)
+            const result = await db.update(schema.subscriptions)
                 .set({
-                    version: sql`${subscriptions.version} + 1`,
+                    version: sql`${schema.subscriptions.version} + 1`,
                     // Advance billing period (simplified - adjust based on plan interval)
                     currentPeriodStart: new Date(),
                     currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // +30 days
                 })
                 .where(and(
-                    eq(subscriptions.id, id),
-                    eq(subscriptions.version, currentVersion)
+                    eq(schema.subscriptions.id, id),
+                    eq(schema.subscriptions.version, currentVersion)
                 ))
                 .returning();
 
@@ -442,7 +441,7 @@ export function registerSubscriptionRoutes(app: Express): void {
             }
 
             // STEP 7: Record idempotency signature
-            await db.insert(confirmedSignatures).values({
+            await db.insert(schema.confirmedSignatures).values({
                 signature,
                 endpoint: "/confirm-invoice",
                 resourceType: "subscription",
@@ -455,6 +454,21 @@ export function registerSubscriptionRoutes(app: Express): void {
                 invoicePda,
                 userId: authenticatedWallet
             });
+
+            // --- EMIT WEBHOOK: SUBSCRIPTION.CREATED ---
+            emitWebhookEvent(
+                authenticatedWallet,
+                WEBHOOK_EVENTS.SUBSCRIPTION_CREATED,
+                {
+                    subscriptionId: id,
+                    planId: subscription.planId,
+                    customerWallet: subscription.customerWalletAddress,
+                    startDate: subscription.startDate,
+                    status: "active",
+                    invoicePda
+                }
+            ).catch(err => logger.error("Failed to emit subscription.created webhook", "webhook", { error: err }));
+            // ------------------------------------------
 
             res.json({
                 success: true,
@@ -485,9 +499,9 @@ export function registerSubscriptionRoutes(app: Express): void {
             const authenticatedWallet = (req as any).authenticatedWallet;
 
             const userSubscriptions = await db.select()
-                .from(subscriptions)
-                .where(eq(subscriptions.invoicerWalletAddress, authenticatedWallet))
-                .orderBy(desc(subscriptions.createdAt));
+                .from(schema.subscriptions)
+                .where(eq(schema.subscriptions.invoicerWalletAddress, authenticatedWallet))
+                .orderBy(desc(schema.subscriptions.createdAt));
 
             res.json({
                 success: true,
@@ -510,10 +524,10 @@ export function registerSubscriptionRoutes(app: Express): void {
             const { id } = req.params;
 
             const [subscription] = await db.select()
-                .from(subscriptions)
+                .from(schema.subscriptions)
                 .where(and(
-                    eq(subscriptions.id, id),
-                    eq(subscriptions.invoicerWalletAddress, authenticatedWallet)
+                    eq(schema.subscriptions.id, id),
+                    eq(schema.subscriptions.invoicerWalletAddress, authenticatedWallet)
                 ));
 
             if (!subscription) {
@@ -522,8 +536,8 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // Also get the plan details
             const [plan] = await db.select()
-                .from(subscriptionPlans)
-                .where(eq(subscriptionPlans.id, subscription.planId));
+                .from(schema.subscriptionPlans)
+                .where(eq(schema.subscriptionPlans.id, subscription.planId));
 
             res.json({
                 success: true,
@@ -552,9 +566,9 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // Allow EITHER Merchant OR Subscriber to cancel
             const [subscription] = await db.select()
-                .from(subscriptions)
+                .from(schema.subscriptions)
                 .where(and(
-                    eq(subscriptions.id, id)
+                    eq(schema.subscriptions.id, id)
                 ));
 
             if (!subscription) {
@@ -660,17 +674,16 @@ export function registerSubscriptionRoutes(app: Express): void {
             const { signature, subscriptionPda } = validation.data;
 
             // STEP 2: Idempotency Check (C2)
-            const { confirmedSignatures } = await import('@shared/invoice-schema');
             const [existing] = await db.select()
-                .from(confirmedSignatures)
-                .where(eq(confirmedSignatures.signature, signature))
+                .from(schema.confirmedSignatures)
+                .where(eq(schema.confirmedSignatures.signature, signature))
                 .limit(1);
 
             if (existing) {
                 // Already processed - return success with existing data
                 const [subscription] = await db.select()
-                    .from(subscriptions)
-                    .where(eq(subscriptions.id, id))
+                    .from(schema.subscriptions)
+                    .where(eq(schema.subscriptions.id, id))
                     .limit(1);
 
                 logger.info("Idempotent confirm-cancel request", "subscription", {
@@ -688,10 +701,10 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // STEP 3: Fetch subscription for optimistic locking (C3)
             const [subscription] = await db.select()
-                .from(subscriptions)
+                .from(schema.subscriptions)
                 .where(and(
-                    eq(subscriptions.id, id),
-                    eq(subscriptions.invoicerWalletAddress, authenticatedWallet)
+                    eq(schema.subscriptions.id, id),
+                    eq(schema.subscriptions.invoicerWalletAddress, authenticatedWallet)
                 ))
                 .limit(1);
 
@@ -771,15 +784,15 @@ export function registerSubscriptionRoutes(app: Express): void {
             }
 
             // STEP 6: Atomic database update with optimistic locking (C3)
-            const result = await db.update(subscriptions)
+            const result = await db.update(schema.subscriptions)
                 .set({
                     status: "cancelled",
                     cancelledAt: new Date(),
-                    version: sql`${subscriptions.version} + 1`
+                    version: sql`${schema.subscriptions.version} + 1`
                 })
                 .where(and(
-                    eq(subscriptions.id, id),
-                    eq(subscriptions.version, currentVersion)
+                    eq(schema.subscriptions.id, id),
+                    eq(schema.subscriptions.version, currentVersion)
                 ))
                 .returning();
 
@@ -791,7 +804,7 @@ export function registerSubscriptionRoutes(app: Express): void {
             }
 
             // STEP 7: Record idempotency signature
-            await db.insert(confirmedSignatures).values({
+            await db.insert(schema.confirmedSignatures).values({
                 signature,
                 endpoint: "/confirm-cancel",
                 resourceType: "subscription",
@@ -803,6 +816,18 @@ export function registerSubscriptionRoutes(app: Express): void {
                 signature,
                 userId: authenticatedWallet
             });
+
+            // --- EMIT WEBHOOK: SUBSCRIPTION.CANCELLED ---
+            emitWebhookEvent(
+                subscription.invoicerWalletAddress,
+                WEBHOOK_EVENTS.SUBSCRIPTION_CANCELLED,
+                {
+                    subscriptionId: id,
+                    reason: "user_cancelled",
+                    cancelledAt: new Date().toISOString()
+                }
+            ).catch(err => logger.error("Failed to emit subscription.cancelled webhook", "webhook", { error: err }));
+            // --------------------------------------------
 
             res.json({
                 success: true,
@@ -840,10 +865,10 @@ export function registerSubscriptionRoutes(app: Express): void {
             const { id } = req.params;
 
             const [subscription] = await db.select()
-                .from(subscriptions)
+                .from(schema.subscriptions)
                 .where(and(
-                    eq(subscriptions.id, id),
-                    eq(subscriptions.invoicerWalletAddress, authenticatedWallet)
+                    eq(schema.subscriptions.id, id),
+                    eq(schema.subscriptions.invoicerWalletAddress, authenticatedWallet)
                 ));
 
             if (!subscription) {
@@ -856,8 +881,8 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // Get the plan
             const [plan] = await db.select()
-                .from(subscriptionPlans)
-                .where(eq(subscriptionPlans.id, subscription.planId));
+                .from(schema.subscriptionPlans)
+                .where(eq(schema.subscriptionPlans.id, subscription.planId));
 
             if (!plan) {
                 return res.status(404).json({ error: "Plan not found" });
@@ -945,17 +970,17 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // 2. Fetch Subscription & Plan (for logic calc)
             const [subscription] = await db.select()
-                .from(subscriptions)
+                .from(schema.subscriptions)
                 .where(and(
-                    eq(subscriptions.id, id),
-                    eq(subscriptions.invoicerWalletAddress, authenticatedWallet)
+                    eq(schema.subscriptions.id, id),
+                    eq(schema.subscriptions.invoicerWalletAddress, authenticatedWallet)
                 ));
 
             if (!subscription) return res.status(404).json({ error: "Subscription not found" });
 
             const [plan] = await db.select()
-                .from(subscriptionPlans)
-                .where(eq(subscriptionPlans.id, subscription.planId));
+                .from(schema.subscriptionPlans)
+                .where(eq(schema.subscriptionPlans.id, subscription.planId));
 
             if (!plan) return res.status(404).json({ error: "Plan not found" });
 
@@ -982,12 +1007,12 @@ export function registerSubscriptionRoutes(app: Express): void {
             }
 
             // Update subscription period
-            await db.update(subscriptions)
+            await db.update(schema.subscriptions)
                 .set({
                     currentPeriodStart: subscription.currentPeriodEnd,
                     currentPeriodEnd: nextPeriodEnd,
                 })
-                .where(eq(subscriptions.id, id));
+                .where(eq(schema.subscriptions.id, id));
 
             logger.info(`Invoice mint confirmed & synced for subscription: ${id}`);
 
