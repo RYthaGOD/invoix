@@ -33,7 +33,9 @@ import {
   Link,
   Loader2,
   Mail,
+  Store,
 } from "lucide-react";
+import { marketplaceSdk } from "@/lib/marketplace";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -128,6 +130,13 @@ export default function InvoiceDetail() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [mintingStatus, setMintingStatus] = useState<string>("");
   const [mintError, setMintError] = useState<string | null>(null);
+
+  // Marketplace Listing State
+  const [showSellDialog, setShowSellDialog] = useState(false);
+  const [sellPrice, setSellPrice] = useState("");
+  const [sellDuration, setSellDuration] = useState("30"); // Default 30 days
+  const [sellDescription, setSellDescription] = useState("");
+  const [isListing, setIsListing] = useState(false);
 
 
   // Solana Pay Logic
@@ -649,6 +658,66 @@ export default function InvoiceDetail() {
     }
   };
 
+  const handleListConfirm = async () => {
+    if (!invoice || !wallet.publicKey || !wallet.signTransaction) return;
+
+    if (!sellPrice || parseFloat(sellPrice) >= parseFloat(invoice.totalAmount)) {
+      toast({
+        title: "Invalid Price",
+        description: "Asking price must be less than face value.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsListing(true);
+    try {
+      // 1. Request Transaction
+      const response = await marketplaceSdk.listInvoice({
+        invoiceId: invoice.id,
+        askingPrice: parseFloat(sellPrice),
+        description: sellDescription,
+        expiresInDays: parseInt(sellDuration)
+      });
+
+      if (!response.transaction) {
+        throw new Error("No transaction returned from server");
+      }
+
+      // 2. Sign & Send
+      const transaction = marketplaceSdk.deserializeTransaction(response.transaction);
+      const signedTx = await wallet.signTransaction(transaction);
+
+      toast({ title: "Confirming Listing...", description: "Sending transaction to Solana network." });
+
+      const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("devnet"));
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+      const confirmation = await connection.confirmTransaction(signature, "confirmed");
+
+      if (confirmation.value.err) throw new Error("Transaction failed on-chain");
+
+      // 3. Success
+      toast({
+        title: "Invoice Listed!",
+        description: "Your invoice is now available on the marketplace.",
+      });
+      setShowSellDialog(false);
+
+      // Reload to update status
+      loadInvoice(invoice.id);
+
+    } catch (err: any) {
+      console.error("Listing failed:", err);
+      toast({
+        title: "Listing Failed",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsListing(false);
+    }
+  };
+
   const copyToClipboard = async (text: string, key: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(key);
@@ -757,6 +826,17 @@ export default function InvoiceDetail() {
             >
               <Send className="w-4 h-4" />
               {sending ? "Sending..." : "Send Invoice"}
+            </button>
+          )}
+
+          {/* Sell Button - Only if Sent & Minted */}
+          {isInvoicer && invoice.status === 'sent' && invoice.nftMint && (
+            <button
+              onClick={() => setShowSellDialog(true)}
+              className="smoke-shadow px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20"
+            >
+              <Store className="w-4 h-4" />
+              Sell Invoice
             </button>
           )}
         </div>
@@ -1306,6 +1386,96 @@ export default function InvoiceDetail() {
               className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
             >
               {paymentDetected ? "Done" : "Close"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showSellDialog} onOpenChange={setShowSellDialog}>
+        <DialogContent className="glass-card border-purple-500/30 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Store className="w-5 h-5 text-purple-400" />
+              List Invoice for Sale
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Sell your unpaid invoice to get immediate cash flow.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-white/5 rounded-lg">
+                <div className="text-xs text-gray-500 uppercase">Face Value</div>
+                <div className="text-lg font-semibold">{invoice?.totalAmount} {invoice?.currency}</div>
+              </div>
+              <div className="p-3 bg-white/5 rounded-lg">
+                <div className="text-xs text-gray-500 uppercase">Discount</div>
+                <div className="text-lg font-bold text-emerald-400">
+                  {sellPrice ? (((parseFloat(invoice?.totalAmount || "0") - parseFloat(sellPrice)) / parseFloat(invoice?.totalAmount || "1")) * 100).toFixed(2) : "0.00"}%
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Asking Price ({invoice?.currency})</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  className="pl-9 bg-white/5 border-white/10 text-white"
+                  placeholder="0.00"
+                  value={sellPrice}
+                  onChange={(e) => setSellPrice(e.target.value)}
+                  type="number"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Buyers will earn the difference between Face Value and Asking Price.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description / Notes for Investors</Label>
+              <Input
+                className="bg-white/5 border-white/10 text-white"
+                placeholder="e.g. Verified recurring client, paying early..."
+                value={sellDescription}
+                onChange={(e) => setSellDescription(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Listing Duration (Days)</Label>
+              <Input
+                className="bg-white/5 border-white/10 text-white"
+                type="number"
+                value={sellDuration}
+                onChange={(e) => setSellDuration(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <button
+              onClick={() => setShowSellDialog(false)}
+              className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleListConfirm}
+              disabled={isListing || !sellPrice}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              {isListing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Requesting Signature...
+                </>
+              ) : (
+                <>
+                  Confirm Listing
+                </>
+              )}
             </button>
           </DialogFooter>
         </DialogContent>
