@@ -41,5 +41,9 @@ COPY --from=builder /app/node_modules ./node_modules
 # Expose port
 EXPOSE 5000
 
-# Start command
-CMD ["npm", "start"]
+# Set environment variable for production
+ENV NODE_ENV=production
+
+# Start command - DIRECT execution to save memory (avoids npm/shell overhead)
+# We keep the memory limit (460MB) to match the Railway starter plan (512MB RAM)
+CMD ["node", "--max-old-space-size=460", "dist/index.js"]
