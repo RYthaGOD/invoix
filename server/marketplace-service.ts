@@ -222,7 +222,11 @@ export class MarketplaceService {
             // Token Accounts
             const buyerAta = await this.getAta(buyer, new PublicKey(currencyMint));
             const sellerAta = await this.getAta(seller, new PublicKey(currencyMint));
-            const treasuryAta = await this.getAta(new PublicKey(process.env.TREASURY_WALLET!), new PublicKey(currencyMint));
+            const treasuryWallet = process.env.TREASURY_WALLET || process.env.PLATFORM_TREASURY_WALLET;
+            if (!treasuryWallet) {
+                throw new Error("Treasury wallet not configured (TREASURY_WALLET or PLATFORM_TREASURY_WALLET)");
+            }
+            const treasuryAta = await this.getAta(new PublicKey(treasuryWallet), new PublicKey(currencyMint));
 
             const treeAuthority = await this.getTreeAuthority(new PublicKey(tree_id));
 
