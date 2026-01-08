@@ -3,7 +3,7 @@ import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { keypairIdentity, generateSigner } from "@metaplex-foundation/umi";
 import { createTree } from "@metaplex-foundation/mpl-bubblegum";
 import { db } from "../server/db";
-import { systemSettings } from "@shared/invoice-schema";
+import { systemSettings } from "../shared/invoice-schema";
 import { eq } from "drizzle-orm";
 import { Keypair } from "@solana/web3.js";
 import fs from "fs";
@@ -12,9 +12,9 @@ import 'dotenv/config';
 // Load Server Keypair
 // Note: This script assumes "server-wallet.json" exists or ARCIUM_PRIVATE_KEY is usable
 // We'll try to use ARCIUM_PRIVATE_KEY since it's likely the server authority
-const PRIVATE_KEY_BS58 = process.env.ARCIUM_PRIVATE_KEY || process.env.SERVER_PRIVATE_KEY;
+const TREE_AUTHORITY_SECRET = process.env.ARCIUM_PRIVATE_KEY || process.env.SERVER_PRIVATE_KEY;
 
-if (!PRIVATE_KEY_BS58) {
+if (!TREE_AUTHORITY_SECRET) {
     console.error("❌ No Private Key found in env (ARCIUM_PRIVATE_KEY or SERVER_PRIVATE_KEY)");
     process.exit(1);
 }
@@ -34,7 +34,14 @@ async function rotateTree() {
     const umi = createUmi(rpc);
 
     // Setup Wallet
-    const secretKey = new Uint8Array(require("bs58").decode(PRIVATE_KEY_BS58));
+    let secretKey: Uint8Array;
+    // We already checked TREE_AUTHORITY_SECRET above
+    const secretStr = TREE_AUTHORITY_SECRET!;
+    if (secretStr.startsWith('[') && secretStr.endsWith(']')) {
+        secretKey = new Uint8Array(JSON.parse(secretStr));
+    } else {
+        secretKey = new Uint8Array(require("bs58").decode(secretStr));
+    }
     const keypair = umi.eddsa.createKeypairFromSecretKey(secretKey);
     umi.use(keypairIdentity(keypair));
 

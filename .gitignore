@@ -72,3 +72,7 @@ stats-output.json
 env.sh
 .env.temp
 FINAL_SETUP_INSTRUCTIONS.md
+wallet_address.txt
+vars.txt
+*_vars.txt
+RAILWAY_VARIABLES*.md
