@@ -234,18 +234,34 @@ const docsContent = {
                     </ul>
                 </div>
 
-                {/* Phase 3 - In Progress */}
+                {/* Phase 3 - Complete */}
+                <div className="glass-card p-6 border-green-500/30">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-bold">3</div>
+                        <h4 className="text-xl font-bold text-white">Decentralized Capital Markets</h4>
+                        <span className="ml-auto px-3 py-1 text-xs font-bold bg-green-500/20 text-green-400 rounded-full">COMPLETE</span>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground pl-11">
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Non-Custodial Invoice Marketplace (Live)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Risk Scoring & Credit Protocol</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Tax Reporting & Annual Exports</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Dynamic Yield Generation</li>
+                    </ul>
+                </div>
+
+                {/* Phase 4 - In Progress */}
                 <div className="glass-card p-6 border-yellow-500/30">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 font-bold">3</div>
-                        <h4 className="text-xl font-bold text-white">Decentralized Capital Markets</h4>
+                        <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 font-bold">4</div>
+                        <h4 className="text-xl font-bold text-white">Enterprise & Scale</h4>
                         <span className="ml-auto px-3 py-1 text-xs font-bold bg-yellow-500/20 text-yellow-400 rounded-full">IN PROGRESS</span>
                     </div>
                     <ul className="space-y-2 text-sm text-muted-foreground pl-11">
-                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Non-Custodial Invoice Marketplace (Beta)</li>
-                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Risk Scoring & Credit Protocol (Beta)</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Liquidity Pools for Accounts Receivable</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Cross-Chain Settlement (Wormhole)</li>
+                        <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> White-Label Solutions</li>
+                        <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Multi-Signature Treasury</li>
+                        <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Fiat On/Off Ramps Integration</li>
                     </ul>
                 </div>
             </div>
@@ -414,39 +430,162 @@ const docsContent = {
                     </ul>
                 </div>
 
-                {/* API Endpoints Preview */}
+                {/* API Endpoints - Comprehensive */}
                 <div className="glass-card p-6 border-white/10">
-                    <h4 className="font-bold mb-4 text-xl">API Endpoints</h4>
-                    <div className="space-y-2 text-sm font-mono">
-                        <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
-                            <span className="text-green-400 w-16 font-bold">GET</span>
-                            <span className="text-white">/api/v1/invoices</span>
-                            <span className="text-muted-foreground ml-auto text-xs">List all invoices</span>
+                    <h4 className="font-bold mb-4 text-xl">Complete API Reference</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        All endpoints require authentication via <code className="text-primary">X-API-Key</code> header. Base URL: <code className="text-primary">{window.location.origin}/api</code>
+                    </p>
+
+                    {/* Invoice Management */}
+                    <div className="mb-6">
+                        <h5 className="text-sm font-bold text-white mb-3">Invoice Management</h5>
+                        <div className="space-y-2 text-sm font-mono">
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-green-400 w-16 font-bold">GET</span>
+                                <span className="text-white">/invoices</span>
+                                <span className="text-muted-foreground ml-auto text-xs">List all invoices</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-green-400 w-16 font-bold">GET</span>
+                                <span className="text-white">/invoices/:id</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Get invoice details</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-yellow-400 w-16 font-bold">POST</span>
+                                <span className="text-white">/invoices</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Create new invoice</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-blue-400 w-16 font-bold">PATCH</span>
+                                <span className="text-white">/invoices/:id</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Update invoice</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
-                            <span className="text-yellow-400 w-16 font-bold">POST</span>
-                            <span className="text-white">/api/v1/invoices</span>
-                            <span className="text-muted-foreground ml-auto text-xs">Create invoice</span>
+                    </div>
+
+                    {/* Payment Processing */}
+                    <div className="mb-6">
+                        <h5 className="text-sm font-bold text-white mb-3">Payment Processing</h5>
+                        <div className="space-y-2 text-sm font-mono">
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-yellow-400 w-16 font-bold">POST</span>
+                                <span className="text-white">/payments/relay</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Gasless payment relay</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-green-400 w-16 font-bold">GET</span>
+                                <span className="text-white">/solana-pay/:id</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Generate Solana Pay QR</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
-                            <span className="text-yellow-400 w-16 font-bold">POST</span>
-                            <span className="text-white">/api/v1/payments/relay</span>
-                            <span className="text-muted-foreground ml-auto text-xs">Gasless payment</span>
+                    </div>
+
+                    {/* Subscriptions */}
+                    <div className="mb-6">
+                        <h5 className="text-sm font-bold text-white mb-3">Subscriptions & Recurring Billing</h5>
+                        <div className="space-y-2 text-sm font-mono">
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-green-400 w-16 font-bold">GET</span>
+                                <span className="text-white">/subscriptions</span>
+                                <span className="text-muted-foreground ml-auto text-xs">List subscriptions</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-yellow-400 w-16 font-bold">POST</span>
+                                <span className="text-white">/subscriptions</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Create subscription plan</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-yellow-400 w-16 font-bold">POST</span>
+                                <span className="text-white">/subscriptions/:id/cancel</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Cancel subscription</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
-                            <span className="text-yellow-400 w-16 font-bold">POST</span>
-                            <span className="text-white">/api/v1/subscriptions</span>
-                            <span className="text-muted-foreground ml-auto text-xs">Create subscription</span>
+                    </div>
+
+                    {/* Marketplace */}
+                    <div className="mb-6">
+                        <h5 className="text-sm font-bold text-white mb-3">Invoice Marketplace</h5>
+                        <div className="space-y-2 text-sm font-mono">
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-green-400 w-16 font-bold">GET</span>
+                                <span className="text-white">/marketplace/listings</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Browse marketplace</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-yellow-400 w-16 font-bold">POST</span>
+                                <span className="text-white">/marketplace/list</span>
+                                <span className="text-muted-foreground ml-auto text-xs">List invoice for sale</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-yellow-400 w-16 font-bold">POST</span>
+                                <span className="text-white">/marketplace/purchase</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Purchase listed invoice</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
-                            <span className="text-yellow-400 w-16 font-bold">POST</span>
-                            <span className="text-white">/api/v1/marketplace/list</span>
-                            <span className="text-muted-foreground ml-auto text-xs">List invoice for sale</span>
+                    </div>
+
+                    {/* Webhooks */}
+                    <div className="mb-6">
+                        <h5 className="text-sm font-bold text-white mb-3">Webhook Management</h5>
+                        <div className="space-y-2 text-sm font-mono">
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-green-400 w-16 font-bold">GET</span>
+                                <span className="text-white">/webhooks</span>
+                                <span className="text-muted-foreground ml-auto text-xs">List webhook endpoints</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-yellow-400 w-16 font-bold">POST</span>
+                                <span className="text-white">/webhooks</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Create webhook endpoint</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-red-400 w-16 font-bold">DELETE</span>
+                                <span className="text-white">/webhooks/:id</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Delete webhook</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
-                            <span className="text-green-400 w-16 font-bold">GET</span>
-                            <span className="text-white">/api/v1/nft/:invoiceId</span>
-                            <span className="text-muted-foreground ml-auto text-xs">Get NFT metadata</span>
+                    </div>
+
+                    {/* NFT Operations */}
+                    <div>
+                        <h5 className="text-sm font-bold text-white mb-3">NFT Receipt Operations</h5>
+                        <div className="space-y-2 text-sm font-mono">
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-green-400 w-16 font-bold">GET</span>
+                                <span className="text-white">/nft/:invoiceId</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Get NFT metadata</span>
+                            </div>
+                            <div className="flex items-center gap-4 p-3 glass rounded border border-white/5">
+                                <span className="text-yellow-400 w-16 font-bold">POST</span>
+                                <span className="text-white">/nft/mint-invoice/:id</span>
+                                <span className="text-muted-foreground ml-auto text-xs">Mint receipt NFT</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Authentication & Security */}
+                <div className="glass-card p-6 border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-transparent">
+                    <h4 className="font-bold mb-4 text-xl flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-cyan-400" />
+                        Authentication & Security
+                    </h4>
+                    <div className="space-y-4 text-sm text-muted-foreground">
+                        <div>
+                            <strong className="text-white block mb-1">API Key Format</strong>
+                            <code className="text-cyan-400 text-xs">X-API-Key: inv_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
+                        </div>
+                        <div>
+                            <strong className="text-white block mb-1">Webhook Signature Verification</strong>
+                            <p>Verify webhook authenticity using HMAC SHA-256 with your webhook secret:</p>
+                            <code className="text-cyan-400 text-xs block mt-2">
+                                signature = HMAC_SHA256(webhook_secret, request_body)
+                            </code>
+                        </div>
+                        <div>
+                            <strong className="text-white block mb-1">Error Handling</strong>
+                            <p>All errors return standard HTTP status codes with JSON response bodies containing <code className="text-primary">error</code> and <code className="text-primary">message</code> fields.</p>
                         </div>
                     </div>
                 </div>
@@ -608,6 +747,264 @@ const docsContent = {
                     <p className="text-muted-foreground leading-relaxed">
                         <strong className="text-white">Get paid instantly.</strong> You can list your unpaid invoices for sale on our non-custodial marketplace. Investors purchase the invoice (the NFT receipt rights) at a discount, giving you immediate cash flow while they earn a yield upon settlement.
                     </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> How do webhooks work?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Webhooks send real-time HTTP notifications</strong> to your server when events occur (invoice.paid, invoice.created, etc.). You can configure webhook endpoints in your dashboard and receive authenticated POST requests with event data. Perfect for ERP/CRM integration.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> What is the marketplace discount rate?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Discount rates vary based on credit score and time to payment.</strong> Typically 5-15% depending on the buyer's risk assessment. Higher credit scores = lower discounts. You always see the exact cash you'll receive before confirming a sale.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> How does credit scoring work?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        Our <strong className="text-white">on-chain credit protocol</strong> analyzes payment history, invoice velocity, settlement speed, and default rates. Scores range from 300-850. Better scores unlock lower marketplace fees and higher buyer confidence.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> Can I white-label Invoix?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Enterprise white-label solutions are coming in Phase 4.</strong> Currently, Premium users get custom branding (logo, colors) on invoices and NFT receipts. Contact us for early enterprise access.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> What are the technical requirements?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Minimal requirements:</strong> A Solana wallet (Phantom, Solflare, Backpack), internet connection, and modern browser (Chrome, Brave, Firefox). For API integration, any language that supports HTTP/REST is compatible.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> How do I handle failed payments?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Payments are atomic—they either succeed completely or fail completely.</strong> Failed transactions are never partially processed. You'll receive immediate feedback. For recurring billing, failed payments trigger retry logic with exponential backoff.
+                    </p>
+                </div>
+
+                <div className="glass-card p-6 border-white/10">
+                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <span className="text-primary">Q:</span> What's the difference between invoices and subscriptions?
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                        <strong className="text-white">Invoices are one-time</strong> payment requests. <strong className="text-white">Subscriptions automatically generate invoices</strong> on your chosen schedule (daily, weekly, monthly). Both support the same payment methods and mint NFT receipts.
+                    </p>
+                </div>
+            </div >
+        )
+    },
+    integrations: {
+        title: "Integration Guides",
+        icon: <Settings className="w-5 h-5" />,
+        content: (
+            <div className="space-y-8">
+                {/* Quick Start */}
+                <div className="glass-card p-8 border-primary/30 bg-gradient-to-br from-primary/10 to-transparent">
+                    <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                        <Zap className="w-6 h-6 text-primary" />
+                        Quick Start (5 Minutes)
+                    </h3>
+                    <ol className="space-y-4 text-muted-foreground">
+                        <li className="flex items-start gap-4">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 text-primary font-bold">1</div>
+                            <div>
+                                <strong className="text-white">Connect Your Wallet</strong>
+                                <p className="text-sm">Visit the dashboard and connect your Solana wallet (Phantom, Solflare, etc.)</p>
+                            </div>
+                        </li>
+                        <li className="flex items-start gap-4">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 text-primary font-bold">2</div>
+                            <div>
+                                <strong className="text-white">Create Your First Invoice</strong>
+                                <p className="text-sm">Click "New Invoice", fill in customer details, line items, and select payment token</p>
+                            </div>
+                        </li>
+                        <li className="flex items-start gap-4">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 text-primary font-bold">3</div>
+                            <div>
+                                <strong className="text-white">Share Payment Link</strong>
+                                <p className="text-sm">Copy the invoice link or QR code and send it to your customer</p>
+                            </div>
+                        </li>
+                        <li className="flex items-start gap-4">
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 text-primary font-bold">4</div>
+                            <div>
+                                <strong className="text-white">Get Paid Instantly</strong>
+                                <p className="text-sm">Customer pays → You receive funds + NFT receipt in \u003c400ms</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+
+                {/* E-commerce Integration */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl">E-Commerce Integration</h4>
+                    <p className="text-muted-foreground mb-4">
+                        Automatically generate invoices after checkout and offer crypto payment options.
+                    </p>
+                    <div className="glass p-4 rounded-xl border border-white/5 font-mono text-sm text-muted-foreground space-y-2">
+                        <div><span className="text-green-400">// After successful checkout</span></div>
+                        <div><span className="text-cyan-400">const</span> response = <span className="text-cyan-400">await</span> <span className="text-yellow-400">fetch</span>(<span className="text-green-300">'/api/v1/invoices'</span>, {'{'}</div>
+                        <div className="pl-4">method: <span className="text-green-300">'POST'</span>,</div>
+                        <div className="pl-4">headers: {'{'} <span className="text-green-300">'X-API-Key'</span>: apiKey {'}'},</div>
+                        <div className="pl-4">body: <span className="text-yellow-400">JSON</span>.<span className="text-yellow-400">stringify</span>({'({'}</div>
+                        <div className="pl-8">customerEmail: <span className="text-green-300">'customer@example.com'</span>,</div>
+                        <div className="pl-8">amount: orderTotal,</div>
+                        <div className="pl-8">currency: <span className="text-green-300">'USDC'</span>,</div>
+                        <div className="pl-8">lineItems: [...]</div>
+                        <div className="pl-4">{'})'}</div>
+                        <div>{'});'}</div>
+                    </div>
+                </div>
+
+                {/* Webhook Setup */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl">Webhook Setup</h4>
+                    <p className="text-muted-foreground mb-4">
+                        Receive real-time notifications for invoice and payment events.
+                    </p>
+                    <div className="space-y-3 text-sm">
+                        <div className="glass p-3 rounded border border-white/5">
+                            <strong className="text-white">1. Create Webhook Endpoint</strong>
+                            <p className="text-muted-foreground text-xs mt-1">POST /api/webhooks with your URL</p>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5">
+                            <strong className="text-white">2. Select Events</strong>
+                            <p className="text-muted-foreground text-xs mt-1">invoice.paid, invoice.created, payment.failed, etc.</p>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5">
+                            <strong className="text-white">3. Verify Signatures</strong>
+                            <p className="text-muted-foreground text-xs mt-1">Use HMAC SHA-256 to verify webhook authenticity</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    },
+    advanced: {
+        title: "Advanced Features",
+        icon: <Layers className="w-5 h-5" />,
+        content: (
+            <div className="space-y-8">
+                {/* Subscriptions */}
+                <div className="glass-card p-6 border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-transparent">
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-purple-400" />
+                        Subscriptions & Recurring Billing
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                        Create subscription plans that automatically generate and send invoices on your schedule.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <strong className="text-white block mb-2">Billing Frequencies</strong>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                                <li>• Daily (e.g., SaaS daily usage)</li>
+                                <li>• Weekly (service contracts)</li>
+                                <li>• Monthly (standard subscriptions)</li>
+                                <li>• Custom intervals</li>
+                            </ul>
+                        </div>
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <strong className="text-white block mb-2">Auto-Features</strong>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                                <li>• Invoice generation</li>
+                                <li>• Email notifications</li>
+                                <li> • Payment tracking</li>
+                                <li>• NFT receipt minting</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Marketplace */}
+                <div className="glass-card p-6 border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-transparent">
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <BadgePercent className="w-5 h-5 text-cyan-400" />
+                        Invoice Marketplace (Live)
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                        Sell unpaid invoices to investors for instant liquidity. Non-custodial with transparent pricing.
+                    </p>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 glass rounded border border-white/5">
+                            <span className="text-white font-medium">Listing Fee</span>
+                            <span className="text-cyan-400">Free</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 glass rounded border border-white/5">
+                            <span className="text-white font-medium">Typical Discount</span>
+                            <span className="text-cyan-400">5-15%</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 glass rounded border border-white/5">
+                            <span className="text-white font-medium">Settlement Time</span>
+                            <span className="text-cyan-400">Instant</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Credit Scoring */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl">Credit Scoring System</h4>
+                    <p className="text-muted-foreground mb-4">
+                        On-chain credit scores (300-850) based on payment history and reliability.
+                    </p>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                        <div className="glass p-3 rounded border border-red-500/20">
+                            <div className="text-red-400 font-bold">300-579</div>
+                            <div className="text-xs text-muted-foreground">Poor</div>
+                        </div>
+                        <div className="glass p-3 rounded border border-yellow-500/20">
+                            <div className="text-yellow-400 font-bold">580-669</div>
+                            <div className="text-xs text-muted-foreground">Fair</div>
+                        </div>
+                        <div className="glass p-3 rounded border border-green-500/20">
+                            <div className="text-green-400 font-bold">670-850</div>
+                            <div className="text-xs text-muted-foreground">Good-Excellent</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tax Reporting */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl">Tax Reporting & Exports</h4>
+                    <p className="text-muted-foreground mb-4">
+                        Generate annual tax reports with all payment data aggregated and ready for filing.
+                    </p>
+                    <div className="space-y-2 text-sm">
+                        <div className="glass p-3 rounded border border-white/5 flex items-center justify-between">
+                            <span className="text-white">CSV Export</span>
+                            <span className="text-green-400 text-xs">Ready</span>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5 flex items-center justify-between">
+                            <span className="text-white">PDF Reports</span>
+                            <span className="text-green-400 text-xs">Ready</span>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5 flex items-center justify-between">
+                            <span className="text-white">1099-Like Summaries</span>
+                            <span className="text-green-400 text-xs">Ready</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         )
