@@ -7,6 +7,7 @@
 import { PublicKey, Connection } from '@solana/web3.js';
 import * as nacl from 'tweetnacl';
 import bs58 from 'bs58';
+import { logger } from './logger';
 
 /**
  * Verify a signature from a LazorKit smart wallet
@@ -34,7 +35,7 @@ export async function verifySmartWalletSignature(
             const module = await import("@lazorkit/wallet");
             LazorkitClient = module.LazorkitClient;
         } catch (e) {
-            console.warn("[Signature Verify] @lazorkit/wallet SDK not found. Skipping SDK verification.");
+            logger.warn("[Signature Verify] @lazorkit/wallet SDK not found. Skipping SDK verification.", "auth");
         }
 
         if (LazorkitClient) {
@@ -68,7 +69,7 @@ export async function verifySmartWalletSignature(
                     }
                 }
             } catch (sdkError) {
-                console.warn("[Signature Verify] SDK verification failed (Account might not exist or IDL mismatch):", sdkError);
+                logger.warn("[Signature Verify] SDK verification failed", "auth", { error: sdkError });
             }
         }
 
@@ -84,13 +85,13 @@ export async function verifySmartWalletSignature(
         } catch (e) { }
 
         if (LAZORKIT_STRICT_MODE) {
-            console.warn('[Signature Verify] Strict mode: Verification failed.');
+            logger.warn('[Signature Verify] Strict mode: Verification failed.', "auth");
             return false;
         } else {
             // Check existence as last resort for dev mode
             const accountInfo = await connection.getAccountInfo(walletPubkey);
             if (accountInfo) {
-                console.log('[Signature Verify] WARNING: Allowing login based on on-chain existence only (Non-Strict Mode).');
+                logger.warn('[Signature Verify] Allowing login based on on-chain existence only (Non-Strict Mode).', "auth");
                 return true;
             }
         }
@@ -98,7 +99,7 @@ export async function verifySmartWalletSignature(
         return false;
 
     } catch (error) {
-        console.error('[Signature Verify] Verification error:', error);
+        logger.error('[Signature Verify] Verification error', "auth", { error });
         return false;
     }
 }
@@ -117,22 +118,22 @@ export async function verifySmartWalletOwnership(
         const accountInfo = await connection.getAccountInfo(walletPubkey);
 
         if (!accountInfo) {
-            console.warn('[Ownership Verify] Account does not exist');
+            logger.warn('[Ownership Verify] Account does not exist', "auth");
             return false;
         }
 
         // Verify the account is owned by the LazorKit program
         const programId = new PublicKey(expectedProgramId);
         if (!accountInfo.owner.equals(programId)) {
-            console.warn('[Ownership Verify] Account not owned by LazorKit program');
+            logger.warn('[Ownership Verify] Account not owned by LazorKit program', "auth");
             return false;
         }
 
-        console.log('[Ownership Verify] Account verified as LazorKit smart wallet');
+        logger.info('[Ownership Verify] Account verified as LazorKit smart wallet', "auth");
         return true;
 
     } catch (error) {
-        console.error('[Ownership Verify] Verification error:', error);
+        logger.error('[Ownership Verify] Verification error', "auth", { error });
         return false;
     }
 }

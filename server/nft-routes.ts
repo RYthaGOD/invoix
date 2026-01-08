@@ -4,6 +4,8 @@ import { invoiceStorage } from "./invoice-storage";
 import { strictRateLimit, requireWalletOwnership } from "./security";
 import { getInvoiceNFTService } from "./nft-service";
 
+import { logger } from "./logger";
+
 export function registerNftRoutes(app: Express): void {
 
     /**
@@ -19,7 +21,7 @@ export function registerNftRoutes(app: Express): void {
             const walletAddress = req.query.wallet as string;
 
             // Debug Logging for Mobile "Load Failed" issues
-            console.log(`[NFT] Mint Request Received for ${id}`, {
+            logger.debug(`[NFT] Mint Request Received for ${id}`, "nft", {
                 ip: req.ip,
                 userWallet: walletAddress,
                 sessionID: req.sessionID,
@@ -67,7 +69,7 @@ export function registerNftRoutes(app: Express): void {
             });
 
         } catch (error: any) {
-            console.error("NFT Mint Error:", error);
+            logger.error("NFT Mint Error", "nft", { error });
             res.status(500).json({ message: error.message || "Failed to create mint transaction" });
         }
     });
@@ -123,7 +125,7 @@ export function registerNftRoutes(app: Express): void {
             });
 
         } catch (error: any) {
-            console.error("Confirm Mint Error:", error);
+            logger.error("Confirm Mint Error", "nft", { error });
             res.status(500).json({ message: error.message || "Failed to confirm mint" });
         }
     });

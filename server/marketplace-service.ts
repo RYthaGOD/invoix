@@ -142,7 +142,10 @@ export class MarketplaceService {
 
             // 3. Derive PDA
             // Seed: "listing", seller, assetId
-            // TODO: Ensure Anchor program supports this seed structure. If strictly "listing" + seller, limit is 1.
+            // NOTE: PDA Seed Structure - ["listing", seller_pubkey, asset_id]
+            // Anchor program MUST use identical seed derivation. Current implementation
+            // allows multiple listings per seller (different assetIds). If program uses
+            // only ["listing", seller], then 1 listing per seller max.
             const seller = new PublicKey(sellerPublicKey);
             const assetMint = new PublicKey(assetId);
 

@@ -458,7 +458,7 @@ export async function requireWalletOwnership(
     // Check if user has an active session
     if (!req.session.walletAddress) {
       if (process.env.NODE_ENV !== 'production') {
-        console.warn(`[AUTH_FAIL] No walletAddress in session. SessionID: ${req.sessionID}`);
+        logger.warn(`[AUTH_FAIL] No walletAddress in session. SessionID: ${req.sessionID}`, "auth");
       }
       return res.status(401).json({
         message: "Authentication required: Please login with your wallet",
@@ -474,7 +474,7 @@ export async function requireWalletOwnership(
 
     // FIX #3: Improved stale session handling
     if (requestedWallet && requestedWallet !== authenticatedWallet) {
-      console.warn(`[AUTH_FAIL] Wallet Mismatch. Session: ${authenticatedWallet.slice(0, 8)}..., Requested: ${requestedWallet.slice(0, 8)}...`);
+      logger.warn(`[AUTH_FAIL] Wallet Mismatch. Session: ${authenticatedWallet.slice(0, 8)}..., Requested: ${requestedWallet.slice(0, 8)}...`, "auth");
 
       // FIX #3: Destroy stale session to force re-authentication
       req.session.destroy((err) => {

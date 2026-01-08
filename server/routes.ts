@@ -145,6 +145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/webhooks", webhookRouter);
   startWebhookCron();
 
+  // ================================================
+  // TAX DATA EXPORT ROUTES (Annual Reporting)
+  // ================================================
+  const { registerTaxRoutes } = await import("./tax-routes");
+  registerTaxRoutes(app);
+
   const server = createServer(app);
   return server;
 }

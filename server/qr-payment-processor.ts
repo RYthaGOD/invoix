@@ -10,7 +10,7 @@
  * - Uses Treasury wallet (from PAYER_PRIVATE_KEY) for distribution
  */
 
-import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from "@solana/web3.js";
+import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction, VersionedTransactionResponse } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
 import { db } from "./db";
 import { invoices, payments } from "@shared/invoice-schema";
@@ -127,7 +127,7 @@ async function processQRPayments() {
  */
 async function verifyPaymentAmount(
     connection: Connection,
-    tx: any,
+    tx: VersionedTransactionResponse,
     invoice: any
 ): Promise<{ success: boolean; actualAmount: number; error?: string }> {
     try {
@@ -136,14 +136,19 @@ async function verifyPaymentAmount(
 
         if (invoice.currency === "SOL") {
             // Check SOL balance changes
-            const preBalances = tx.meta.preBalances;
-            const postBalances = tx.meta.postBalances;
-            const accountKeys = tx.transaction.message.staticAccountKeys ||
-                tx.transaction.message.accountKeys;
+            // Check SOL balance changes
+            const preBalances = tx.meta?.preBalances || [];
+            const postBalances = tx.meta?.postBalances || [];
+
+            // Handle both VersionedMessage and Message types safely
+            const message = tx.transaction.message;
+            const accountKeys = (message as any).staticAccountKeys
+                ? (message as any).staticAccountKeys.map((k: any) => k.toString())
+                : (message as any).accountKeys.map((k: any) => k.toString());
 
             // Find treasury account index
-            const treasuryIndex = accountKeys.findIndex((key: any) =>
-                key.toString() === treasuryPubkey.toString()
+            const treasuryIndex = accountKeys.findIndex((key: string) =>
+                key === treasuryPubkey.toString()
             );
 
             if (treasuryIndex === -1) {
@@ -165,8 +170,8 @@ async function verifyPaymentAmount(
 
         } else {
             // SPL Token - check token balance changes
-            const preTokenBalances = tx.meta.preTokenBalances || [];
-            const postTokenBalances = tx.meta.postTokenBalances || [];
+            const preTokenBalances = tx.meta?.preTokenBalances || [];
+            const postTokenBalances = tx.meta?.postTokenBalances || [];
 
             // Find treasury token account
             const treasuryPost = postTokenBalances.find((b: any) =>
@@ -292,8 +297,9 @@ async function distributePayment(
             paymentMethod: "qr_transfer",
             status: "confirmed",
             platformFee: feeAmount.toString(),
-            distributionSignature: distributionSig
-        } as any);
+            distributionSignature: distributionSig,
+            // confirmedAt is default now(), so omitted
+        });
 
         // Update invoice status
         const newPaidAmount = parseFloat(invoice.paidAmount) + actualAmount;

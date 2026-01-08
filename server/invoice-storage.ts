@@ -59,6 +59,7 @@ export interface IInvoiceStorage {
   getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined>;
   getInvoices(invoicerWallet: string, filters?: InvoiceFilters): Promise<Invoice[]>;
   getInvoicesForCustomer(invoiceeWallet: string, filters?: InvoiceFilters): Promise<Invoice[]>;
+  getInvoicesForUser(walletAddress: string, filters?: InvoiceFilters): Promise<Invoice[]>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   createInvoiceWithItems(invoice: InsertInvoice, lineItems?: Omit<InsertLineItem, 'invoiceId'>[]): Promise<Invoice>;
   updateInvoice(id: string, updates: Partial<InsertInvoice>): Promise<Invoice | undefined>;
@@ -219,6 +220,47 @@ class InvoiceStorage implements IInvoiceStorage {
 
     if (filters?.limit) {
       query = query.limit(filters.limit);
+    }
+
+    return (await query) as Invoice[];
+  }
+
+  async getInvoicesForUser(walletAddress: string, filters?: InvoiceFilters): Promise<Invoice[]> {
+    let query = db.select()
+      .from(invoices)
+      .where(or(
+        eq(invoices.invoicerWalletAddress, walletAddress),
+        eq(invoices.invoiceeWalletAddress, walletAddress)
+      ))
+      .$dynamic();
+
+    // Apply filters
+    if (filters?.status) {
+      query = query.where(eq(invoices.status, filters.status));
+    }
+
+    if (filters?.startDate) {
+      query = query.where(sql`${invoices.invoiceDate} >= ${filters.startDate}`);
+    }
+
+    if (filters?.endDate) {
+      query = query.where(sql`${invoices.invoiceDate} <= ${filters.endDate}`);
+    }
+
+    if (filters?.currency) {
+      query = query.where(eq(invoices.currency, filters.currency));
+    }
+
+    // Sort by invoice date (newest first)
+    query = query.orderBy(desc(invoices.invoiceDate));
+
+    // Pagination
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    if (filters?.offset) {
+      query = query.offset(filters.offset);
     }
 
     return (await query) as Invoice[];

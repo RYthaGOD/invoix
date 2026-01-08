@@ -607,7 +607,7 @@ export class CreditScoringService {
             latePayments: paymentsMade.length - onTimeCount,
             avgDaysToPayment: paymentsMade.length > 0 ? Math.round(totalDaysToPay / paymentsMade.length) : 30,
             lastPaymentDate,
-            disputes: 0, // TODO: Implement dispute tracking
+            disputes: 0, // NOTE: Dispute tracking requires new schema table - tracked in backlog
         };
     }
 

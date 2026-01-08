@@ -3,7 +3,7 @@
  * Handles payment verification for USDC, USDT, PYUSD, EURC
  */
 
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey, VersionedTransactionResponse } from "@solana/web3.js";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 import { getStablecoinByMint, getStablecoinConfig, isValidStablecoin } from "@shared/stablecoin-config";
 import { logger } from "./logger";
@@ -249,13 +249,18 @@ export async function verifyStablecoinPayment(
  * Helper: Parse ALL token transfers for a specific mint in a transaction
  * Supports SPL Tokens and Native SOL (if mint === "SOL")
  */
-function parseAllTokenTransfers(tx: any, expectedMint: string): Array<{ amount: string, destination: string, source: string, mint: string }> {
+function parseAllTokenTransfers(tx: VersionedTransactionResponse, expectedMint: string): Array<{ amount: string, destination: string, source: string, mint: string }> {
     const transfers: Array<{ amount: string, destination: string, source: string, mint: string }> = [];
 
     try {
         const preBalances = tx.meta?.preBalances || [];
         const postBalances = tx.meta?.postBalances || [];
-        const accountKeys = tx.transaction.message.accountKeys.map((k: any) => k.toString ? k.toString() : k);
+
+        // Handle both VersionedMessage and Message types safely
+        const message = tx.transaction.message;
+        const accountKeys = message.getAccountKeys
+            ? message.getAccountKeys().staticAccountKeys.map(k => k.toString()) // Versioned
+            : (message as any).accountKeys.map((k: any) => k.toString());       // Legacy fallback just in case
 
         // --- NATIVE SOL LOGIC ---
         if (expectedMint === "SOL") {
@@ -310,7 +315,7 @@ function parseAllTokenTransfers(tx: any, expectedMint: string): Array<{ amount: 
             if (delta > BigInt(0)) {
                 transfers.push({
                     amount: delta.toString(),
-                    destination: post.owner,
+                    destination: post.owner || "unknown",
                     source: "unknown",
                     mint: post.mint
                 });
@@ -328,7 +333,7 @@ function parseAllTokenTransfers(tx: any, expectedMint: string): Array<{ amount: 
             const postAmount = BigInt(post.uiTokenAmount.amount);
 
             if (postAmount < preAmount) {
-                source = post.owner;
+                source = post.owner || "unknown";
                 break;
             }
         }

@@ -61,7 +61,7 @@ export function registerAuthRoutes(app: Express): void {
             // Extract timestamp from message (format: "Sign in to SolanaInvoice at {timestamp}")
             const timestampMatch = message.match(/at (\d+)$/);
             if (!timestampMatch) {
-                console.warn(`[AUTH] Invalid message format received: "${message}"`);
+                logger.warn(`[AUTH] Invalid message format received: "${message}"`, "auth");
                 return res.status(400).json({
                     message: "Invalid message format: timestamp required"
                 });
@@ -74,13 +74,13 @@ export function registerAuthRoutes(app: Express): void {
             // Check message is not expired (15 minute window)
             // We also check if it's too far in the future (> 5 mins) to prevent weirdness
             if (now - messageTimestamp > fifteenMinutesInMs) {
-                console.warn(`[AUTH] Expired timestamp: Server ${now} vs Msg ${messageTimestamp} (Diff: ${now - messageTimestamp}ms)`);
+                logger.warn(`[AUTH] Expired timestamp: Server ${now} vs Msg ${messageTimestamp} (Diff: ${now - messageTimestamp}ms)`, "auth");
                 return res.status(400).json({
                     message: "Message expired: Please sign a new message"
                 });
             }
             if (messageTimestamp - now > (5 * 60 * 1000)) {
-                console.warn(`[AUTH] Future timestamp detected: Server ${now} vs Msg ${messageTimestamp}`);
+                logger.warn(`[AUTH] Future timestamp detected: Server ${now} vs Msg ${messageTimestamp}`, "auth");
                 return res.status(400).json({
                     message: "Invalid timestamp: Your clock appears to be significantly ahead"
                 });
@@ -94,7 +94,7 @@ export function registerAuthRoutes(app: Express): void {
             );
 
             if (!isValid) {
-                console.warn(`[AUTH_FAIL] Invalid signature for wallet ${walletAddress}`);
+                logger.warn(`[AUTH_FAIL] Invalid signature for wallet ${walletAddress}`, "auth");
                 auditLog("login_failed_invalid_signature", {
                     walletAddress,
                     ip: req.ip,
@@ -114,7 +114,7 @@ export function registerAuthRoutes(app: Express): void {
             // Explicitly save session before response to ensure persistence
             req.session.save((err) => {
                 if (err) {
-                    console.error("[AUTH_ERROR] Session save error:", err);
+                    logger.error("[AUTH_ERROR] Session save error", "auth", { error: err });
                     return res.status(500).json({ message: "Session creation failed" });
                 }
 
@@ -132,7 +132,7 @@ export function registerAuthRoutes(app: Express): void {
                 });
             });
         } catch (error: any) {
-            console.error("Login error:", error);
+            logger.error("Login error", "auth", { error });
             res.status(500).json({ message: "Authentication failed" });
         }
     });
@@ -188,7 +188,7 @@ export function registerAuthRoutes(app: Express): void {
             // Extract timestamp from message
             const timestampMatch = message.match(/(\d+)$/);
             if (!timestampMatch) {
-                console.warn(`[AUTH] Invalid message format received: "${message}"`);
+                logger.warn(`[AUTH] Invalid message format received: "${message}"`, "auth");
                 return res.status(400).json({
                     message: "Invalid message format: timestamp required"
                 });
@@ -200,13 +200,13 @@ export function registerAuthRoutes(app: Express): void {
 
             // Check message is not expired (15 minute window)
             if (now - messageTimestamp > fifteenMinutesInMs) {
-                console.warn(`[AUTH] Expired timestamp: Server ${now} vs Msg ${messageTimestamp}`);
+                logger.warn(`[AUTH] Expired timestamp: Server ${now} vs Msg ${messageTimestamp}`, "auth");
                 return res.status(400).json({
                     message: "Message expired: Please sign a new message"
                 });
             }
             if (messageTimestamp - now > (5 * 60 * 1000)) {
-                console.warn(`[AUTH] Future timestamp detected: Server ${now} vs Msg ${messageTimestamp}`);
+                logger.warn(`[AUTH] Future timestamp detected: Server ${now} vs Msg ${messageTimestamp}`, "auth");
                 return res.status(400).json({
                     message: "Invalid timestamp: Your clock appears to be significantly ahead"
                 });
@@ -285,7 +285,7 @@ export function registerAuthRoutes(app: Express): void {
             // Explicitly save session
             req.session.save((err) => {
                 if (err) {
-                    console.error("[AUTH_ERROR] Session save error:", err);
+                    logger.error("[AUTH_ERROR] Session save error", "auth", { error: err });
                     return res.status(500).json({ message: "Session creation failed" });
                 }
 
@@ -305,7 +305,7 @@ export function registerAuthRoutes(app: Express): void {
                 });
             });
         } catch (error: any) {
-            console.error("Passkey login error:", error);
+            logger.error("Passkey login error", "auth", { error });
             res.status(500).json({ message: "Passkey authentication failed" });
         }
     });

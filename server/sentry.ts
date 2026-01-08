@@ -8,12 +8,13 @@
  */
 
 import * as Sentry from "@sentry/node";
+import { logger } from "./logger";
 
 const SENTRY_DSN = process.env.SENTRY_DSN;
 
 export function initSentry() {
     if (!SENTRY_DSN) {
-        console.log("[Sentry] No SENTRY_DSN configured - error monitoring disabled");
+        logger.info("[Sentry] No SENTRY_DSN configured - error monitoring disabled", "sentry");
         return;
     }
 
@@ -42,7 +43,7 @@ export function initSentry() {
         },
     });
 
-    console.log("[Sentry] Error monitoring initialized");
+    logger.info("[Sentry] Error monitoring initialized", "sentry");
 }
 
 /**
