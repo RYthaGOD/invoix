@@ -12,7 +12,7 @@ interface SolanaWalletProviderProps {
 
 export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }) => {
   const [LazorkitProvider, setLazorkitProvider] = useState<any>(null);
-  const passkeyEnabled = import.meta.env.VITE_ENABLE_PASSKEY_AUTH === 'true';
+
 
   // Use custom RPC (Helius) for better performance, fallback to devnet
   const endpoint = useMemo(() => {
