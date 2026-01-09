@@ -562,9 +562,12 @@ export class InvoiceNFTService {
       // b. OR better: Use setFeePayer with a dummy signer, then serialize.
 
       // Let's use the explicit builder approach which is more robust
-      // Use mintToCollectionV1 for verified collection membership when available
+      // FIX: Temporarily disabled collection-verified minting due to CollectionNotFound errors
+      // The collection may not exist on the current network (mainnet vs devnet mismatch)
+      // Once a proper mainnet collection is created, re-enable mintToCollectionV1
       let builder;
-      if (this.collectionMint) {
+      const useCollectionVerification = false; // Temporarily disabled
+      if (useCollectionVerification && this.collectionMint) {
         builder = mintToCollectionV1(this.umi, {
           leafOwner,
           merkleTree: merkleTreePubkey,
@@ -586,6 +589,8 @@ export class InvoiceNFTService {
           },
         });
       } else {
+        // Non-collection minting (works without collection setup)
+        logger.info(`Minting Invoice NFT without collection verification`, "nft");
         builder = mintV1(this.umi, {
           leafOwner,
           merkleTree: merkleTreePubkey,
@@ -684,9 +689,11 @@ export class InvoiceNFTService {
       const leafOwner = toPublicKey(params.payment.fromAddress); // Payer owns the receipt
       const merkleTreePubkey = toPublicKey(this.merkleTree!);
 
-      // Use mintToCollectionV1 for verified collection membership when collection is available
+      // FIX: Temporarily disabled collection-verified minting due to CollectionNotFound errors
+      // Use same logic as createMintInvoiceTransaction
       let mintIx;
-      if (this.collectionMint) {
+      const useCollectionVerification = false; // Temporarily disabled
+      if (useCollectionVerification && this.collectionMint) {
         mintIx = mintToCollectionV1(this.umi, {
           leafOwner,
           merkleTree: merkleTreePubkey,
@@ -708,6 +715,7 @@ export class InvoiceNFTService {
           },
         });
       } else {
+        logger.info(`Minting Receipt NFT without collection verification`, "nft");
         mintIx = mintV1(this.umi, {
           leafOwner,
           merkleTree: merkleTreePubkey,
