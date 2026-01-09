@@ -742,18 +742,24 @@ export function registerInvoiceRoutes(app: Express): void {
           where: eq(schema.customerProfiles.customerWalletAddress, updatedInvoice.invoiceeWalletAddress)
         });
 
-        const emailTo = customerProfile?.customerEmail || "customer@example.com";
-        const emailService = getEmailService();
+        const emailTo = customerProfile?.customerEmail;
 
-        await emailService.sendPaymentReceiptEmail({
-          to: emailTo,
-          invoiceNumber: updatedInvoice.invoiceNumber,
-          amountPaid: validatedData.amount.toString(), // amount is string or decimal
-          currency: updatedInvoice.currency,
-          paymentDate: new Date().toLocaleDateString(),
-          transactionSignature: validatedData.txSignature,
-          businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
-        });
+        // FIX: Skip email if no valid address instead of sending to placeholder
+        if (!emailTo || emailTo === "customer@example.com" || !emailTo.includes("@")) {
+          logger.debug("No valid customer email found, skipping receipt notification", "invoice");
+        } else {
+          const emailService = getEmailService();
+
+          await emailService.sendPaymentReceiptEmail({
+            to: emailTo,
+            invoiceNumber: updatedInvoice.invoiceNumber,
+            amountPaid: validatedData.amount.toString(), // amount is string or decimal
+            currency: updatedInvoice.currency,
+            paymentDate: new Date().toLocaleDateString(),
+            transactionSignature: validatedData.txSignature,
+            businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
+          });
+        }
       } catch (emailErr: any) {
         logger.error("Failed to trigger receipt email", "invoice", { error: emailErr });
       }
