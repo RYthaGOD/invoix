@@ -93,6 +93,9 @@ export const invoices = pgTable("invoices", {
 
   // Privacy v2
   privacySalt: text("privacy_salt"), // 32-byte hex salt for preventing rainbow table attacks
+
+  // Arcium On-Chain Account (for marketplace)
+  arciumInvoicePda: text("arcium_invoice_pda"), // On-chain Arcium InvoiceAccount address
 }, (table) => {
   return {
     invoicerWalletIdx: index("invoicer_wallet_idx").on(table.invoicerWalletAddress),

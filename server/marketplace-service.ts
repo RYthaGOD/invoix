@@ -127,7 +127,8 @@ export class MarketplaceService {
         invoiceId: string,
         assetId: string, // cNFT Asset ID
         price: number,
-        currencyMint: string
+        currencyMint: string,
+        arciumInvoicePda?: string // Optional: Arcium on-chain invoice account
     ): Promise<string> {
         try {
             // 1. Fetch Asset Proof from DAS
@@ -159,6 +160,16 @@ export class MarketplaceService {
 
             const treeAuthority = await this.getTreeAuthority(new PublicKey(tree_id));
 
+            // Arcium Program ID
+            const arciumProgramId = new PublicKey(
+                process.env.ARCIUM_PROGRAM_ID || "5qs2TBEvAUEJiUVj7XupdjVxz9UyAxSy6mEkRSGyDbqe"
+            );
+
+            // Invoice Account - use provided PDA or default to system program (placeholder)
+            const invoiceAccount = arciumInvoicePda
+                ? new PublicKey(arciumInvoicePda)
+                : SystemProgram.programId; // Placeholder if no Arcium account
+
             // 4. Build Instruction
             const ix = await this.program.methods
                 .listInvoice(
@@ -179,6 +190,8 @@ export class MarketplaceService {
                     compressionProgram: new PublicKey("cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK"),
                     bubblegumProgram: new PublicKey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY"),
                     systemProgram: SystemProgram.programId,
+                    arciumProgram: arciumProgramId,
+                    invoiceAccount: invoiceAccount,
                 })
                 .remainingAccounts(
                     proof.map(p => ({

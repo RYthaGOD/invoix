@@ -22,6 +22,7 @@ import { fromZodError } from "zod-validation-error";
 import { requireWalletOwnership, strictRateLimit } from "./security";
 import { validateApiKey } from "./middleware/api-auth";
 import { getArciumService, loadKeypairFromPrivateKey } from "./arcium-service";
+import { getArciumOnChainService } from "./arcium-onchain-service";
 import { getInvoiceNFTService } from "./nft-service";
 import { getEmailService } from "./email-service"; // Import Email Service
 import { emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
@@ -242,7 +243,33 @@ export function registerInvoiceRoutes(app: Express): void {
       }
     }
 
-    // D. Emit Webhook
+    // D. Create On-Chain Arcium Invoice Account (for marketplace support)
+    // This derives the PDA that marketplace will need for listing
+    if (process.env.ENABLE_ARCIUM_ENCRYPTION === "true") {
+      try {
+        const arciumOnChainService = getArciumOnChainService();
+        const invoicePda = arciumOnChainService.getInvoicePdaPreview(
+          invoice.invoicerWalletAddress,
+          invoice.id
+        );
+        // Store the derived PDA - actual account creation happens when listing on marketplace
+        await invoiceStorage.updateInvoice(invoice.id, {
+          arciumInvoicePda: invoicePda,
+        } as any);
+        invoice.arciumInvoicePda = invoicePda;
+        logger.info("Arcium invoice PDA derived", "arcium-onchain", {
+          invoiceId: invoice.id,
+          pda: invoicePda,
+        });
+      } catch (arciumOnChainErr: any) {
+        logger.warn("Failed to derive Arcium invoice PDA", "arcium-onchain", {
+          error: arciumOnChainErr.message,
+        });
+        // Non-blocking - invoice can still be created without on-chain account
+      }
+    }
+
+    // E. Emit Webhook
     emitWebhookEvent(
       authenticatedWallet,
       WEBHOOK_EVENTS.INVOICE_CREATED,

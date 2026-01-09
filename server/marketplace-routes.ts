@@ -459,7 +459,8 @@ export function registerMarketplaceRoutes(app: Express): void {
                 invoiceId,
                 invoice.nftMint, // Asset ID
                 parseFloat(askingPrice) * Math.pow(10, stablecoin.decimals), // Convert to atomic units
-                stablecoin.mint
+                stablecoin.mint,
+                (invoice as any).arciumInvoicePda // Arcium on-chain invoice account
             );
 
             // 2. Create Listing in DB (Active immediately, assuming user signs)
