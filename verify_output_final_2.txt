@@ -1,9 +1,0 @@
-≡ƒöÆ Running Arcium Crypto Verification (Offline Mode)...
-Γ£à Initialization skipped (Testing pure crypto)
-   Testing with Wallet: 7TWqCWpgHrAW4syNSLeXz3kwP8Lx8z2pBB4Taf8yVS6k
-   Derived X25519 Recipient Key
-   Encrypting payload manually...
-Γ£à Encryption Successful
-   Attempting Decryption with Service Fix...
-Γ£à Decryption Matched Original Payload!
-≡ƒÄë CRITICAL FIX VERIFIED: Ed25519 -> X25519 conversion is working.

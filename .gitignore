@@ -76,3 +76,10 @@ wallet_address.txt
 vars.txt
 *_vars.txt
 RAILWAY_VARIABLES*.md
+
+# Temp analysis files
+client_api_calls.txt
+env_vars_*.txt
+build_errors.txt
+verify_output*.txt
+deployment_logs.txt
