@@ -295,6 +295,59 @@ export function registerInvoiceRoutes(app: Express): void {
   }));
 
   /**
+   * Get single invoice by ID
+   * GET /api/invoices/:id
+   * Public access for non-private, non-draft invoices
+   * Authenticated access for invoicer/invoicee
+   */
+  app.get("/api/invoices/:id", asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+
+    const invoice = await invoiceStorage.getInvoice(id);
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: "Invoice not found" });
+    }
+
+    // Check if user is authenticated
+    const walletAddress = req.session?.walletAddress || req.authenticatedWallet;
+
+    if (walletAddress) {
+      // Authenticated: verify access (invoicer or invoicee)
+      const hasAccess =
+        invoice.invoicerWalletAddress === walletAddress ||
+        invoice.invoiceeWalletAddress === walletAddress;
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized: You don't have access to this invoice"
+        });
+      }
+    } else {
+      // Public Access: Only allow non-private, non-draft invoices
+      const isPublicAccessible = !invoice.isPrivate && invoice.status !== "draft";
+
+      if (!isPublicAccessible) {
+        return res.status(403).json({
+          success: false,
+          message: "Authentication required: This invoice is private or in draft"
+        });
+      }
+    }
+
+    // Fetch line items
+    const lineItems = await invoiceStorage.getLineItems(invoice.id);
+
+    res.json({
+      success: true,
+      invoice: {
+        ...invoice,
+        lineItems,
+      },
+    });
+  }));
+
+  /**
    * Get invoice by invoice number
    * GET /api/invoices/number/:invoiceNumber?wallet=xxx
    * NOTE: Requires authentication to prevent invoice number guessing attacks
