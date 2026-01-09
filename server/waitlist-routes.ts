@@ -5,7 +5,7 @@ import { insertWaitlistUserSchema, waitlistUsers } from "@shared/invoice-schema"
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { EmailService } from "./email-service";
-import crypto from "crypto";
+import crypto, { timingSafeEqual } from "crypto";
 import { logger } from "./logger";
 
 const emailService = new EmailService();
@@ -87,9 +87,16 @@ export function registerWaitlistRoutes(app: Express): void {
     // For now, we use a simple header check or environment secret for simplicity in this MVP
     // In production, this should be behind a robust admin auth
 
+    // Constant-time comparison to prevent timing attacks
+    const safeCompare = (a: string, b: string): boolean => {
+        if (a.length !== b.length) return false;
+        return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+    };
+
     const requireAdmin = (req: any, res: any, next: any) => {
-        const adminSecret = req.headers["x-admin-secret"];
-        if (!process.env.ADMIN_SECRET_KEY || adminSecret !== process.env.ADMIN_SECRET_KEY) {
+        const adminSecret = req.headers["x-admin-secret"] as string | undefined;
+        const expectedKey = process.env.ADMIN_SECRET_KEY;
+        if (!expectedKey || !adminSecret || !safeCompare(adminSecret, expectedKey)) {
             return res.status(403).json({ message: "Admin access denied" });
         }
         next();

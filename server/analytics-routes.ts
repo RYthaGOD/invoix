@@ -3,13 +3,21 @@ import { db } from "./db"; // Adjust import path
 import { analyticsEvents } from "@shared/invoice-schema";
 import { count, sql, eq } from "drizzle-orm";
 import { globalRateLimit } from "./security";
+import { timingSafeEqual } from "crypto";
 
 const router = Router();
 
+// Constant-time comparison to prevent timing attacks
+function safeCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
 // Admin check middleware (reusable)
 const requireAdmin = (req: any, res: any, next: any) => {
-    const adminSecret = req.headers["x-admin-secret"];
-    if (!process.env.ADMIN_SECRET_KEY || adminSecret !== process.env.ADMIN_SECRET_KEY) {
+    const adminSecret = req.headers["x-admin-secret"] as string | undefined;
+    const expectedKey = process.env.ADMIN_SECRET_KEY;
+    if (!expectedKey || !adminSecret || !safeCompare(adminSecret, expectedKey)) {
         return res.status(403).json({ message: "Admin access denied" });
     }
     next();

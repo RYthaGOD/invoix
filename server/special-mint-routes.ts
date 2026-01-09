@@ -5,6 +5,7 @@ import { getInvoiceNFTService } from "./nft-service";
 import { z } from "zod";
 import { strictRateLimit, requireWalletOwnership } from "./security";
 import { logger } from "./logger";
+import { timingSafeEqual } from "crypto";
 
 // Session type is extended in auth-routes.ts
 
@@ -238,9 +239,15 @@ export function registerSpecialMintRoutes(app: Express) {
         try {
             const { adminKey, recipientAddress, nftId } = req.body;
 
+            // Constant-time comparison to prevent timing attacks
+            const safeCompare = (a: string, b: string): boolean => {
+                if (a.length !== b.length) return false;
+                return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+            };
+
             // Validate admin key
             const expectedKey = process.env.ADMIN_SECRET_KEY;
-            if (!expectedKey || adminKey !== expectedKey) {
+            if (!expectedKey || !adminKey || !safeCompare(adminKey, expectedKey)) {
                 return res.status(403).json({ success: false, message: "Unauthorized" });
             }
 
