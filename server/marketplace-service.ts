@@ -34,7 +34,9 @@ const IDL: any = {
                 { "name": "logWrapper", "isMut": false, "isSigner": false },
                 { "name": "compressionProgram", "isMut": false, "isSigner": false },
                 { "name": "bubblegumProgram", "isMut": false, "isSigner": false },
-                { "name": "systemProgram", "isMut": false, "isSigner": false }
+                { "name": "systemProgram", "isMut": false, "isSigner": false },
+                { "name": "arciumProgram", "isMut": false, "isSigner": false },
+                { "name": "invoiceAccount", "isMut": true, "isSigner": false }
             ],
             "args": [
                 { "name": "root", "type": { "array": ["u8", 32] } },
@@ -61,7 +63,9 @@ const IDL: any = {
                 { "name": "logWrapper", "isMut": false, "isSigner": false },
                 { "name": "compressionProgram", "isMut": false, "isSigner": false },
                 { "name": "bubblegumProgram", "isMut": false, "isSigner": false },
-                { "name": "systemProgram", "isMut": false, "isSigner": false }
+                { "name": "systemProgram", "isMut": false, "isSigner": false },
+                { "name": "arciumProgram", "isMut": false, "isSigner": false },
+                { "name": "invoiceAccount", "isMut": true, "isSigner": false }
             ],
             "args": [
                 { "name": "root", "type": { "array": ["u8", 32] } },
@@ -81,7 +85,9 @@ const IDL: any = {
                 { "name": "logWrapper", "isMut": false, "isSigner": false },
                 { "name": "compressionProgram", "isMut": false, "isSigner": false },
                 { "name": "bubblegumProgram", "isMut": false, "isSigner": false },
-                { "name": "systemProgram", "isMut": false, "isSigner": false }
+                { "name": "systemProgram", "isMut": false, "isSigner": false },
+                { "name": "arciumProgram", "isMut": false, "isSigner": false },
+                { "name": "invoiceAccount", "isMut": true, "isSigner": false }
             ],
             "args": [
                 { "name": "root", "type": { "array": ["u8", 32] } },
@@ -141,16 +147,13 @@ export class MarketplaceService {
             const rootBytes = Array.from(bs58.decode(root));
 
             // 3. Derive PDA
-            // Seed: "listing", seller, assetId
-            // NOTE: PDA Seed Structure - ["listing", seller_pubkey, asset_id]
-            // Anchor program MUST use identical seed derivation. Current implementation
-            // allows multiple listings per seller (different assetIds). If program uses
-            // only ["listing", seller], then 1 listing per seller max.
+            // CRITICAL: Seeds MUST match Rust program: [b"listing", merkle_tree.key()]
+            // The Rust program uses merkle_tree (tree_id) as the unique identifier
             const seller = new PublicKey(sellerPublicKey);
-            const assetMint = new PublicKey(assetId);
+            const merkleTreePubkey = new PublicKey(tree_id);
 
             const [listingState] = PublicKey.findProgramAddressSync(
-                [Buffer.from("listing"), seller.toBuffer(), assetMint.toBuffer()],
+                [Buffer.from("listing"), merkleTreePubkey.toBuffer()],
                 this.program.programId
             );
 
@@ -215,10 +218,11 @@ export class MarketplaceService {
 
             const buyer = new PublicKey(buyerPublicKey);
             const seller = new PublicKey(sellerPublicKey);
-            const assetMint = new PublicKey(assetId);
+            const merkleTreePubkey = new PublicKey(tree_id);
 
+            // CRITICAL: Seeds MUST match Rust program: [b"listing", merkle_tree.key()]
             const [listingState] = PublicKey.findProgramAddressSync(
-                [Buffer.from("listing"), seller.toBuffer(), assetMint.toBuffer()],
+                [Buffer.from("listing"), merkleTreePubkey.toBuffer()],
                 this.program.programId
             );
 
@@ -312,12 +316,12 @@ export class MarketplaceService {
             const rootBytes = Array.from(bs58.decode(root));
 
             // 3. Derive PDA
-            // Must match seeds used in listInvoice: "listing", seller, assetMint
+            // CRITICAL: Seeds MUST match Rust program: [b"listing", merkle_tree.key()]
             const seller = new PublicKey(sellerPublicKey);
-            const assetMint = new PublicKey(assetId);
+            const merkleTreePubkey = new PublicKey(tree_id);
 
             const [listingState] = PublicKey.findProgramAddressSync(
-                [Buffer.from("listing"), seller.toBuffer(), assetMint.toBuffer()],
+                [Buffer.from("listing"), merkleTreePubkey.toBuffer()],
                 this.program.programId
             );
 
