@@ -94,13 +94,13 @@ CREATE INDEX IF NOT EXISTS idx_analytics_wallet_created
 ON analytics_events(wallet_address, created_at DESC) 
 WHERE wallet_address IS NOT NULL;
 
--- VACUUM ANALYZE to update statistics after index creation
--- This helps the query planner make better decisions
-VACUUM ANALYZE invoice_marketplace;
-VACUUM ANALYZE invoices;
-VACUUM ANALYZE payments;
-VACUUM ANALYZE business_credit_scores;
-VACUUM ANALYZE analytics_events;
+-- VACUUM ANALYZE commented out as it cannot run inside a transaction block
+-- Auto-vacuum will handle statistics updates eventually
+-- VACUUM ANALYZE invoice_marketplace;
+-- VACUUM ANALYZE invoices;
+-- VACUUM ANALYZE payments;
+-- VACUUM ANALYZE business_credit_scores;
+-- VACUUM ANALYZE analytics_events;
 
 -- Performance Notes:
 -- - These indexes are designed for read-heavy operations
