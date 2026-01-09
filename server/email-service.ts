@@ -217,22 +217,15 @@ export class EmailService {
      * Mock sender that logs to console
      */
     private async mockSend(data: InvoiceEmailData): Promise<boolean> {
-        console.log("\n==================================================");
-        console.log("📧 [MOCK EMAIL SERVICE] Sending Email (Set RESEND_API_KEY to enable)");
-        console.log("--------------------------------------------------");
-        console.log(`To:           ${data.to}`);
-        console.log(`From:         ${this.config.fromAddress}`);
-        console.log(`Subject:      Invoice ${data.invoiceNumber} from ${data.businessName}`);
-        console.log("--------------------------------------------------");
-        console.log("Body:");
-        console.log(`Hello,`);
-        console.log(`You have received a new invoice from ${data.businessName}.`);
-        console.log(`Amount: ${data.amount} ${data.currency}`);
-        console.log(`Due Date: ${data.dueDate}`);
-        console.log(`View & Pay: ${data.payLink}`);
-        console.log("--------------------------------------------------");
-        console.log("End of Email");
-        console.log("==================================================\n");
+        logger.debug("Mock email send - Invoice notification", "email", {
+            to: data.to,
+            from: this.config.fromAddress,
+            invoiceNumber: data.invoiceNumber,
+            businessName: data.businessName,
+            amount: `${data.amount} ${data.currency}`,
+            dueDate: data.dueDate,
+            payLink: data.payLink
+        });
 
         // Log to system logger as well
         log(`[Email] Mock sent to ${data.to} for invoice ${data.invoiceNumber}`);
@@ -241,17 +234,14 @@ export class EmailService {
     }
 
     private async mockSendReceipt(data: PaymentReceiptEmailData): Promise<boolean> {
-        console.log("\n==================================================");
-        console.log("📧 [MOCK EMAIL SERVICE] Sending Payment Receipt");
-        console.log("--------------------------------------------------");
-        console.log(`To:           ${data.to}`);
-        console.log(`Subject:      Receipt for Invoice ${data.invoiceNumber}`);
-        console.log("--------------------------------------------------");
-        console.log("Body:");
-        console.log(`Payment confirmed for ${data.businessName}.`);
-        console.log(`Amount: ${data.amountPaid} ${data.currency}`);
-        console.log(`Tx: ${data.transactionSignature}`);
-        console.log("==================================================\n");
+        logger.debug("Mock email send - Payment receipt", "email", {
+            to: data.to,
+            invoiceNumber: data.invoiceNumber,
+            businessName: data.businessName,
+            amountPaid: `${data.amountPaid} ${data.currency}`,
+            paymentDate: data.paymentDate,
+            transactionSignature: data.transactionSignature
+        });
         return true;
     }
 
@@ -260,7 +250,7 @@ export class EmailService {
      */
     async sendEmail(data: { to: string; subject: string; html: string }): Promise<{ success: boolean; id?: string }> {
         if (!data.to || !data.to.includes("@")) {
-            console.warn(`[Email] Invalid 'to' address: ${data.to}`);
+            logger.warn("Invalid email address", "email", { address: data.to });
             return { success: false };
         }
 
@@ -274,22 +264,22 @@ export class EmailService {
                 });
 
                 if (error) {
-                    console.error("Resend API Generic Error:", error);
+                    logger.error("Resend API Generic Error", "email", { error });
                     return { success: false };
                 }
                 return { success: true, id: resendData?.id };
 
             } else {
                 // Mock send
-                console.log("\n[MOCK EMAIL] ----------------------------");
-                console.log(`To: ${data.to}`);
-                console.log(`Subject: ${data.subject}`);
-                console.log(`Body (Truncated): ${data.html.substring(0, 50)}...`);
-                console.log("-----------------------------------------\n");
+                logger.debug("Mock generic email send", "email", {
+                    to: data.to,
+                    subject: data.subject,
+                    bodyPreview: data.html.substring(0, 50)
+                });
                 return { success: true, id: "mock-id" };
             }
         } catch (error) {
-            console.error("Generic send error:", error);
+            logger.error("Generic send error", "email", { error });
             return { success: false };
         }
     }

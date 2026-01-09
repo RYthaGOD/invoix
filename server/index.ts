@@ -152,10 +152,9 @@ let startupPhase = "bootstrapping";
 server = createServer(app);
 const port = parseInt(process.env.PORT || "5000", 10);
 
-server.listen(port, "0.0.0.0", () => {
-  logger.info(`Listening on port ${port} - Service initializing...`, "boot", { port });
-  log(`serving on port ${port}`);
-});
+// Server will listen on port after initialization completes (see startup sequence ~line 251)
+// This prevents duplicate port binding and ensures maintenance mode works correctly.
+
 
 // Maintenance Mode Middleware (Intercepts requests until ready)
 app.use((req, res, next) => {

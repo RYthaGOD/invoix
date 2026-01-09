@@ -1,10 +1,11 @@
 import 'dotenv/config';
 import dns from 'dns';
 import net from 'net';
+import { logger } from './logger';
 import { URL } from 'url';
 
 async function check() {
-    console.log("🔍 Starting Diagnostics...");
+    logger.debug("Starting network diagnostics", "network");
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
         console.error("❌ DATABASE_URL is missing!");
@@ -32,7 +33,7 @@ async function check() {
         }
     }
 
-    console.log(`\n--- DNS RESOLUTION ---`);
+    logger.debug("DNS Resolution Test", "network");
     try {
         const ipv4 = await dns.promises.resolve4(hostname).catch(e => `Failed: ${e.message}`);
         console.log(`IPv4:`, ipv4);
@@ -43,7 +44,7 @@ async function check() {
         console.log(`IPv6:`, ipv6);
     } catch (e) { console.log('IPv6 Error:', e); }
 
-    console.log(`\n--- TCP CONNECTIVITY ---`);
+    logger.debug("TCP Connectivity Test", "network");
     const tryConnect = (host: string, family: string) => {
         return new Promise(resolve => {
             console.log(`Attempting ${family} Connect to ${host}:${port}...`);

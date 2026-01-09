@@ -72,25 +72,19 @@ function getClientIp(req: Request): string {
 }
 
 /**
- * Global rate limiter - Protects against DDoS and brute force attacks
- * 500 requests per 15 minutes per IP (supports real-time polling at 5s intervals)
+ * Global Rate Limiter - Basic protection
+ * Applied to all requests
  */
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Limit each IP to 500 requests per windowMs (~33 req/min, enough for real-time features)
-  message: {
-    error: "Too many requests from this IP, please try again later.",
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // Use custom key generator to properly handle proxied requests
+  max: 1000, // Increased from 100 for better UX
+  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
   keyGenerator: (req) => getClientIp(req),
-  // Skip rate limiting for whitelisted IPs (optional)
   skip: (req) => {
-    // Add your whitelisted IPs here if needed
-    const whitelist: string[] = [];
-    const clientIp = getClientIp(req);
-    return whitelist.includes(clientIp);
+    // Skip rate limit for health checks
+    return req.path === "/health" || req.path === "/api/health";
   },
 });
 

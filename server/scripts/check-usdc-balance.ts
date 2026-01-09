@@ -4,6 +4,7 @@ import { getAssociatedTokenAddress, getAccount, getMint } from "@solana/spl-toke
 import { loadKeypairFromPrivateKey } from "../arcium-service";
 import dotenv from "dotenv";
 import path from "path";
+import { logger } from "../logger";
 
 // Load environment variables
 dotenv.config({ path: path.join(process.cwd(), ".env") });
@@ -11,11 +12,10 @@ dotenv.config({ path: path.join(process.cwd(), ".env") });
 const DEVNET_USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
 async function checkUSDC() {
-    console.log("🔍 Treasury Wallet Verification (Devnet USDC)");
-    console.log("-----------------------------------------");
+    logger.info("Treasury Wallet Verification (Devnet USDC)", "usdc-check");
 
     if (!process.env.PAYER_PRIVATE_KEY) {
-        console.error("❌ Error: PAYER_PRIVATE_KEY not found in environment.");
+        logger.error("PAYER_PRIVATE_KEY not found in environment", "usdc-check");
         process.exit(1);
     }
 
@@ -27,14 +27,18 @@ async function checkUSDC() {
     const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
     const address = payerKeypair.publicKey;
 
-    console.log(`Wallet Address: ${address.toString()}`);
-    console.log(`Network:        Devnet`);
-    console.log(`USDC Mint:      ${DEVNET_USDC_MINT.toString()}`);
+    logger.info("Wallet configuration", "usdc-check", {
+        walletAddress: address.toString(),
+        network: "Devnet",
+        usdcMint: DEVNET_USDC_MINT.toString()
+    });
 
     try {
         // 1. Check SOL Balance
         const solBalance = await connection.getBalance(address);
-        console.log(`SOL Balance:    ${(solBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+        logger.info("SOL Balance", "usdc-check", {
+            balance: `${(solBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL`
+        });
 
         // 2. Check USDC Balance
         const ata = await getAssociatedTokenAddress(DEVNET_USDC_MINT, address);
@@ -44,24 +48,32 @@ async function checkUSDC() {
             const mintInfo = await getMint(connection, DEVNET_USDC_MINT);
             const amount = Number(tokenAccount.amount) / Math.pow(10, mintInfo.decimals);
 
-            console.log(`USDC Balance:   ${amount.toLocaleString()} USDC`);
+            logger.info("USDC Balance", "usdc-check", {
+                balance: `${amount.toLocaleString()} USDC`,
+                status: amount < 1000 ? "low" : "sufficient"
+            });
 
             if (amount < 1000) {
-                console.log("\n⚠️  Low USDC Balance. Faucet might fail for users.");
-            } else {
-                console.log("\n✅ Sufficient USDC for Faucet.");
+                logger.warn("Low USDC balance", "usdc-check", {
+                    balance: amount,
+                    threshold: 1000,
+                    message: "Faucet might fail for users"
+                });
             }
 
         } catch (e: any) {
             if (e.name === "TokenAccountNotFoundError") {
-                console.log(`USDC Balance:   0 USDC (Token Account not created)`);
+                logger.info("USDC Balance", "usdc-check", {
+                    balance: "0 USDC",
+                    note: "Token Account not created"
+                });
             } else {
-                console.log(`USDC Balance:   Error fetching (${e.message})`);
+                logger.error("Error fetching USDC balance", "usdc-check", { error: e.message });
             }
         }
 
     } catch (error: any) {
-        console.error("\n❌ Error:", error.message);
+        logger.error("Error checking USDC balance", "usdc-check", { error: error.message });
     }
 }
 

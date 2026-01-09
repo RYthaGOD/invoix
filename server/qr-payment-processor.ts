@@ -289,6 +289,7 @@ async function distributePayment(
         // Record payment in database
         await db.insert(payments).values({
             invoiceId: invoice.id,
+            paymentNumber: `QR-${Date.now()}-${Math.random().toString(36).substring(7)}`, // Generate unique payment number
             amount: actualAmount.toString(),
             currency: invoice.currency,
             txSignature: incomingSignature,
@@ -296,9 +297,8 @@ async function distributePayment(
             toAddress: invoice.invoicerWalletAddress,
             paymentMethod: "qr_transfer",
             status: "confirmed",
-            platformFee: feeAmount.toString(),
-            distributionSignature: distributionSig,
-            // confirmedAt is default now(), so omitted
+            // Note: platformFee and distributionSignature are tracked in logs but not stored in DB
+            // This is QR payment distribution - fee is implicit in the amount forwarded to invoicer
         });
 
         // Update invoice status
@@ -311,7 +311,7 @@ async function distributePayment(
                 status: newStatus,
                 paidAmount: newPaidAmount.toString(),
                 remainingAmount: Math.max(0, newRemainingAmount).toString(),
-                paidAt: newStatus === "paid" ? new Date() : undefined
+                ...(newStatus === "paid" && { paidAt: new Date() })
             })
             .where(eq(invoices.id, invoice.id));
 

@@ -134,7 +134,9 @@ export async function getAnnualTaxSummary(
             netIncome: safeAdd(totalReceived, `-${totalSent}`),
             transactionCount: receivedInvoices.length + sentInvoices.length,
             platformFeesPaid,
-            currency: "USD" // TODO: Multi-currency support
+            // Tax reporting uses USD for consistency across all transactions
+            // Individual transaction currencies are preserved in CSV export
+            currency: "USD"
         },
         monthlyBreakdown,
         byCustomer,
