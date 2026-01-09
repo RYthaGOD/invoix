@@ -67,7 +67,12 @@ export function registerProfileRoutes(app: Express) {
             const walletAddress = req.session.walletAddress!;
 
             // Validate Input
-            const parsed = profileSchema.safeParse(req.body);
+            const parsed = profileSchema.extend({
+                brandColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color code").optional(),
+                defaultPrivacySettings: z.boolean().optional(),
+                nextInvoiceNumber: z.number().int().min(1).optional(),
+            }).safeParse(req.body);
+
             if (!parsed.success) {
                 return res.status(400).json({ success: false, message: parsed.error.issues[0].message });
             }
@@ -92,10 +97,13 @@ export function registerProfileRoutes(app: Express) {
                         businessWebsite: data.businessWebsite || null,
                         taxId: data.taxId || null,
                         taxRegistrationNumber: data.taxRegistrationNumber || null,
-                        // Fix: Save logoUrl
                         logoUrl: data.logoUrl || existing.logoUrl,
                         defaultPaymentTerms: data.defaultPaymentTerms || "Net 30",
                         defaultInvoicePrefix: data.defaultInvoicePrefix || "INV",
+                        // New Fields
+                        brandColor: data.brandColor || existing.brandColor || "#3b82f6",
+                        defaultPrivacySettings: data.defaultPrivacySettings !== undefined ? data.defaultPrivacySettings : existing.defaultPrivacySettings,
+                        nextInvoiceNumber: data.nextInvoiceNumber || undefined, // Only update if provided
                         updatedAt: new Date(),
                     })
                     .where(eq(businessProfiles.ownerWalletAddress, walletAddress))
@@ -116,6 +124,10 @@ export function registerProfileRoutes(app: Express) {
                         logoUrl: data.logoUrl || null,
                         defaultPaymentTerms: data.defaultPaymentTerms || "Net 30",
                         defaultInvoicePrefix: data.defaultInvoicePrefix || "INV",
+                        // New Fields
+                        brandColor: data.brandColor || "#3b82f6",
+                        defaultPrivacySettings: data.defaultPrivacySettings !== undefined ? data.defaultPrivacySettings : true,
+                        nextInvoiceNumber: data.nextInvoiceNumber || 1,
                     })
                     .returning() as any[];
                 updatedProfile = insertResult[0];

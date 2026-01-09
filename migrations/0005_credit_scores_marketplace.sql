@@ -1,6 +1,27 @@
 -- Migration: Add Business Credit Scores for Invoice Marketplace
 -- Created: 2026-01-05
 
+-- [INJECTED FIX] Add user_sessions table (Missed in migration 0003 due to fork)
+CREATE TABLE IF NOT EXISTS "user_sessions" (
+  "sid" varchar NOT NULL COLLATE "default",
+  "sess" json NOT NULL,
+  "expire" timestamp(6) NOT NULL
+)
+WITH (OIDS=FALSE);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'session_pkey') THEN
+        ALTER TABLE "user_sessions" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "user_sessions" ("expire");
+-- [END INJECTED FIX]
+
+
+-- Created: 2026-01-05
+
 -- Business Credit Scores Table
 -- Stores credit scoring data for marketplace eligibility and risk assessment
 CREATE TABLE IF NOT EXISTS business_credit_scores (

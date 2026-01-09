@@ -18,7 +18,13 @@ import { resolve } from "path";
     });
 
     // Copy migrations folder to dist
-    const { cpSync } = await import("fs");
+    const { cpSync, rmSync, existsSync: exists } = await import("fs");
+
+    // Clean existing migrations in dist to prevent stale file issues
+    if (exists(resolve("dist/migrations"))) {
+        rmSync(resolve("dist/migrations"), { recursive: true, force: true });
+    }
+
     cpSync(resolve("migrations"), resolve("dist/migrations"), { recursive: true });
 
     // Verify copy

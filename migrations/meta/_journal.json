@@ -40,8 +40,29 @@
     {
       "idx": 5,
       "version": "7",
-      "when": 1767958689949,
-      "tag": "0005_chubby_lily_hollister",
+      "when": 1767618180000,
+      "tag": "0005_credit_scores_marketplace",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1767700380000,
+      "tag": "0014_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1767926580000,
+      "tag": "0015_performance_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1767953580000,
+      "tag": "0016_arcium_invoice_pda",
       "breakpoints": true
     }
   ]
