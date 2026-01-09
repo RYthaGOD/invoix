@@ -66,9 +66,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerInvoiceRoutes(app);
 
   // ================================================
-  // EXPORT ROUTES (Mounted under /invoices to access /api/invoices/export)
+  // EXPORT ROUTES
   // ================================================
-  app.use("/api/invoices", exportRouter);
+  app.use("/api/exports", exportRouter);
 
   app.use("/api/pricing", pricingRouter);
 

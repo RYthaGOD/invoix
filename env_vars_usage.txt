@@ -1,0 +1,357 @@
+debug-db.ts:const maskedUrl = process.env.DATABASE_URL?.replace(/:([^:@]+)@/, (match, p1) => `:${"*".repeat(p1.length)}@`);
+debug-db.ts:    process.env.NODE_ENV = 'production';
+drizzle.config.ts:const useSQLite = !process.env.DATABASE_URL;
+drizzle.config.ts:    : { url: process.env.DATABASE_URL! },
+node_modules\@coinbase\cdp-sdk\analytics.ts:  if (event.name === "error" && process.env.DISABLE_CDP_ERROR_REPORTING === "true") {
+node_modules\@coinbase\cdp-sdk\analytics.ts:  if (event.name !== "error" && process.env.DISABLE_CDP_USAGE_TRACKING === "true") {
+node_modules\@coinbase\cdp-sdk\analytics.ts:  if (process.env.DISABLE_CDP_ERROR_REPORTING === "true") {
+node_modules\@coinbase\cdp-sdk\analytics.ts:  if (process.env.DISABLE_CDP_ERROR_REPORTING === "true") {
+node_modules\@coinbase\cdp-sdk\analytics.ts:  if (process.env.DISABLE_CDP_ERROR_REPORTING === "true") {
+node_modules\@coinbase\cdp-sdk\analytics.ts:  if (process.env.DISABLE_CDP_ERROR_REPORTING === "true") {
+node_modules\@coinbase\cdp-sdk\client\cdp.ts:    const apiKeyId = options.apiKeyId ?? process.env.CDP_API_KEY_ID ?? process.env.CDP_API_KEY_NAME;
+node_modules\@coinbase\cdp-sdk\client\cdp.ts:    const apiKeySecret = options.apiKeySecret ?? process.env.CDP_API_KEY_SECRET;
+node_modules\@coinbase\cdp-sdk\client\cdp.ts:    const walletSecret = options.walletSecret ?? process.env.CDP_WALLET_SECRET;
+node_modules\@coinbase\cdp-sdk\client\cdp.ts:      process.env.DISABLE_CDP_ERROR_REPORTING !== "true" ||
+node_modules\@coinbase\cdp-sdk\client\cdp.ts:      process.env.DISABLE_CDP_USAGE_TRACKING !== "true"
+node_modules\@coinbase\cdp-sdk\client\cdp.ts:    if (process.env.DISABLE_CDP_ERROR_REPORTING !== "true") {
+node_modules\@coinbase\cdp-sdk\node_modules\@solana\rpc-transport-http\dist\types\http-transport-config.d.ts:     *         Authorization: `Bearer ${process.env.RPC_AUTH_TOKEN}`,
+node_modules\@gemini-wallet\core\src\constants.ts:export const SDK_BACKEND_URL = process.env?.SDK_BACKEND_URL || DEFAULT_BACKEND_URL;
+node_modules\@gemini-wallet\core\src\utils\constants.ts:export const SDK_BACKEND_URL = process.env.SDK_BACKEND_URL as string;
+node_modules\@hookform\resolvers\yup\src\yup.ts:      if (schemaOptions.context && process.env.NODE_ENV === 'development') {
+node_modules\@metamask\sdk-analytics\src\index.ts:if (typeof process !== 'undefined' && process.env) {
+node_modules\@metamask\sdk-analytics\src\index.ts:    process.env.METAMASK_ANALYTICS_ENDPOINT ??
+node_modules\@metamask\sdk-analytics\src\index.ts:    process.env.NEXT_PUBLIC_METAMASK_ANALYTICS_ENDPOINT;
+node_modules\@metamask\sdk-install-modal-web\dist\types\stencil-public-runtime.d.ts: * dynamically set the path at build time, such as `setAssetPath(process.env.ASSET_PATH)`.
+node_modules\@opentelemetry\instrumentation\build\esm\semconvStability.d.ts: * `process.env.OTEL_SEMCONV_STABILITY_OPT_IN`) looking for the `${namespace}`
+node_modules\@opentelemetry\instrumentation\build\esm\semconvStability.d.ts: *        process.env.OTEL_SEMCONV_STABILITY_OPT_IN
+node_modules\@opentelemetry\instrumentation\build\esnext\semconvStability.d.ts: * `process.env.OTEL_SEMCONV_STABILITY_OPT_IN`) looking for the `${namespace}`
+node_modules\@opentelemetry\instrumentation\build\esnext\semconvStability.d.ts: *        process.env.OTEL_SEMCONV_STABILITY_OPT_IN
+node_modules\@opentelemetry\instrumentation\build\src\semconvStability.d.ts: * `process.env.OTEL_SEMCONV_STABILITY_OPT_IN`) looking for the `${namespace}`
+node_modules\@opentelemetry\instrumentation\build\src\semconvStability.d.ts: *        process.env.OTEL_SEMCONV_STABILITY_OPT_IN
+node_modules\@opentelemetry\semantic-conventions\build\esm\experimental_attributes.d.ts: * Process environment variables, `<key>` being the environment variable name, the value being the environment variable value.
+node_modules\@opentelemetry\semantic-conventions\build\esm\experimental_attributes.d.ts: *     as the `process.environment_variable.USER` attribute with value `"ubuntu"`.
+node_modules\@opentelemetry\semantic-conventions\build\esm\experimental_attributes.d.ts: *     **SHOULD** be recorded as the `process.environment_variable.PATH` attribute
+node_modules\@opentelemetry\semantic-conventions\build\esm\experimental_attributes.d.ts:export declare const ATTR_PROCESS_ENVIRONMENT_VARIABLE: (key: string) => string;
+node_modules\@opentelemetry\semantic-conventions\build\esnext\experimental_attributes.d.ts: * Process environment variables, `<key>` being the environment variable name, the value being the environment variable value.
+node_modules\@opentelemetry\semantic-conventions\build\esnext\experimental_attributes.d.ts: *     as the `process.environment_variable.USER` attribute with value `"ubuntu"`.
+node_modules\@opentelemetry\semantic-conventions\build\esnext\experimental_attributes.d.ts: *     **SHOULD** be recorded as the `process.environment_variable.PATH` attribute
+node_modules\@opentelemetry\semantic-conventions\build\esnext\experimental_attributes.d.ts:export declare const ATTR_PROCESS_ENVIRONMENT_VARIABLE: (key: string) => string;
+node_modules\@opentelemetry\semantic-conventions\build\src\experimental_attributes.d.ts: * Process environment variables, `<key>` being the environment variable name, the value being the environment variable value.
+node_modules\@opentelemetry\semantic-conventions\build\src\experimental_attributes.d.ts: *     as the `process.environment_variable.USER` attribute with value `"ubuntu"`.
+node_modules\@opentelemetry\semantic-conventions\build\src\experimental_attributes.d.ts: *     **SHOULD** be recorded as the `process.environment_variable.PATH` attribute
+node_modules\@opentelemetry\semantic-conventions\build\src\experimental_attributes.d.ts:export declare const ATTR_PROCESS_ENVIRONMENT_VARIABLE: (key: string) => string;
+node_modules\@sentry\core\build\types\tracing\google-genai\index.d.ts: * const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
+node_modules\@sentry\core\build\types-ts3.8\tracing\google-genai\index.d.ts: * const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
+node_modules\@solana\rpc-transport-http\dist\types\http-transport-config.d.ts:     *         Authorization: `Bearer ${process.env.RPC_AUTH_TOKEN}`,
+node_modules\@solana\web3.js\src\connection.ts:  if (process.env.BROWSER) {
+node_modules\@solana\web3.js\src\connection.ts:      if (process.env.NODE_ENV !== 'test') {
+node_modules\@solana\web3.js\src\connection.ts:  'solana-client': `js/${process.env.npm_package_version ?? 'UNKNOWN'}`,
+node_modules\@supabase\auth-js\dist\main\GoTrueAdminApi.d.ts:     *   headers: { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
+node_modules\@supabase\auth-js\dist\module\GoTrueAdminApi.d.ts:     *   headers: { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
+node_modules\@supabase\auth-js\src\GoTrueAdminApi.ts:   *   headers: { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
+node_modules\@tanstack\query-core\src\hydration.ts:      if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\queriesObserver.ts:    if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\query.ts:    if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\query.ts:        if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\timeoutManager.ts:    if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\timeoutManager.ts:    if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\timeoutManager.ts:    if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\timeoutManager.ts:    if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\utils.ts:    if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\query-core\src\utils.ts:  if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\react-query\src\useBaseQuery.ts:  if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\react-query\src\useBaseQuery.ts:  if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\react-query\src\useSuspenseInfiniteQuery.ts:  if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\react-query\src\useSuspenseQueries.ts:        if (process.env.NODE_ENV !== 'production') {
+node_modules\@tanstack\react-query\src\useSuspenseQuery.ts:  if (process.env.NODE_ENV !== 'production') {
+node_modules\@types\babel__core\index.d.ts:     * api.cache.using(() => process.env.NODE_ENV)
+node_modules\@types\babel__core\index.d.ts:     * api.cache.invalidate(() => process.env.NODE_ENV)
+node_modules\@types\node\child_process.d.ts: * variable if `env` is in the `options` object. Otherwise, `process.env.PATH` is
+node_modules\@types\node\child_process.d.ts:     *   env: process.env,
+node_modules\@types\node\child_process.d.ts:     * process, the default is `process.env`.
+node_modules\@types\node\cluster.d.ts:         * @param env Key/value pairs to add to worker process environment.
+node_modules\@types\node\cluster.d.ts:         * True if the process is a primary. This is determined by the `process.env.NODE_UNIQUE_ID`. If `process.env.NODE_UNIQUE_ID`
+node_modules\@types\node\http.d.ts:         * new URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`);
+node_modules\@types\node\http.d.ts:         * When `request.url` is `'/status?name=ryan'` and `process.env.HOST` is undefined:
+node_modules\@types\node\http.d.ts:         * > new URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`);
+node_modules\@types\node\http.d.ts:         * Ensure that you set `process.env.HOST` to the server's host name, or consider replacing this part entirely. If using `req.headers.host`, ensure proper
+node_modules\@types\node\module.d.ts:         * `process.env.NODE_COMPILE_CACHE` value to compile cache directory so the behavior can
+node_modules\@types\node\process.d.ts:                 * The `process.env` property returns an object containing the user environment.
+node_modules\@types\node\process.d.ts:                 * node -e 'process.env.foo = "bar"' &#x26;&#x26; echo $foo
+node_modules\@types\node\process.d.ts:                 * Assigning a property on `process.env` will implicitly convert the value
+node_modules\@types\node\process.d.ts:                 * Use `delete` to delete a property from `process.env`.
+node_modules\@types\node\process.d.ts:                 * each `Worker` thread has its own copy of `process.env`, based on its
+node_modules\@types\node\process.d.ts:                 * parent thread's `process.env`, or whatever was specified as the `env` option
+node_modules\@types\node\process.d.ts:                 * to the `Worker` constructor. Changes to `process.env` will not be visible
+node_modules\@types\node\process.d.ts:                 * are visible to the operating system or to native add-ons. On Windows, a copy of `process.env` on a `Worker` instance operates in a case-sensitive manner
+node_modules\@types\node\process.d.ts:                 * Loads the environment configuration from a `.env` file into `process.env`. If
+node_modules\@types\node\process.d.ts:                 * **Default:** `process.env`.
+node_modules\@types\node\tty.d.ts:         * @param [env=process.env] An object containing the environment variables to check. This enables simulating the usage of a specific terminal.
+node_modules\@types\node\tty.d.ts:         * @param [env=process.env] An object containing the environment variables to check. This enables simulating the usage of a specific terminal.
+node_modules\@types\node\v8.d.ts:     *   // process.env and process.argv are refreshed during snapshot
+node_modules\@types\node\v8.d.ts:     *   const lang = process.env.BOOK_LANG || 'en_US';
+node_modules\@types\node\v8.d.ts:     * The resulted binary will get print the data deserialized from the snapshot during start up, using the refreshed `process.env` and `process.argv` of the launched process:
+node_modules\@types\node\wasi.d.ts:         * An object similar to `process.env` that the WebAssembly
+node_modules\@types\node\worker_threads.d.ts:     * * `process.env` is a copy of the parent thread's environment variables,
+node_modules\@wagmi\connectors\node_modules\porto\dist\server\internal\requestListener.d.ts:     * createRequestListener(handler, { host: process.env.HOST })
+node_modules\@wagmi\connectors\node_modules\porto\src\server\internal\requestListener.ts:   * createRequestListener(handler, { host: process.env.HOST })
+node_modules\@wallet-standard\errors\src\message-formatter.ts:    if (process.env.NODE_ENV !== 'production') {
+node_modules\@wallet-standard\errors\src\__tests__\message-formatter-test.ts:        let originalEnv = process.env;
+node_modules\@wallet-standard\errors\src\__tests__\message-formatter-test.ts:            originalEnv = process.env;
+node_modules\@wallet-standard\errors\src\__tests__\message-formatter-test.ts:            process.env = { ...originalEnv, NODE_ENV: 'production' };
+node_modules\@wallet-standard\errors\src\__tests__\message-formatter-test.ts:            process.env = originalEnv; // Reset to the original env
+node_modules\@wallet-standard\errors\src\__tests__\message-formatter-test.ts:        let originalEnv = process.env;
+node_modules\@wallet-standard\errors\src\__tests__\message-formatter-test.ts:            originalEnv = process.env;
+node_modules\@wallet-standard\errors\src\__tests__\message-formatter-test.ts:            process.env = { ...originalEnv, NODE_ENV: 'development' };
+node_modules\@wallet-standard\errors\src\__tests__\message-formatter-test.ts:            process.env = originalEnv; // Reset to the original env
+node_modules\dotenv\lib\main.d.ts:   * example: `require('dotenv').config({ debug: process.env.DEBUG })`
+node_modules\dotenv\lib\main.d.ts:   * Default: `process.env`
+node_modules\dotenv\lib\main.d.ts:   * Specify an object to write your secrets to. Defaults to process.env environment variables.
+node_modules\dotenv\lib\main.d.ts:   * Pass the DOTENV_KEY directly to config options. Defaults to looking for process.env.DOTENV_KEY environment variable. Note this only applies to decrypting .env.vault files. If passed as null or undefined, or not passed at all, dotenv falls back to its traditional job of parsing a .env file.
+node_modules\dotenv\lib\main.d.ts:   * example: `require('dotenv').config({ debug: process.env.DEBUG })`
+node_modules\dotenv\lib\main.d.ts: * Loads `.env` file contents into process.env by default. If `DOTENV_KEY` is present, it smartly attempts to load encrypted `.env.vault` file contents into process.env.
+node_modules\dotenv\lib\main.d.ts: * Loads `.env` file contents into process.env.
+node_modules\dotenv\lib\main.d.ts: * Loads `source` json contents into `target` like process.env.
+node_modules\dotenv\lib\main.d.ts: * @param processEnv - the target JSON object. in most cases use process.env but you can also pass your own JSON object
+node_modules\execa\index.d.ts:	Environment key-value pairs. Extends automatically from `process.env`. Set `extendEnv` to `false` if you don't want this.
+node_modules\execa\index.d.ts:	@default process.env
+node_modules\iceberg-js\dist\index.d.ts: *   auth: { type: 'bearer', token: process.env.ICEBERG_TOKEN }
+node_modules\jayson\node_modules\@types\node\tty.d.ts:         * @default `process.env`
+node_modules\jayson\node_modules\@types\node\wasi.d.ts:         * An object similar to `process.env` that the WebAssembly
+node_modules\npm-run-path\index.d.ts:	Accepts an object of environment variables, like `process.env`, and modifies the PATH using the correct [PATH key](https://github.com/sindresorhus/path-key). Use this if you're modifying the PATH for use in the `child_process` options.
+node_modules\npm-run-path\index.d.ts:	@default [process.env](https://nodejs.org/api/process.html#processenv)
+node_modules\npm-run-path\index.d.ts:console.log(process.env.PATH);
+node_modules\npm-run-path\index.d.ts:@returns The augmented [`process.env`](https://nodejs.org/api/process.html#process_process_env) object.
+node_modules\npm-run-path\node_modules\path-key\index.d.ts:	Default: [`process.env`](https://nodejs.org/api/process.html#process_process_env).
+node_modules\npm-run-path\node_modules\path-key\index.d.ts:const PATH = process.env[key];
+node_modules\path-key\index.d.ts:		Use a custom environment variables object. Default: [`process.env`](https://nodejs.org/api/process.html#process_process_env).
+node_modules\path-key\index.d.ts:	const PATH = process.env[key];
+node_modules\postcss\lib\css-syntax-error.d.ts:   *              and `process.env.NODE_DISABLE_COLORS`.
+node_modules\svix\node_modules\@types\node\child_process.d.ts: * variable if `env` is in the `options` object. Otherwise, `process.env.PATH` is
+node_modules\svix\node_modules\@types\node\child_process.d.ts:     *   env: process.env,
+node_modules\svix\node_modules\@types\node\child_process.d.ts:     * process, the default is `process.env`.
+node_modules\svix\node_modules\@types\node\cluster.d.ts:         * @param env Key/value pairs to add to worker process environment.
+node_modules\svix\node_modules\@types\node\cluster.d.ts:         * True if the process is a primary. This is determined by the `process.env.NODE_UNIQUE_ID`. If `process.env.NODE_UNIQUE_ID`
+node_modules\svix\node_modules\@types\node\http.d.ts:         * new URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`);
+node_modules\svix\node_modules\@types\node\http.d.ts:         * When `request.url` is `'/status?name=ryan'` and `process.env.HOST` is undefined:
+node_modules\svix\node_modules\@types\node\http.d.ts:         * > new URL(`http://${process.env.HOST ?? 'localhost'}${request.url}`);
+node_modules\svix\node_modules\@types\node\http.d.ts:         * Ensure that you set `process.env.HOST` to the server's host name, or consider replacing this part entirely. If using `req.headers.host`, ensure proper
+node_modules\svix\node_modules\@types\node\module.d.ts:         * `process.env.NODE_COMPILE_CACHE` value to compile cache directory so the behavior can
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * The `process.env` property returns an object containing the user environment.
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * node -e 'process.env.foo = "bar"' &#x26;&#x26; echo $foo
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * Assigning a property on `process.env` will implicitly convert the value
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * Use `delete` to delete a property from `process.env`.
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * each `Worker` thread has its own copy of `process.env`, based on its
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * parent thread's `process.env`, or whatever was specified as the `env` option
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * to the `Worker` constructor. Changes to `process.env` will not be visible
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * are visible to the operating system or to native add-ons. On Windows, a copy of `process.env` on a `Worker` instance operates in a case-sensitive manner
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * Loads the environment configuration from a `.env` file into `process.env`. If
+node_modules\svix\node_modules\@types\node\process.d.ts:                 * **Default:** `process.env`.
+node_modules\svix\node_modules\@types\node\tty.d.ts:         * @param [env=process.env] An object containing the environment variables to check. This enables simulating the usage of a specific terminal.
+node_modules\svix\node_modules\@types\node\tty.d.ts:         * @param [env=process.env] An object containing the environment variables to check. This enables simulating the usage of a specific terminal.
+node_modules\svix\node_modules\@types\node\v8.d.ts:     *   // process.env and process.argv are refreshed during snapshot
+node_modules\svix\node_modules\@types\node\v8.d.ts:     *   const lang = process.env.BOOK_LANG || 'en_US';
+node_modules\svix\node_modules\@types\node\v8.d.ts:     * The resulted binary will get print the data deserialized from the snapshot during start up, using the refreshed `process.env` and `process.argv` of the launched process:
+node_modules\svix\node_modules\@types\node\wasi.d.ts:         * An object similar to `process.env` that the WebAssembly
+node_modules\svix\node_modules\@types\node\worker_threads.d.ts:     * * `process.env` is a copy of the parent thread's environment variables,
+node_modules\svix\src\KitchenSink.test.ts:  const token = process.env.SVIX_TOKEN;
+node_modules\svix\src\KitchenSink.test.ts:  const serverUrl = process.env.SVIX_SERVER_URL;
+node_modules\tiny-invariant\src\tiny-invariant.ts:const isProduction: boolean = process.env.NODE_ENV === 'production';
+node_modules\vite\dist\node\types.d-aGj9QkWt.d.ts:     * Custom environment variables available on `import.meta.env`. This doesn't modify the actual `process.env`.
+node_modules\vitest\dist\index.d.ts:     * Changes the value of `import.meta.env` and `process.env`.
+node_modules\vitest\dist\reporters-w_64AS5f.d.ts:     * @default process.env.CI
+node_modules\vitest\dist\reporters-w_64AS5f.d.ts:     * @default !process.env.CI
+node_modules\vitest\dist\reporters-w_64AS5f.d.ts:     * @default !process.env.CI
+node_modules\vitest\dist\reporters-w_64AS5f.d.ts:     * @default !process.env.CI
+node_modules\vitest\dist\reporters-w_64AS5f.d.ts:     * Custom environment variables assigned to `process.env` before running tests.
+scripts\check-balance.ts:    const key = process.env.PAYER_PRIVATE_KEY;
+scripts\check-tables.ts:process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+scripts\check-tables.ts:    connectionString: process.env.DATABASE_URL?.split('?')[0], // Strip params like sslmode=require
+scripts\check-wallet.ts:    const key = process.env.PAYER_PRIVATE_KEY;
+scripts\cleanup-server-data.ts:    if (!process.env.DATABASE_URL) {
+scripts\create-merkle-tree.ts:    if (!process.env.PAYER_PRIVATE_KEY) {
+scripts\create-merkle-tree.ts:    const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+scripts\create-merkle-tree.ts:    const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+scripts\diagnose-nft-service.ts:        const value = process.env[varName];
+scripts\diagnose-nft-service.ts:        payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+scripts\diagnose-nft-service.ts:    const connection = new Connection(process.env.SOLANA_RPC_URL!, 'confirmed');
+scripts\diagnose-nft-service.ts:        console.log(`   📍 Cluster: ${process.env.SOLANA_NETWORK || 'unknown'}`);
+scripts\diagnose-nft-service.ts:            console.log(`      solana airdrop 0.1 ${payerKeypair.publicKey.toBase58()} --url ${process.env.SOLANA_RPC_URL}`);
+scripts\diagnose-nft-service.ts:    if (process.env.MERKLE_TREE_ADDRESS) {
+scripts\diagnose-nft-service.ts:            const treeAddress = new PublicKey(process.env.MERKLE_TREE_ADDRESS);
+scripts\init-mxe.ts:    const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+scripts\init-mxe.ts:    const walletPath = process.env.ANCHOR_WALLET || "/home/craig/.config/solana/id.json";
+scripts\init-mxe.ts:    const programId = new PublicKey(process.env.ARCIUM_PROGRAM_ID!);
+scripts\rotate-tree.ts:const TREE_AUTHORITY_SECRET = process.env.ARCIUM_PRIVATE_KEY || process.env.SERVER_PRIVATE_KEY;
+scripts\rotate-tree.ts:    const rpc = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+scripts\test-buy-invoice.ts:    const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+scripts\test-buy-invoice.ts:    const walletPath = process.env.ANCHOR_WALLET || "/home/craig/.config/solana/id.json";
+scripts\test-buy-invoice.ts:    const arciumProgramId = new PublicKey(process.env.ARCIUM_PROGRAM_ID || arciumIdl.metadata.address);
+scripts\top-up-wallets.ts:const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET || "jawKuQ3xtcYoAuqE9jyG2H35sv2pWJSzsyjoNpsxG38";
+scripts\top-up-wallets.ts:    const payerPrivKey = process.env.PAYER_PRIVATE_KEY;
+scripts\verify-network-config.ts:console.log(`SOLANA_NETWORK: ${process.env.SOLANA_NETWORK || 'undefined'} (Should be 'devnet' for Devnet)`);
+scripts\verify-network-config.ts:console.log(`SOLANA_RPC_URL: ${process.env.SOLANA_RPC_URL || 'undefined'}`);
+scripts\verify-network-config.ts:const isDevnet = process.env.SOLANA_NETWORK === 'devnet';
+scripts\verify-nft-setup.ts:    const rpc = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+scripts\verify-nft-wallet.ts:const pKeyString = process.env.PAYER_PRIVATE_KEY || "";
+server\analytics-routes.ts:    const expectedKey = process.env.ADMIN_SECRET_KEY;
+server\arcium-service.ts:      } else if (process.env.ARCIUM_PRIVATE_KEY || process.env.PAYER_PRIVATE_KEY) {
+server\arcium-service.ts:        const privateKey = process.env.ARCIUM_PRIVATE_KEY || process.env.PAYER_PRIVATE_KEY!;
+server\auth-routes.ts:    if (process.env.VITE_ENABLE_PASSKEY_AUTH === 'true') {
+server\auth-routes.ts:        if (process.env.LAZORKIT_STRICT_MODE !== 'true') {
+server\auth-routes.ts:            const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl('devnet');
+server\community-drop-routes.ts:const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\community-drop-routes.ts:const GATEKEEPER_TOKEN_MINT = process.env.GATEKEEPER_TOKEN_MINT || "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
+server\community-drop-routes.ts:const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET;
+server\community-drop-routes.ts:        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "180");
+server\crypto.ts:  const invoiceKey = process.env.INVOICE_ENCRYPTION_KEY;
+server\crypto.ts:  const passphrase = process.env.INVOICE_ENCRYPTION_PASSPHRASE;
+server\crypto.ts:  const salt = process.env.INVOICE_ENCRYPTION_SALT;
+server\crypto.ts:  const envKey = process.env.ENCRYPTION_MASTER_KEY;
+server\crypto.ts:  if (process.env.NODE_ENV !== "production") {
+server\das-service.ts:            const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\das-service.ts:            const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\das-service.ts:            const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\db.ts:const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+server\db.ts:const useSQLite = isDevelopment && !process.env.DATABASE_URL;
+server\db.ts:  if (!process.env.DATABASE_URL) {
+server\db.ts:    const isInternal = process.env.DATABASE_URL.includes('railway.internal');
+server\db.ts:      connectionString: process.env.DATABASE_URL,
+server\db.ts:    if (process.env.NODE_ENV === "production") {
+server\db.ts:  let currentUrl = process.env.DATABASE_URL || "";
+server\db.ts:            // Update Process Env (for persistence in this session)
+server\db.ts:            process.env.DATABASE_URL = newConnectionString;
+server\email-service.ts:            apiKey: process.env.RESEND_API_KEY || process.env.EMAIL_API_KEY,
+server\email-service.ts:            fromAddress: process.env.EMAIL_FROM_ADDRESS || "notifications@invoix.platform", // Update with your verified domain
+server\env-validator.ts:    const value = process.env[envVar.key];
+server\env-validator.ts:        process.env[envVar.key] = envVar.defaultValue;
+server\env-validator.ts:        if (process.env.NODE_ENV === "production" && value === "temporary-session-secret-change-in-prod-please") {
+server\env-validator.ts:  if (process.env.ENABLE_NFT_MINTING === 'true' && !process.env.PAYER_PRIVATE_KEY) {
+server\env-validator.ts:    if (process.env.NODE_ENV === "production") {
+server\env-validator.ts:    nodeEnv: process.env.NODE_ENV || "development",
+server\env-validator.ts:    solanaNetwork: process.env.SOLANA_NETWORK || "devnet",
+server\env-validator.ts:    nftMintingEnabled: process.env.ENABLE_NFT_MINTING === "true",
+server\env-validator.ts:    arciumEnabled: process.env.ENABLE_ARCIUM_ENCRYPTION === "true",
+server\env-validator.ts:    hasBundlr: !!process.env.BUNDLR_PRIVATE_KEY,
+server\env-validator.ts:    hasArweave: !!process.env.ARWEAVE_WALLET_JWK,
+server\env-validator.ts:    hasIPFS: !!process.env.IPFS_API_URL,
+server\env-validator.ts:    hasPayerKey: !!process.env.PAYER_PRIVATE_KEY,
+server\error-handler.ts:  if (includeStack && process.env.NODE_ENV !== "production") {
+server\error-handler.ts:    message: process.env.NODE_ENV === "production"
+server\error-handler.ts:    ...(process.env.NODE_ENV !== "production" && { stack: error.stack }),
+server\health.ts:    const nftMintingEnabled = process.env.ENABLE_NFT_MINTING === 'true';
+server\health.ts:      nftMintingEnabled: process.env.ENABLE_NFT_MINTING === 'true',
+server\index.ts:const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
+server\index.ts:if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
+server\index.ts:const port = parseInt(process.env.PORT || "5000", 10);
+server\index.ts:    logger.info("Initializing Invoix Platform Components...", "boot", { cluster: process.env.NODE_ENV });
+server\index.ts:    if (process.env.DATABASE_URL) {
+server\index.ts:        const urlObj = new URL(process.env.DATABASE_URL);
+server\index.ts:      if (process.env.ENABLE_ARCIUM_ENCRYPTION === 'true') {
+server\index.ts:    if (process.env.NODE_ENV === "production" && !(sessionStore instanceof PgSession)) {
+server\index.ts:      if (process.env.STRICT_SESSION === "true") {
+server\index.ts:        secure: process.env.NODE_ENV === "production",
+server\index.ts:      log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+server\index.ts:    if (process.env.PAYER_PRIVATE_KEY) {
+server\index.ts:      const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+server\index.ts:    if (process.env.ENABLE_ARCIUM_ENCRYPTION === "true") {
+server\index.ts:    if (process.env.PAYER_PRIVATE_KEY) {
+server\index.ts:      if (process.env.PAYER_PRIVATE_KEY) {
+server\index.ts:          if (!nftService.isReady() || (process.env.ENABLE_NFT_MINTING === 'true' && !nftService.hasCollection())) {
+server\index.ts:            const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+server\invoice-routes.ts:              payLink: `${process.env.FRONTEND_URL || "http://localhost:5000"}/pay/${fullInvoice.id}`,
+server\invoice-routes.ts:      const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("devnet"));
+server\invoice-routes.ts:        nftMetadataUri: `${process.env.API_URL}/nft-metadata/business-${profile.id}`,
+server\invoice-routes.ts:      const payerPrivateKey = process.env.PAYER_PRIVATE_KEY;
+server\invoice-storage.ts:const isSQLite = !process.env.DATABASE_URL;
+server\invoice-storage.ts:        if (process.env.DATABASE_URL) {
+server\invoice-storage.ts:        if (process.env.DATABASE_URL) {
+server\lazorkit-verify.ts:        const LAZORKIT_STRICT_MODE = process.env.LAZORKIT_STRICT_MODE === 'true';
+server\logger.ts:  if (process.env.NODE_ENV === "production" || process.env.LOG_JSON === "true") {
+server\marketplace-service.ts:const PROGRAM_ID = new PublicKey(process.env.MARKETPLACE_PROGRAM_ID || "InvxMkt111111111111111111111111111111111111");
+server\marketplace-service.ts:        const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\marketplace-service.ts:            const treasuryWallet = process.env.TREASURY_WALLET || process.env.PLATFORM_TREASURY_WALLET;
+server\metadata-storage.ts:      if (this.preferredProvider === "arweave" && process.env.ARWEAVE_WALLET_JSON) {
+server\metadata-storage.ts:      if (this.arweave && this.preferredProvider === "arweave" && process.env.ARWEAVE_WALLET_JSON) {
+server\metadata-storage.ts:        const wallet = JSON.parse(process.env.ARWEAVE_WALLET_JSON);
+server\metadata-storage.ts:    const apiUrl = process.env.API_URL || "";
+server\metadata-storage.ts:        const apiUrl = process.env.API_URL || "";
+server\network-check.ts:    const dbUrl = process.env.DATABASE_URL;
+server\nft-service.ts:  merkleTreeAddress: process.env.MERKLE_TREE_ADDRESS || undefined,
+server\nft-service.ts:    const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\nft-service.ts:              .set({ value: this.merkleTree!, description: `Merkle Tree (${process.env.SOLANA_NETWORK || 'unknown'})` })
+server\nft-service.ts:              .set({ value: this.collectionMint, description: `Genesis Collection NFT (${process.env.SOLANA_NETWORK || 'unknown'})` })
+server\nft-service.ts:    const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+server\nft-service.ts:      const TREASURY_ADDRESS = process.env.TREASURY_WALLET || "D6jX1pG4zZp2jP6rWB5yE7x4xN9mQ2s1"; // Default to devnet treasury if missing
+server\nft-service.ts:    const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+server\nft-service.ts:        external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
+server\nft-service.ts:      external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
+server\nft-service.ts:    const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+server\nft-service.ts:      external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
+server\nft-service.ts:    const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+server\nft-service.ts:      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+server\nft-service.ts:      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+server\nft-service.ts:      const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+server\nft-service.ts:        process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\payment-confirmation-service.ts:const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+server\payment-routes.ts:const GAS_FEE_USDC = parseFloat(process.env.GAS_FEE_USDC || "0.15"); // Default: 0.15 USDC
+server\payment-routes.ts:        if (!process.env.PAYER_PRIVATE_KEY) {
+server\payment-routes.ts:        const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+server\payment-routes.ts:        if (!process.env.PAYER_PRIVATE_KEY) {
+server\payment-routes.ts:        const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+server\profile-routes.ts:            const treasuryAddress = process.env.PLATFORM_TREASURY_WALLET;
+server\profile-routes.ts:            const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
+server\profile-routes.ts:                    nftMetadataUri: `${process.env.API_URL || 'https://api.solanainvoice.com'}/nft-metadata/business/${profile.id}`,
+server\qr-payment-processor.ts:const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\qr-payment-processor.ts:    if (!process.env.PAYER_PRIVATE_KEY) {
+server\qr-payment-processor.ts:        const payerPrivateKey = process.env.PAYER_PRIVATE_KEY!;
+server\routes.ts:        x402: { status: "ACTIVE", label: "x402 Anti-Spam", skipFee: process.env.SKIP_FEE_CHECK === "true" },
+server\routes.ts:        rpc: process.env.SOLANA_NETWORK || "devnet"
+server\scripts\check-usdc-balance.ts:    if (!process.env.PAYER_PRIVATE_KEY) {
+server\scripts\check-usdc-balance.ts:    const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+server\scripts\check-wallet.ts:    if (!process.env.PAYER_PRIVATE_KEY) {
+server\scripts\check-wallet.ts:    const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+server\scripts\check-wallet.ts:    const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+server\security.ts:        scriptSrc: process.env.NODE_ENV === 'production'
+server\security.ts:    const isProd = process.env.NODE_ENV === "production";
+server\security.ts:      const frontendUrl = process.env.FRONTEND_URL;
+server\security.ts:      if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+server\security.ts:        allowedOrigins.push(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
+server\security.ts:    if (process.env.NODE_ENV !== 'production') {
+server\security.ts:      if (process.env.NODE_ENV !== 'production') {
+server\security.ts:  const missingCritical = criticalVars.filter(v => !process.env[v]);
+server\security.ts:  if (missingCritical.length > 0 && process.env.NODE_ENV === "production") {
+server\security.ts:  const missingRecommended = recommendedVars.filter(v => !process.env[v]);
+server\security.ts:  if (!process.env.MERKLE_TREE_ADDRESS && process.env.NODE_ENV !== "test") {
+server\security.ts:  const masterKey = process.env.ENCRYPTION_MASTER_KEY;
+server\sentry.ts:const SENTRY_DSN = process.env.SENTRY_DSN;
+server\sentry.ts:        environment: process.env.NODE_ENV || "development",
+server\sentry.ts:        release: process.env.npm_package_version || "1.0.0",
+server\sentry.ts:        tracesSampleRate: process.env.NODE_ENV === "production" ? 0.2 : 1.0,
+server\solana-mint.ts:const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\solana-pay-routes.ts:    const BASE_URL = process.env.API_URL || process.env.RAILWAY_PUBLIC_DOMAIN
+server\solana-pay-routes.ts:        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+server\solana-pay-routes.ts:            const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+server\solana-sdk.ts:    const network = process.env.SOLANA_NETWORK === 'mainnet-beta' ? 'mainnet-beta' : 'devnet';
+server\solana-sdk.ts:    const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl(network);
+server\special-mint-routes.ts:const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+server\special-mint-routes.ts:const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET;
+server\special-mint-routes.ts:const ADMIN_WALLET = process.env.ADMIN_WALLET;
+server\special-mint-routes.ts:        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "100");
+server\special-mint-routes.ts:            const expectedKey = process.env.ADMIN_SECRET_KEY;
+server\subscription-routes.ts:            const usdcMint = process.env.NODE_ENV === 'production'
+server\subscription-routes.ts:                ? new PublicKey(process.env.USDC_MINT_MAINNET || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')
+server\waitlist-routes.ts:        const expectedKey = process.env.ADMIN_SECRET_KEY;
+server\webhook-service.ts:    .update(process.env.WEBHOOK_ENCRYPTION_KEY || process.env.SESSION_SECRET || "invoix-webhook-secret-key-dev")
+shared\config.ts:    process.env.PLATFORM_TREASURY_WALLET || "jawKuQ3xtcYoAuqE9jyG2H35sv2pWJSzsyjoNpsxG38";
+shared\stablecoin-config.ts:    const isDevnet = process.env.SOLANA_NETWORK === 'devnet';
+shared\stablecoin-config.ts:    const isDevnet = process.env.SOLANA_NETWORK === 'devnet';
+shared\stablecoin-config.ts:    const isDevnet = process.env.SOLANA_NETWORK === 'devnet';
+shared\stablecoin-config.ts:    const isDevnet = process.env.SOLANA_NETWORK === 'devnet';
+tests\crypto.test.ts:    process.env.INVOICE_ENCRYPTION_KEY = "Q0hReljZDgxyCLDFQR+pQ6PURWom5dZze56ie+wzIYk=";
+tests\invoice-api.test.ts:        expect(process.env.DATABASE_URL).toBeDefined();
+tests\invoice-api.test.ts:        expect(process.env.SESSION_SECRET).toBeDefined();
+tests\invoice-api.test.ts:        expect(process.env.SOLANA_RPC_ENDPOINT).toBeDefined();
+tests\invoice-api.test.ts:        const secret = process.env.SESSION_SECRET || "";
+vite.config.ts:    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+vite.config.ts:      process.env.VITE_SOLANA_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=f901ea4c-bd09-48be-9e7c-43f35d35bcf5'
