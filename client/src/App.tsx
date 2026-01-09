@@ -35,6 +35,7 @@ const MarketplaceListing = lazy(() => import("@/pages/marketplace-listing"));
 const SubscriptionList = lazy(() => import("@/pages/subscription-list"));
 const SubscriptionCreate = lazy(() => import("@/pages/subscription-create"));
 const SubscriptionDetail = lazy(() => import("@/pages/subscription-detail"));
+const TaxReports = lazy(() => import("@/pages/tax-reports"));
 
 import { useAnalytics } from "@/hooks/use-analytics";
 
@@ -113,6 +114,13 @@ function Router() {
           {() => (
             <DashboardLayout>
               <SubscriptionDetail />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/tax-reports">
+          {() => (
+            <DashboardLayout>
+              <TaxReports />
             </DashboardLayout>
           )}
         </Route>

@@ -349,7 +349,7 @@ export default function InvoiceList() {
                   <h4 className="text-white font-semibold mb-2">Setup Profile</h4>
                   <p className="text-sm text-gray-400 mb-4">Add your business logo and details so you look professional.</p>
                   <button
-                    onClick={() => navigate("/settings")}
+                    onClick={() => navigate("/dashboard/settings")}
                     className="text-sm text-blue-400 hover:text-blue-300 font-medium"
                   >
                     Go to Settings &rarr;

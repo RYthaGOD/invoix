@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate, Sparkles, Code, CalendarClock, Store } from "lucide-react";
+import { Home, Plus, Users, FileText, Settings, Shield, Zap, LayoutTemplate, Sparkles, Code, CalendarClock, Store, Receipt } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -78,6 +78,11 @@ const menuItems = [
     title: "Stats",
     url: "/stats",
     icon: Zap,
+  },
+  {
+    title: "Tax Reports",
+    url: "/tax-reports",
+    icon: Receipt,
   },
   {
     title: "Blacklist",
