@@ -31,11 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [lazorkitWallet, setLazorkitWallet] = useState<any>(null);
 
-    // Load LazorKit hook dynamically (only if enabled)
-    const passkeyEnabled = import.meta.env.VITE_ENABLE_PASSKEY_AUTH === 'true';
-
+    // Load LazorKit hook dynamically
     useEffect(() => {
-        if (passkeyEnabled && !lazorkitWallet) {
+        if (!lazorkitWallet) {
             import('@lazorkit/wallet')
                 .then((module) => {
                     // Create hook instance on successful import
@@ -45,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     console.warn('[Auth] LazorKit not available:', e);
                 });
         }
-    }, [passkeyEnabled]);
+    }, [lazorkitWallet]);
 
     // Check authentication status on mount and wallet change
     useEffect(() => {
@@ -104,11 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (mode: 'traditional' | 'passkey' = 'traditional') => {
         // Passkey authentication via LazorKit
         if (mode === 'passkey') {
-            if (!passkeyEnabled || !lazorkitWallet) {
+            if (!lazorkitWallet) {
                 toast({
-                    title: "Passkey auth not available",
-                    description: "Please enable passkey authentication in settings",
-                    variant: "destructive",
+                    title: "Passkey auth loading...",
+                    description: "Please wait a moment while we initialize security features.",
+                    variant: "default",
                 });
                 return;
             }

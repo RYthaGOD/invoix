@@ -24,10 +24,8 @@ declare module "express-session" {
  */
 export function registerAuthRoutes(app: Express): void {
     // LazorKit configuration - Passkey Auth
-    if (process.env.VITE_ENABLE_PASSKEY_AUTH === 'true') {
-        if (process.env.LAZORKIT_STRICT_MODE !== 'true') {
-            logger.info("LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified.", "auth");
-        }
+    if (process.env.LAZORKIT_STRICT_MODE !== 'true') {
+        logger.info("LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified.", "auth");
     }
 
     /**

@@ -6,8 +6,7 @@
 Add these lines to your `.env` file:
 
 ```bash
-# Enable passkey authentication
-VITE_ENABLE_PASSKEY_AUTH=true
+
 
 # LazorKit endpoints (devnet defaults)
 VITE_LAZORKIT_RPC_URL=https://api.devnet.solana.com
@@ -87,10 +86,7 @@ function InvoiceCreate() {
    npm run dev
    ```
 
-2. **Enable passkey auth** in `.env`:
-   ```bash
-   VITE_ENABLE_PASSKEY_AUTH=true
-   ```
+
 
 3. **Navigate to login page** and click "Sign in with Passkey"
 
@@ -117,7 +113,6 @@ All passkey auth events are logged with audit tags:
 
 **LazorKit not loading?**
 - Ensure `@lazorkit/wallet` is installed: `npm install @lazorkit/wallet`
-- Check feature flag: `VITE_ENABLE_PASSKEY_AUTH=true`
 
 **WebAuthn prompt not appearing?**
 - Must use HTTPS or localhost

@@ -40,8 +40,9 @@ export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }
   }), []);
 
   // Dynamically load LazorKit only when enabled (fixes top-level await issue)
+  // Dynamically load LazorKit (always enabled now)
   useEffect(() => {
-    if (passkeyEnabled && !LazorkitProvider) {
+    if (!LazorkitProvider) {
       import('@lazorkit/wallet')
         .then((module) => {
           setLazorkitProvider(() => module.LazorkitProvider);
@@ -50,13 +51,13 @@ export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }
           console.warn('[Wallet Provider] LazorKit not available:', e);
         });
     }
-  }, [passkeyEnabled, LazorkitProvider]);
+  }, [LazorkitProvider]);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          {passkeyEnabled && LazorkitProvider ? (
+          {LazorkitProvider ? (
             <LazorkitProvider {...lazorkitConfig}>
               {children}
             </LazorkitProvider>

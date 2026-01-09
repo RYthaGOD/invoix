@@ -21,7 +21,7 @@ echo ""
 echo "⚠️  IMPORTANT: Update LAZORKIT_PROGRAM_ID with the actual program ID before enabling passkey auth"
 echo ""
 echo "To enable passkey authentication:"
-echo "  railway variables set VITE_ENABLE_PASSKEY_AUTH=true"
+echo "  railway variables set "
 echo ""
 echo "Triggering redeploy..."
 railway up --detach

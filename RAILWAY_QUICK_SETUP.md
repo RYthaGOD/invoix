@@ -11,7 +11,7 @@ railway link
 
 # 3. Set all LazorKit variables at once
 railway variables set \
-  VITE_ENABLE_PASSKEY_AUTH=false \
+
   VITE_LAZORKIT_RPC_URL=https://api.devnet.solana.com \
   VITE_LAZORKIT_PORTAL_URL=https://portal.lazor.sh \
   VITE_LAZORKIT_PAYMASTER_URL=https://kora.devnet.lazorkit.com \
@@ -27,7 +27,7 @@ railway up --detach
 ```
 
 ## Variables being set:
-- ✅ VITE_ENABLE_PASSKEY_AUTH (disabled by default)
+
 - ✅ VITE_LAZORKIT_RPC_URL  
 - ✅ VITE_LAZORKIT_PORTAL_URL
 - ✅ VITE_LAZORKIT_PAYMASTER_URL

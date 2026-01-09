@@ -8,8 +8,7 @@ Add these environment variables to your Railway project for LazorKit passkey aut
 **These are exposed to the frontend**
 
 ```bash
-# Enable passkey authentication (set to 'true' to enable)
-VITE_ENABLE_PASSKEY_AUTH=false
+
 
 # LazorKit RPC endpoint for smart wallet operations
 VITE_LAZORKIT_RPC_URL=https://api.devnet.solana.com
@@ -54,7 +53,7 @@ railway login
 railway link
 
 # Set variables
-railway variables set VITE_ENABLE_PASSKEY_AUTH=false
+
 railway variables set VITE_LAZORKIT_RPC_URL=https://api.devnet.solana.com
 railway variables set VITE_LAZORKIT_PORTAL_URL=https://portal.lazor.sh
 railway variables set VITE_LAZORKIT_PAYMASTER_URL=https://kora.devnet.lazorkit.com
@@ -69,10 +68,7 @@ railway up
 ## ⚙️ Configuration Notes
 
 ### For Testing (Devnet)
-Keep `VITE_ENABLE_PASSKEY_AUTH=false` until you're ready to test:
-- Prevents accidental usage in production
-- Allows safe deployment without LazorKit setup
-- Traditional wallet auth will still work
+
 
 ### Before Enabling Passkey Auth
 1. **Update `LAZORKIT_PROGRAM_ID`**
@@ -82,15 +78,13 @@ Keep `VITE_ENABLE_PASSKEY_AUTH=false` until you're ready to test:
 2. **Test Locally First**
    ```bash
    # In your local .env
-   VITE_ENABLE_PASSKEY_AUTH=true
+   
    npm run dev
    # Test passkey flow thoroughly
    ```
 
 3. **Enable in Railway**
-   ```bash
-   VITE_ENABLE_PASSKEY_AUTH=true
-   ```
+
 
 ---
 
@@ -109,7 +103,7 @@ Before enabling in production:
 
 | Variable | Type | Default | Required |
 |----------|------|---------|----------|
-| `VITE_ENABLE_PASSKEY_AUTH` | Frontend | `false` | Optional (feature flag) |
+
 | `VITE_LAZORKIT_RPC_URL` | Frontend | devnet RPC | Optional (has fallback) |
 | `VITE_LAZORKIT_PORTAL_URL` | Frontend | portal.lazor.sh | Optional (has fallback) |
 | `VITE_LAZORKIT_PAYMASTER_URL` | Frontend | devnet paymaster | Optional (has fallback) |
@@ -120,7 +114,7 @@ Before enabling in production:
 ## 🚨 Important Notes
 
 1. **All variables have safe defaults** - Your app will continue working even if you don't set these
-2. **Feature is disabled by default** - Set `VITE_ENABLE_PASSKEY_AUTH=true` only when ready
+
 3. **No breaking changes** - Traditional wallet auth continues to work regardless
 4. **Gradual rollout** - Enable in staging first, then production
 
@@ -138,7 +132,7 @@ After adding variables to Railway:
 2. **Verify environment in app**
    - Navigate to your Railway URL
    - Open browser console
-   - Check: `import.meta.env.VITE_ENABLE_PASSKEY_AUTH`
+   - Check: `import.meta.env.VITE_LAZORKIT_RPC_URL`
 
 3. **Test auth flow**
    - If enabled, verify passkey button appears
