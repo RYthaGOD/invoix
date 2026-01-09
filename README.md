@@ -7,10 +7,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 [![Solana](https://img.shields.io/badge/Solana-Devnet-blueviolet)](https://explorer.solana.com)
 [![Arcium](https://img.shields.io/badge/Arcium-v0.5.2-green)](https://docs.arcium.com)
+[![LazorKit](https://img.shields.io/badge/LazorKit-v2.0-blue)](https://lazor.sh)
 
 ---
 
 ## 🌟 Key Features
+
+### 🔑 **Smart Wallet Authentication (LazorKit)**
+- **Biometric Login**: Seamless sign-in using FaceID/TouchID via Passkeys.
+- **Gasless Transactions**: Enterprise users enjoy sponsored transactions via the LazorKit Paymaster.
+- **Smart Accounts**: Programmable wallets enabling multi-signature approvals and recovery.
+- **Default Enabled**: All users have access to secure, non-custodial smart wallets out of the box.
 
 ### 🔐 **Tier-0 Confidentiality (Arcium v0.5.2)**
 - **End-to-End Encryption**: Sensitive invoice data (amounts, line items, parties) is encrypted using `x25519` and `RescueCipher` before leaving the client.
@@ -22,16 +29,6 @@
 - **White Pearlescent (Light)**: Shimmering ice white with subtle rainbow prism effects.
 - **Hardened System HUD**: Real-time transparency widget tracking Arcium MXE status, Anti-Replay Guard, and Atomic Ledger health.
 
-### 🌟 **Interactive Onboarding**
-- **Guided Tour**: Integrated `driver.js` tour to welcome users and explain key confidentiality features.
-- **Devnet Ready**: Pre-configured for risk-free demonstration on Solana Devnet.
-
-### 🛡️ **Industrial Hardening**
-- **Atomic Sequential Numbering**: Prevents race conditions in invoice generation via Postgres row-level locking.
-- **Global Signature Ledger**: Replay attack protection across standard payments and x402 service fees.
-- **Industrial Logging**: Structured JSON logging for high-fidelity production auditability.
-- **XSS Guard**: Whitelist-oriented sanitization middleware for all shared invoice views.
-
 ### 💳 **Instant Web3 Settlement**
 - **Multi-Currency Support**: Settle in **USDC**, **EURC**, or **SOL**.
 - **Proof-of-Payment NFTs**: Successful payments automatically mint a **Compressed NFT (cNFT)** receipt, providing an immutable on-chain record for accounting.
@@ -41,6 +38,11 @@
 - Implements a mandatory micropayment (0.0001 SOL) for invoice creation.
 - Protects the database from spam and DOS attacks while maintaining a low barrier to entry for businesses.
 
+### 🔄 **Recurring Economy**
+- **Subscription Management**: Full recurring billing engine with automated invoice generation.
+- **Credit Scoring**: On-chain reputation system tracking payment reliability and volume.
+- **Marketplace**: Buy and sell outstanding invoices to unlock immediate liquidity.
+
 ---
 
 ## 🚀 Quick Start
@@ -49,7 +51,6 @@
 - **Node.js** (v20+)
 - **Solana CLI** (v1.18+)
 - **PostgreSQL** (Local or Cloud)
-- **Arcium Program ID**: Deployed on Devnet.
 
 ### Installation
 
@@ -63,9 +64,9 @@ npm install
 
 # Initialize environment
 cp .env.example .env
-# Fill in your DATABASE_URL, ARCIUM_PROGRAM_ID, and SESSION_SECRET
+# Fill in your DATABASE_URL and ARCIUM_PROGRAM_ID
 
-# Run migrations
+# Run migrations (Postgres) or Generate Schema (SQLite)
 npm run db:push
 
 # Start development server
@@ -78,20 +79,17 @@ npm run dev
 | `ARCIUM_PROGRAM_ID` | Your deployed Arcium MXE program. |
 | `ENABLE_ARCIUM_ENCRYPTION` | Set to `true` to enable TEE-based confidentiality. |
 | `DATABASE_URL` | PostgreSQL connection string (supports IPv4 auto-resolution). |
-| `X402_PAYMENT_REQUIRED` | Set `true` to enable anti-spam micropayments. |
+| `VITE_LAZORKIT_RPC_URL` | Custom RPC endpoint for LazorKit operations. |
 
 ---
 
 ## 🧪 Testing & Verification
 
-Invoix maintains a rigorous test suite (79+ tests) covering safe math, security sanitization, and lifecycle transitions.
+Invoix maintains a rigorous test suite covering safe math, security sanitization, and lifecycle transitions.
 
 ```bash
-# Run full suite
+# Run full suite (31+ Test Suites)
 npm run test
-
-# Verify Arcium Integration
-npx ts-node scripts/verify-arcium.ts
 ```
 
 ---
@@ -108,9 +106,8 @@ npx ts-node scripts/verify-arcium.ts
 ### Phase 2: Recurring Economy ✅ Complete
 - [x] **Subscription Management**: Full recurring billing with automated invoicing
 - [x] **Subscription Plans**: Create/manage billing cycles with on-chain tracking
-- [x] **Customer Portal**: View subscriptions, billing dates, payment history
+- [x] **LazorKit Integration**: Passkey authentication by default
 - [x] **Webhook Integration**: Enterprise ERP/Oracle connectivity
-- [x] **Tax Data Export**: Annual CSV reports for 1099-K compliance
 
 ### Phase 3: Capital Markets ✅ Complete
 - [x] **Invoice Marketplace**: Buy/sell invoices with transparent pricing
@@ -130,9 +127,10 @@ npx ts-node scripts/verify-arcium.ts
 
 | Metric | Value |
 |--------|-------|
-| Test Coverage | 98% (208/210 tests) |
+| Test Suites | 31+ Passed |
+| Build Status | ✅ Verified |
 | TypeScript Errors | 0 |
-| API Endpoints | 45+ |
+| API Endpoints | 50+ |
 | Supported Currencies | USDC, EURC, SOL |
 
 ---
