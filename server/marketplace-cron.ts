@@ -85,6 +85,11 @@ export function startMarketplaceCron() {
  * If an NFT is no longer held by the PDA, it was Sold or Cancelled.
  */
 async function reconcileActiveListings() {
+    // Skip reconciliation if required config is missing
+    if (!process.env.MARKETPLACE_PROGRAM_ID || process.env.MARKETPLACE_PROGRAM_ID.includes("1111111")) {
+        // Placeholder or missing - skip silently
+        return;
+    }
     try {
         const activeListings = await db.select()
             .from(schema.invoiceMarketplace)
@@ -96,7 +101,7 @@ async function reconcileActiveListings() {
         const { dasService } = await import("./das-service");
         const { marketplaceService } = await import("./marketplace-service"); // Helper to get PDA if needed, or just derive manually
 
-        const MARKETPLACE_PROGRAM_ID = new PublicKey(process.env.MARKETPLACE_PROGRAM_ID || "InvxMkt111111111111111111111111111111111111");
+        const MARKETPLACE_PROGRAM_ID = new PublicKey(process.env.MARKETPLACE_PROGRAM_ID);
 
         for (const listing of activeListings) {
             try {

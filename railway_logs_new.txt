@@ -1,0 +1,50 @@
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_ID
+2026-01-10T11:54:14.412337195Z [ERRO] PLATFORM_TREASURY_WALLET environment variable is required for special mints source="special-mint" timestamp="2026-01-10T11:54:13.921Z"
+2026-01-10T11:54:14.412339893Z [WARN] Optional security variables not configured context={"missing":["INVOICE_ENCRYPTION_KEY","PLATFORM_TREASURY_WALLET","SOL_PRICE_FALLBACK"]} source="security" timestamp="2026-01-10T11:54:13.846Z"
+2026-01-10T11:54:14.412346774Z [INFO] Initializing Invoix Platform Components... context={"cluster":"production"} source="boot" timestamp="2026-01-10T11:54:13.851Z"
+2026-01-10T11:54:14.412351429Z [INFO] DB Host: aws-1-ap-northeast-1.pooler.supabase.com source="dns" timestamp="2026-01-10T11:54:13.852Z"
+   Γ£à Derived X25519 Pubkey: 47b726e00a41f6b6df0d756c875d32ae...
+≡ƒöÆ Initializing Arcium SDK-Only Encryption Service...
+   Γ£à Server Ed25519 Pubkey: A7UC5MQ4VdKKxHkq4k8cYHC9UWYgUQDycqgCsfMCn5rc
+Γ£à Arcium SDK-Only Mode Active (Local x25519 + RescueCipher)
+2026-01-10T11:54:14.412371436Z [INFO] Arcium Service initialized source="arcium" timestamp="2026-01-10T11:54:13.919Z"
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_SECRET
+   Description: IPFS project ID for authentication
+   Description: IPFS project secret for authentication
+2026-01-10T11:54:14.412417802Z [INFO] Γ£à Environment validation passed source="express" timestamp="2026-01-10T11:54:13.846Z"
+2026-01-10T11:54:14.412423727Z [INFO] Config reload trigger context={"timestamp":1768046053846} source="system" timestamp="2026-01-10T11:54:13.846Z"
+2026-01-10T11:54:14.413200879Z [INFO] Subscription routes registered source="system" timestamp="2026-01-10T11:54:13.936Z"
+2026-01-10T11:54:14.413207835Z [INFO] Starting Webhook Delivery Cron Job... source="webhook" timestamp="2026-01-10T11:54:13.936Z"
+2026-01-10T11:54:14.413213251Z [INFO] App routes registered source="boot" timestamp="2026-01-10T11:54:13.937Z"
+2026-01-10T11:54:14.413219377Z [INFO] Serving static files context={"path":"/app/dist/public"} source="static" timestamp="2026-01-10T11:54:13.937Z"
+2026-01-10T11:54:14.413224694Z [INFO] Connecting to Database... source="boot" timestamp="2026-01-10T11:54:13.937Z"
+2026-01-10T11:54:14.413230563Z [INFO] ≡ƒÜÇ Server running on port 5000 source="express" timestamp="2026-01-10T11:54:13.947Z"
+2026-01-10T11:54:14.413464479Z [INFO] Initializing shared Solana connection to devnet source="solana" timestamp="2026-01-10T11:54:13.922Z"
+Γ¥î PLATFORM_TREASURY_WALLET environment variable is required for community drops
+2026-01-10T11:54:14.413477636Z [INFO] Email Service Initialized (Mock Mode) source="email" timestamp="2026-01-10T11:54:13.924Z"
+2026-01-10T11:54:14.413483750Z [INFO] LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified. source="auth" timestamp="2026-01-10T11:54:13.929Z"
+2026-01-10T11:54:14.413490283Z [INFO] Solana Pay Transaction Request routes enabled (Secure Mode) source="solana-pay" timestamp="2026-01-10T11:54:13.933Z"
+2026-01-10T11:54:14.413496212Z [INFO] Registered credit score routes source="routes" timestamp="2026-01-10T11:54:13.933Z"
+2026-01-10T11:54:14.413503117Z [INFO] Registered marketplace routes source="routes" timestamp="2026-01-10T11:54:13.935Z"
+2026-01-10T11:54:14.414785161Z [INFO] ≡ƒöä Checking for missed subscription billing cycles... source="biller" timestamp="2026-01-10T11:54:13.974Z"
+2026-01-10T11:54:14.414793643Z [INFO] Starting subscription billing cycle... source="biller" timestamp="2026-01-10T11:54:13.974Z"
+2026-01-10T11:54:14.414800958Z [INFO] Γ£à Subscription Biller scheduled (Daily at 00:00 UTC with Startup Catch-up) source="system" timestamp="2026-01-10T11:54:13.977Z"
+2026-01-10T11:54:14.414854595Z [INFO]    Environment: production source="express" timestamp="2026-01-10T11:54:13.947Z"
+2026-01-10T11:54:14.414861036Z [INFO]    Health: http://localhost:5000/api/health source="express" timestamp="2026-01-10T11:54:13.947Z"
+2026-01-10T11:54:14.414867536Z [INFO] Γ£à Cleanup jobs scheduled (stale subscriptions: daily 3am, old signatures: weekly Sun 2am) source="system" timestamp="2026-01-10T11:54:13.974Z"
+Γ£à Database connection established
+ΓÅ│ Running database migrations...
+Using migrations folder: /app/dist/migrations
+2026-01-10T11:54:15.417398184Z [INFO] Found 0 subscriptions due for renewal source="biller" timestamp="2026-01-10T11:54:15.210Z"
+2026-01-10T11:54:15.417403889Z [INFO] Billing cycle complete. Processed: 0, Failed: 0 source="biller" timestamp="2026-01-10T11:54:15.210Z"
+Γ£à Migrations completed successfully
+   Γ£à Server Ed25519 Pubkey: A7UC5MQ4VdKKxHkq4k8cYHC9UWYgUQDycqgCsfMCn5rc
+   Γ£à Derived X25519 Pubkey: 47b726e00a41f6b6df0d756c875d32ae...
+Γ£à Arcium SDK-Only Mode Active (Local x25519 + RescueCipher)
+2026-01-10T11:54:16.485729432Z [INFO] QR Payment Processor started source="qr" timestamp="2026-01-10T11:54:16.192Z"
+2026-01-10T11:54:16.485736476Z [INFO] Starting Marketplace Expiry Cron Job... source="cron" timestamp="2026-01-10T11:54:16.198Z"
+2026-01-10T11:54:16.485744251Z [INFO] Invoix Platform is fully operational! context={"ready":true} source="boot" timestamp="2026-01-10T11:54:16.199Z"
+2026-01-10T11:54:16.485868784Z [INFO] Loaded Collection NFT from DB: 7fTxK2LiFZNAV6YtLZ5bmxuA1rtrqSYDSw9efedKUszP source="nft" timestamp="2026-01-10T11:54:16.187Z"
+2026-01-10T11:54:16.485874367Z [DBUG] Update Authority verified: A7UC5MQ4VdKKxHkq4k8cYHC9UWYgUQDycqgCsfMCn5rc source="nft" timestamp="2026-01-10T11:54:16.188Z"
+2026-01-10T11:54:16.485880965Z [INFO] Invoice NFT service initialized source="nft" timestamp="2026-01-10T11:54:16.188Z"
+≡ƒöÆ Initializing Arcium SDK-Only Encryption Service...
