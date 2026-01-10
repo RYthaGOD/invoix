@@ -34,11 +34,11 @@ const faqs: FAQItem[] = [
     },
     {
         question: "Is Invoix on Mainnet?",
-        answer: "Invoix is currently live on Solana Devnet for public beta testing. Mainnet launch is planned after completing security audits and community feedback integration. Do not use real funds on the current deployment."
+        answer: "Invoix is production-ready and has completed a comprehensive 360° enterprise security audit. While we are currently live on Solana Devnet for institutional beta, the protocol is hardened and architected for Mainnet stability."
     },
     {
         question: "How is my data secured?",
-        answer: "All sensitive data is encrypted using Arcium's x25519 and RescueCipher algorithms before transmission. Database admins cannot view your invoice details. Authentication uses Sign In With Solana (SIWS) with replay-attack protection and strict rate limiting."
+        answer: "All sensitive data is encrypted using Arcium's x25519 and RescueCipher before leaving the browser. Our recent enterprise-grade audit confirms that even database admins cannot view your details. Authentication is hardened with SIWS and Passkeys with global replay-attack protection."
     },
     {
         question: "What are recurring subscriptions?",

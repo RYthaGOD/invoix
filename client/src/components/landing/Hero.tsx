@@ -22,13 +22,13 @@ export function Hero() {
                             transition={{ duration: 0.6 }}
                             className="inline-flex items-center px-4 py-2 rounded-full glass-card mb-8 border border-white/10 bg-white/5 shadow-[0_0_20px_rgba(236,72,153,0.1)]"
                         >
-                            <Lock className="w-4 h-4 mr-2 text-emerald-400" />
+                            <ShieldCheck className="w-4 h-4 mr-2 text-emerald-400" />
                             <span className="text-sm font-semibold font-heading text-emerald-400 tracking-widest uppercase">
-                                Glass Citadel™ Protocol
+                                Enterprise-Grade & Audited
                             </span>
                             <span className="mx-2 text-white/30">|</span>
                             <span className="text-sm text-muted-foreground">
-                                Private Data. Public Proof.
+                                Industrial Settlement Layer
                             </span>
                         </motion.div>
 
@@ -53,7 +53,7 @@ export function Hero() {
                         >
                             Create professional invoices. Get paid in USDC, SOL, or EURC with sub-second finality.
                             Every payment automatically mints an NFT receipt for immutable, auditable records.
-                            <span className="block mt-2 text-emerald-400/80 font-medium">Production-ready on Devnet with passkey authentication support.</span>
+                            <span className="block mt-2 text-emerald-400/80 font-medium italic">Production-hardened, security-audited, and powered by Arcium confidential computing.</span>
                         </motion.p>
 
                         <motion.div

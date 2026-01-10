@@ -6,7 +6,7 @@ export function HowItWorks() {
         {
             icon: UserPlus,
             title: "Connect Wallet",
-            description: "Sign in with any Solana wallet. No email or password required."
+            description: "Sign in with any Solana wallet or use Passkeys for biometric, non-custodial login."
         },
         {
             icon: FileText,

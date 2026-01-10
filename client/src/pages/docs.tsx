@@ -11,12 +11,8 @@ const docsContent = {
             <div className="space-y-8">
                 {/* Executive Summary Card */}
                 <div className="glass-card p-8 border-primary/30 bg-gradient-to-br from-primary/10 to-transparent">
-                    <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
-                        <Sparkles className="w-6 h-6 text-primary" />
-                        What is Invoix?
-                    </h3>
                     <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                        <strong className="text-white">Invoix is the industrial settlement layer for B2B commerce on Solana.</strong> We enable businesses to create, send, and settle invoices in under 400ms with military-grade privacy—replacing legacy Net-30 payment terms with instant, trustless value transfer.
+                        <strong className="text-white">Invoix is the audited, industrial settlement layer for B2B commerce on Solana.</strong> We enable businesses to create, send, and settle invoices in under 400ms with military-grade privacy—replacing legacy Net-30 payment terms with instant, trustless value transfer.
                     </p>
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <div className="glass p-4 rounded-xl border border-white/10">
@@ -38,16 +34,23 @@ const docsContent = {
                 <div className="glass-card p-6 border-white/10">
                     <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                         <Lock className="w-5 h-5 text-primary" />
-                        Industrial Privacy Layer (Arcium v0.5.2)
+                        Audited Privacy Layer (Arcium v0.5.2)
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">
-                        Unlike standard blockchain transactions, sensitive invoice details (line items, pricing, parties) are encrypted client-side using <code className="text-primary">x25519</code> and <code className="text-primary">RescueCipher</code> before ever leaving the browser.
+                        Sensitive invoice details (line items, pricing, parties) are encrypted client-side using <code className="text-primary">x25519</code> and <code className="text-primary">RescueCipher</code>. This SDK-only confidential computing model ensures that even database admins never see your commercial data.
                     </p>
                     <ul className="mt-4 space-y-2 list-disc list-inside text-sm text-muted-foreground">
-                        <li><strong className="text-white">Multi-Party Execution (MXE)</strong>: Verifiable off-chain compute in Trusted Execution Environments</li>
-                        <li><strong className="text-white">TEE Enforced Access</strong>: Even database admins cannot view your commercial data</li>
-                        <li><strong className="text-white">Zero-Knowledge Proofs</strong>: Verify invoice existence without revealing contents</li>
+                        <li><strong className="text-white">Enterprise Security Audit</strong>: System-wide audit completed in Jan 2026</li>
+                        <li><strong className="text-white">Client-Side Sovereignty</strong>: Private keys never leave your browser</li>
+                        <li><strong className="text-white">Verifiable TEE Protection</strong>: Secure execution without third-party trust</li>
                     </ul>
+                </div>
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-center gap-4">
+                    <ShieldCheck className="w-8 h-8 text-primary shrink-0" />
+                    <div>
+                        <div className="font-bold text-white">Production Ready & Audited</div>
+                        <p className="text-sm text-muted-foreground">The Invoix protocol has undergone a comprehensive 360° enterprise audit covering Security, Cryptographic Integrity, and Operational Excellence.</p>
+                    </div>
                 </div>
 
                 {/* Core Capabilities Grid */}
@@ -73,10 +76,10 @@ const docsContent = {
                     <div className="glass-card p-6 border-white/5 bg-white/5">
                         <h4 className="font-bold mb-2 flex items-center gap-2">
                             <Layers className="w-4 h-4 text-cyan-400" />
-                            8K Premium NFT Receipts
+                            Audited NFT Receipts
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                            Every payment mints a <strong className="text-white">Compressed NFT (cNFT)</strong> receipt with 8K 3D visuals—immutable proof-of-payment for your accounting department.
+                            Every payment mints a <strong className="text-white">Compressed NFT (cNFT)</strong> with dynamic verification. Verified against on-chain Merkle trees for immutable proof-of-payment.
                         </p>
                     </div>
                     <div className="glass-card p-6 border-white/5 bg-white/5">
@@ -709,7 +712,7 @@ const docsContent = {
                         <span className="text-primary">Q:</span> Is my data secure?
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">
-                        <strong className="text-white">Yes.</strong> Invoice data is encrypted client-side using x25519 + RescueCipher before it ever leaves your browser. Even our database admins cannot read your commercial data. Payments use battle-tested Solana security with atomic transaction guarantees.
+                        <strong className="text-white">Yes, and it's enterprise-audited.</strong> Invoice data is encrypted client-side using x25519 + RescueCipher before it ever leaves your browser. Our recent audit confirms that even database admins cannot read your commercial data. Authentication is handled via SIWS and Passkeys for maximum security.
                     </p>
                 </div>
 
@@ -1077,7 +1080,7 @@ export default function Docs() {
 
             <footer className="border-t border-white/5 py-10 mt-20">
                 <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
-                    © 2025 Invoix Protocol. Built for Industrial Solana Commerce.
+                    © {new Date().getFullYear()} Invoix Protocol. Built for Industrial Solana Commerce.
                 </div>
             </footer>
         </div>

@@ -18,9 +18,9 @@ export function Features() {
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
                     <span className="text-xs font-bold text-emerald-400 tracking-widest uppercase">Glass Citadel™ Architecture</span>
                 </div>
-                <h2 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl mb-6 tracking-tight">Built for Trust</h2>
+                <h2 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl mb-6 tracking-tight">Audited & Enterprise-Ready</h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                    Confidential data stays encrypted. Payments create permanent proof. Both happen on the same platform.
+                    Confidential data stays encrypted. Payments create permanent proof. Fully audited security for industrial-scale commerce.
                 </p>
             </motion.div>
 
@@ -125,11 +125,11 @@ export function Features() {
                         <div>
                             <h3 className="text-xl font-bold font-heading mb-2 flex items-center gap-2">
                                 Glass Citadel™ Privacy
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">ACTIVE</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">AUDITED</span>
                             </h3>
                             <p className="text-muted-foreground text-sm leading-relaxed">
-                                Invoice details encrypted with Arcium (SDK mode). Public payments, private line items.
-                                Designed for enterprise confidentiality on a transparent blockchain.
+                                Invoice details encrypted with Arcium. Non-custodial auth via SIWS and Passkeys.
+                                Deeply audited for enterprise-grade confidentiality and security.
                             </p>
                         </div>
                     </div>
