@@ -18,7 +18,7 @@ const MAX_SUPPLY = 1000;
 // FIX #11: Require treasury wallet env var
 const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET;
 if (!TREASURY_WALLET) {
-    console.error("❌ PLATFORM_TREASURY_WALLET environment variable is required for community drops");
+    logger.warn("PLATFORM_TREASURY_WALLET not set. Community drops will be unavailable.", "community-drop");
 }
 
 // Validation Schemas

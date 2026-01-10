@@ -942,7 +942,7 @@ export class InvoiceNFTService {
       );
 
       const priorityFeeIx = fromWeb3JsInstruction(
-        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1000 })
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50000 })
       );
 
       let builder = transactionBuilder()

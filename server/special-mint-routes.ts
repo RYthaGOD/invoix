@@ -20,7 +20,7 @@ const STANDARD_PRICE_USD = 5.00;
 // FIX #11: Require treasury wallet
 const TREASURY_WALLET = process.env.PLATFORM_TREASURY_WALLET;
 if (!TREASURY_WALLET) {
-    logger.error("PLATFORM_TREASURY_WALLET environment variable is required for special mints", "special-mint");
+    logger.warn("PLATFORM_TREASURY_WALLET not set. Special mints will be unavailable.", "special-mint");
 }
 
 // Admin wallet for reserved NFT minting (set in .env for privacy)
