@@ -17,6 +17,7 @@ export interface ListInvoiceParams {
     askingPrice: number;
     description: string;
     expiresInDays: number;
+    isBlind?: boolean;
 }
 
 export const marketplaceSdk = {
@@ -33,7 +34,8 @@ export const marketplaceSdk = {
                     invoiceId: params.invoiceId,
                     askingPrice: params.askingPrice.toString(),
                     description: params.description,
-                    expiresInDays: params.expiresInDays
+                    expiresInDays: params.expiresInDays,
+                    isBlind: params.isBlind || false
                 }),
             });
 

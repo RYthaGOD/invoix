@@ -471,13 +471,25 @@ export function registerInvoiceRoutes(app: Express): void {
             where: eq(schema.customerProfiles.customerWalletAddress, fullInvoice.invoiceeWalletAddress)
           });
 
+          // Fetch Business Profile for invoicer
+          const businessProfile = await invoiceStorage.getBusinessProfile(fullInvoice.invoicerWalletAddress);
+
           // PRIORITY:
           // 1. Explicit email provided in request (from "Send Invoice" dialog)
           // 2. Email from Customer Profile
-          // 3. Skip if no valid email (FIX: don't send to placeholder)
+          // 3. Skip if no valid email
           const emailTo = req.body.customerEmail || customerProfile?.customerEmail;
 
-          // FIX: Skip email if no valid address instead of sending to example.com
+          // If a new customer email was provided, update the profile for future use
+          if (req.body.customerEmail && customerProfile && customerProfile.customerEmail !== req.body.customerEmail) {
+            await invoiceStorage.updateCustomerProfile(customerProfile.id, {
+              customerEmail: req.body.customerEmail,
+              updatedAt: new Date()
+            } as any);
+            logger.debug(`Updated customer profile email: ${req.body.customerEmail}`, "invoice");
+          }
+
+          // FIX: Skip email if no valid address instead of sending to placeholder
           if (!emailTo || emailTo === "customer@example.com" || !emailTo.includes("@")) {
             logger.debug("No valid customer email found, skipping notification", "invoice");
           } else {
@@ -489,7 +501,8 @@ export function registerInvoiceRoutes(app: Express): void {
               currency: fullInvoice.currency,
               dueDate: new Date(fullInvoice.dueDate).toLocaleDateString(),
               payLink: `${process.env.FRONTEND_URL || "http://localhost:5000"}/pay/${fullInvoice.id}`,
-              businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
+              businessName: businessProfile?.businessName || "B2B Solana Invoicer",
+              replyTo: businessProfile?.businessEmail || undefined
             });
           }
         }
@@ -830,6 +843,9 @@ export function registerInvoiceRoutes(app: Express): void {
         } else {
           const emailService = getEmailService();
 
+          // Fetch Business Profile for invoicer
+          const businessProfile = await invoiceStorage.getBusinessProfile(updatedInvoice.invoicerWalletAddress);
+
           await emailService.sendPaymentReceiptEmail({
             to: emailTo,
             invoiceNumber: updatedInvoice.invoiceNumber,
@@ -837,7 +853,8 @@ export function registerInvoiceRoutes(app: Express): void {
             currency: updatedInvoice.currency,
             paymentDate: new Date().toLocaleDateString(),
             transactionSignature: validatedData.txSignature,
-            businessName: "B2B Solana Invoicer" // Ideally fetch from business profile
+            businessName: businessProfile?.businessName || "B2B Solana Invoicer",
+            replyTo: businessProfile?.businessEmail || undefined
           });
         }
       } catch (emailErr: any) {

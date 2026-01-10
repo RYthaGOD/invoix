@@ -21,17 +21,14 @@ import { Connection } from "@solana/web3.js";
 // TYPES
 // ============================================
 
-interface RiskAssessment {
-    score: number;        // 1-100 (higher = riskier)
-    level: 'low' | 'medium' | 'high' | 'very_high';
-    flags: string[];
-}
+// Types moved to service
 
 interface ListingRequest {
     invoiceId: string;
     askingPrice: string;
     description?: string;
     expiresInDays?: number;
+    isBlind?: boolean;
 }
 
 // ============================================
@@ -56,91 +53,8 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
 // RISK ASSESSMENT
 // ============================================
 
-function calculateRiskScore(
-    invoice: any,
-    sellerScore: number | null,
-    customerScore: number | null
-): RiskAssessment {
-    const flags: string[] = [];
-    let riskScore = 0;
-
-    // 1. Days until due (30% of risk)
-    const now = new Date();
-    const dueDate = new Date(invoice.dueDate);
-    const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysUntilDue < 0) {
-        riskScore += 35; // Overdue is very risky
-        flags.push('OVERDUE');
-    } else if (daysUntilDue < 7) {
-        riskScore += 20;
-        flags.push('DUE_SOON');
-    } else if (daysUntilDue < 30) {
-        riskScore += 10;
-    }
-    // Longer due dates = lower risk (up to 5 points reduction)
-    else {
-        riskScore += Math.max(0, 10 - Math.floor(daysUntilDue / 30) * 2);
-    }
-
-    // 2. Seller credit score (25% of risk)
-    if (!sellerScore || sellerScore < 450) {
-        riskScore += 25;
-        flags.push('LOW_SELLER_SCORE');
-    } else if (sellerScore < 550) {
-        riskScore += 20;
-    } else if (sellerScore < 650) {
-        riskScore += 10;
-    } else if (sellerScore < 750) {
-        riskScore += 5;
-    }
-    // Prime sellers get risk reduction
-
-    // 3. Customer credit score (25% of risk)
-    if (!customerScore || customerScore < 450) {
-        riskScore += 25;
-        flags.push('LOW_CUSTOMER_SCORE');
-    } else if (customerScore < 550) {
-        riskScore += 20;
-        flags.push('UNKNOWN_CUSTOMER');
-    } else if (customerScore < 650) {
-        riskScore += 10;
-    } else if (customerScore < 750) {
-        riskScore += 5;
-    }
-
-    // 4. Invoice size (10% of risk)
-    const amount = parseFloat(invoice.totalAmount);
-    if (amount > 100000) {
-        riskScore += 10;
-        flags.push('LARGE_INVOICE');
-    } else if (amount > 10000) {
-        riskScore += 5;
-    }
-
-    // 5. Invoice age (10% of risk) - older invoices more risky
-    const invoiceDate = new Date(invoice.invoiceDate);
-    const daysSinceIssued = Math.ceil((now.getTime() - invoiceDate.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysSinceIssued > 90) {
-        riskScore += 10;
-        flags.push('OLD_INVOICE');
-    } else if (daysSinceIssued > 60) {
-        riskScore += 5;
-    }
-
-    // Determine risk level
-    let level: 'low' | 'medium' | 'high' | 'very_high';
-    if (riskScore <= 25) level = 'low';
-    else if (riskScore <= 50) level = 'medium';
-    else if (riskScore <= 75) level = 'high';
-    else level = 'very_high';
-
-    return {
-        score: Math.min(100, riskScore),
-        level,
-        flags,
-    };
-}
+// Risk Assessment moved to services/risk-engine
+import { calculateRiskScore, RiskAssessment } from "./services/risk-engine";
 
 function calculateYield(faceValue: string, askingPrice: string): number {
     const face = parseFloat(faceValue);
@@ -240,30 +154,36 @@ export function registerMarketplaceRoutes(app: Express): void {
 
             const results = await query;
 
-            // Format response (hide sensitive invoice data)
-            const listings = results.map(({ listing, invoice }) => ({
-                id: listing.id,
-                invoiceNumber: invoice.invoiceNumber,
-                faceValue: listing.faceValue,
-                askingPrice: listing.askingPrice,
-                discountRate: listing.discountRate,
-                yieldPercentage: listing.yieldPercentage,
-                currency: listing.currency,
-                riskScore: listing.riskScore,
-                riskLevel: listing.riskLevel,
-                riskFlags: listing.riskFlags,
-                sellerCreditScore: listing.sellerCreditScore,
-                sellerCreditTier: listing.sellerCreditTier,
-                customerCreditScore: listing.customerCreditScore,
-                dueDate: invoice.dueDate,
-                daysUntilDue: Math.ceil((new Date(invoice.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-                listedAt: listing.listedAt,
-                expiresAt: listing.expiresAt,
-                viewCount: listing.viewCount,
-                description: listing.listingDescription,
-                // Privacy: Don't expose full wallet addresses
-                sellerTruncated: listing.seller.slice(0, 4) + '...' + listing.seller.slice(-4),
-            }));
+            // Privacy: Redact blind listings unless user is seller
+            const listings = results.map(({ listing, invoice }) => {
+                const isSeller = (req.session as any)?.walletAddress === listing.seller;
+                const isBlindAndNotOwner = listing.isBlind && !isSeller;
+
+                return {
+                    id: listing.id,
+                    invoiceNumber: isBlindAndNotOwner ? '🔒 CONFIDENTIAL' : invoice.invoiceNumber,
+                    faceValue: isBlindAndNotOwner ? '0' : listing.faceValue, // Frontend handles 0 as Hidden/Blind
+                    askingPrice: isBlindAndNotOwner ? '0' : listing.askingPrice,
+                    discountRate: isBlindAndNotOwner ? '0' : listing.discountRate,
+                    yieldPercentage: listing.yieldPercentage, // Visible hook
+                    currency: listing.currency,
+                    riskScore: listing.riskScore,
+                    riskLevel: listing.riskLevel,
+                    riskFlags: listing.riskFlags,
+                    sellerCreditScore: listing.sellerCreditScore, // Visible trust signal
+                    sellerCreditTier: listing.sellerCreditTier,
+                    customerCreditScore: isBlindAndNotOwner ? null : listing.customerCreditScore, // Hide customer info in blind
+                    dueDate: invoice.dueDate,
+                    daysUntilDue: Math.ceil((new Date(invoice.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+                    listedAt: listing.listedAt,
+                    expiresAt: listing.expiresAt,
+                    viewCount: listing.viewCount,
+                    description: isBlindAndNotOwner ? 'Confidential Listing. Request access to view details.' : listing.listingDescription,
+                    isBlind: listing.isBlind,
+                    // Privacy: Don't expose full wallet addresses
+                    sellerTruncated: isBlindAndNotOwner ? '🔒 Private Seller' : (listing.seller.slice(0, 4) + '...' + listing.seller.slice(-4)),
+                };
+            });
 
             res.json({
                 success: true,
@@ -298,22 +218,51 @@ export function registerMarketplaceRoutes(app: Express): void {
                 return res.status(404).json({ success: false, error: "Listing not found" });
             }
 
+            const { listing, invoice } = result;
+            const walletAddress = (req.session as any)?.walletAddress;
+            const isSeller = walletAddress === listing.seller;
+
+            // Check Access Authorization for Blind Listings
+            let hasAccess = isSeller; // Owner always has access
+            let accessStatus = 'none'; // none, pending, approved, rejected
+
+            if (listing.isBlind && !isSeller && walletAddress) {
+                const [accessRequest] = await db.select()
+                    .from(schema.marketplaceAccessRequests)
+                    .where(and(
+                        eq(schema.marketplaceAccessRequests.listingId, id),
+                        eq(schema.marketplaceAccessRequests.buyerWallet, walletAddress)
+                    ))
+                    .limit(1);
+
+                if (accessRequest) {
+                    accessStatus = accessRequest.status;
+                    if (accessRequest.status === 'approved') {
+                        hasAccess = true;
+                    }
+                }
+            }
+
+            const isBlindAndRestricted = listing.isBlind && !hasAccess;
+
             // Increment view count
             await db.update(schema.invoiceMarketplace)
                 .set({ viewCount: sql`${schema.invoiceMarketplace.viewCount} + 1` })
                 .where(eq(schema.invoiceMarketplace.id, id));
 
-            const { listing, invoice } = result;
+
 
             res.json({
                 success: true,
+                hasAccess, // Frontend uses this to show "Request Access" button
+                accessStatus,
                 listing: {
                     id: listing.id,
-                    invoiceId: listing.invoiceId,
-                    invoiceNumber: invoice.invoiceNumber,
-                    faceValue: listing.faceValue,
-                    askingPrice: listing.askingPrice,
-                    discountRate: listing.discountRate,
+                    invoiceId: isBlindAndRestricted ? null : listing.invoiceId, // Hide invoice ID link
+                    invoiceNumber: isBlindAndRestricted ? '🔒 CONFIDENTIAL' : invoice.invoiceNumber,
+                    faceValue: isBlindAndRestricted ? '0' : listing.faceValue,
+                    askingPrice: isBlindAndRestricted ? '0' : listing.askingPrice,
+                    discountRate: isBlindAndRestricted ? '0' : listing.discountRate,
                     yieldPercentage: listing.yieldPercentage,
                     currency: listing.currency,
                     status: listing.status,
@@ -322,19 +271,20 @@ export function registerMarketplaceRoutes(app: Express): void {
                     riskFlags: listing.riskFlags,
                     sellerCreditScore: listing.sellerCreditScore,
                     sellerCreditTier: listing.sellerCreditTier,
-                    customerCreditScore: listing.customerCreditScore,
+                    customerCreditScore: isBlindAndRestricted ? null : listing.customerCreditScore,
                     dueDate: invoice.dueDate,
-                    invoiceDate: invoice.invoiceDate,
+                    invoiceDate: invoice.invoiceDate, // Maybe hide this too? logic: if blind, only yield/term matters
                     daysUntilDue: Math.ceil((new Date(invoice.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
                     listedAt: listing.listedAt,
                     expiresAt: listing.expiresAt,
                     viewCount: (listing.viewCount || 0) + 1,
                     watchlistCount: listing.watchlistCount,
-                    description: listing.listingDescription,
-                    nftMint: listing.nftMint,
+                    description: isBlindAndRestricted ? 'Confidential Listing. Request access to view details.' : listing.listingDescription,
+                    nftMint: isBlindAndRestricted ? null : listing.nftMint, // Hide Mint Address so they can't look up on-chain
                     // Privacy: Truncate addresses
-                    seller: listing.seller.slice(0, 4) + '...' + listing.seller.slice(-4),
-                    invoicee: invoice.invoiceeWalletAddress.slice(0, 4) + '...' + invoice.invoiceeWalletAddress.slice(-4),
+                    seller: isBlindAndRestricted ? '🔒 Private Seller' : (listing.seller.slice(0, 4) + '...' + listing.seller.slice(-4)),
+                    invoicee: isBlindAndRestricted ? '🔒 Hidden' : (invoice.invoiceeWalletAddress.slice(0, 4) + '...' + invoice.invoiceeWalletAddress.slice(-4)),
+                    isBlind: listing.isBlind,
                 },
             });
         } catch (error: any) {
@@ -361,7 +311,7 @@ export function registerMarketplaceRoutes(app: Express): void {
     app.post("/api/marketplace/list", requireAuth, async (req: Request, res: Response) => {
         try {
             const walletAddress = (req.session as any).walletAddress;
-            const { invoiceId, askingPrice, description, expiresInDays } = req.body as ListingRequest;
+            const { invoiceId, askingPrice, description, expiresInDays, isBlind = false } = req.body as ListingRequest;
 
             if (!invoiceId || !askingPrice) {
                 return res.status(400).json({ success: false, error: "invoiceId and askingPrice are required" });
@@ -491,6 +441,7 @@ export function registerMarketplaceRoutes(app: Express): void {
                     status: 'active',
                     expiresAt,
                     listingDescription: description,
+                    isBlind,
                 })
                 .returning();
 
@@ -707,7 +658,7 @@ export function registerMarketplaceRoutes(app: Express): void {
 
     /**
      * GET /api/marketplace/my-listings
-
+    
      * Get authenticated user's listings
      */
     app.get("/api/marketplace/my-listings", requireAuth, async (req: Request, res: Response) => {
@@ -828,6 +779,179 @@ export function registerMarketplaceRoutes(app: Express): void {
         } catch (error: any) {
             logger.error("Failed to fetch marketplace stats", "marketplace", { error: error.message });
             res.status(500).json({ success: false, error: "Failed to fetch stats" });
+        }
+    });
+
+    // ============================================
+    // ACCESS CONTROL ENDPOINTS (For Blind Listings)
+    // ============================================
+
+    /**
+     * POST /api/marketplace/listings/:id/request-access
+     * Buyer requests access to a blind listing
+     */
+    app.post("/api/marketplace/listings/:id/request-access", requireAuth, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = (req.session as any).walletAddress;
+            const { id } = req.params;
+            const { message } = req.body;
+
+            // Check if request already exists
+            const [existing] = await db.select()
+                .from(schema.marketplaceAccessRequests)
+                .where(and(
+                    eq(schema.marketplaceAccessRequests.listingId, id),
+                    eq(schema.marketplaceAccessRequests.buyerWallet, walletAddress)
+                ))
+                .limit(1);
+
+            if (existing) {
+                return res.status(400).json({ success: false, error: "Request already exists", status: existing.status });
+            }
+
+            // Create request
+            await db.insert(schema.marketplaceAccessRequests)
+                .values({
+                    listingId: id,
+                    buyerWallet: walletAddress,
+                    requestMessage: message || "Interested in viewing details.",
+                    status: 'pending'
+                });
+
+            res.json({ success: true, message: "Access request sent" });
+        } catch (error: any) {
+            logger.error("Failed to request access", "marketplace", { error: error.message });
+            res.status(500).json({ success: false, error: "Failed to request access" });
+        }
+    });
+
+    /**
+     * GET /api/marketplace/access-requests/pending
+     * Fetch all pending access requests for the authenticated seller's listings
+     */
+    app.get("/api/marketplace/access-requests/pending", requireAuth, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = (req.session as any).walletAddress;
+
+            const requests = await db.select({
+                requestId: schema.marketplaceAccessRequests.id,
+                listingId: schema.invoiceMarketplace.id,
+                invoiceNumber: schema.invoices.invoiceNumber, // Show masked info if needed, but seller sees real number
+                buyerWallet: schema.marketplaceAccessRequests.buyerWallet,
+                message: schema.marketplaceAccessRequests.requestMessage,
+                createdAt: schema.marketplaceAccessRequests.createdAt,
+                status: schema.marketplaceAccessRequests.status
+            })
+                .from(schema.marketplaceAccessRequests)
+                .innerJoin(schema.invoiceMarketplace, eq(schema.marketplaceAccessRequests.listingId, schema.invoiceMarketplace.id))
+                .innerJoin(schema.invoices, eq(schema.invoiceMarketplace.invoiceId, schema.invoices.id))
+                .where(and(
+                    eq(schema.invoiceMarketplace.seller, walletAddress),
+                    eq(schema.marketplaceAccessRequests.status, 'pending')
+                ))
+                .orderBy(desc(schema.marketplaceAccessRequests.createdAt));
+
+            res.json({ success: true, requests });
+        } catch (error: any) {
+            logger.error("Failed to fetch pending requests", "marketplace", { error: error.message });
+            res.status(500).json({ success: false, error: "Failed to fetch pending requests" });
+        }
+    });
+
+    /**
+     * GET /api/marketplace/listings/:id/access-requests
+     * Seller views pending requests
+     */
+    app.get("/api/marketplace/listings/:id/access-requests", requireAuth, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = (req.session as any).walletAddress;
+            const { id } = req.params;
+
+            // Verify seller ownership
+            const [listing] = await db.select()
+                .from(schema.invoiceMarketplace)
+                .where(eq(schema.invoiceMarketplace.id, id))
+                .limit(1);
+
+            if (!listing || listing.seller !== walletAddress) {
+                return res.status(403).json({ success: false, error: "Unauthorized" });
+            }
+
+            const requests = await db.select()
+                .from(schema.marketplaceAccessRequests)
+                .where(eq(schema.marketplaceAccessRequests.listingId, id))
+                .orderBy(desc(schema.marketplaceAccessRequests.createdAt));
+
+            res.json({ success: true, requests });
+        } catch (error: any) {
+            logger.error("Failed to fetch access requests", "marketplace", { error: error.message });
+            res.status(500).json({ success: false, error: "Failed to fetch access requests" });
+        }
+    });
+
+    /**
+     * POST /api/marketplace/access-requests/:requestId/approve
+     * Seller approves access
+     */
+    app.post("/api/marketplace/access-requests/:requestId/approve", requireAuth, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = (req.session as any).walletAddress;
+            const { requestId } = req.params;
+
+            // Verify ownership via join
+            const [request] = await db.select({
+                req: schema.marketplaceAccessRequests,
+                listing: schema.invoiceMarketplace
+            })
+                .from(schema.marketplaceAccessRequests)
+                .innerJoin(schema.invoiceMarketplace, eq(schema.marketplaceAccessRequests.listingId, schema.invoiceMarketplace.id))
+                .where(eq(schema.marketplaceAccessRequests.id, requestId))
+                .limit(1);
+
+            if (!request) return res.status(404).json({ error: "Request not found" });
+            if (request.listing.seller !== walletAddress) return res.status(403).json({ error: "Unauthorized" });
+
+            await db.update(schema.marketplaceAccessRequests)
+                .set({ status: 'approved', updatedAt: new Date() })
+                .where(eq(schema.marketplaceAccessRequests.id, requestId));
+
+            res.json({ success: true, message: "Access approved" });
+        } catch (error: any) {
+            logger.error("Failed to approve access", "marketplace", { error: error.message });
+            res.status(500).json({ success: false, error: "Failed to approve access" });
+        }
+    });
+
+    /**
+     * POST /api/marketplace/access-requests/:requestId/reject
+     * Seller rejects access
+     */
+    app.post("/api/marketplace/access-requests/:requestId/reject", requireAuth, async (req: Request, res: Response) => {
+        try {
+            const walletAddress = (req.session as any).walletAddress;
+            const { requestId } = req.params;
+
+            // Verify ownership via join
+            const [request] = await db.select({
+                req: schema.marketplaceAccessRequests,
+                listing: schema.invoiceMarketplace
+            })
+                .from(schema.marketplaceAccessRequests)
+                .innerJoin(schema.invoiceMarketplace, eq(schema.marketplaceAccessRequests.listingId, schema.invoiceMarketplace.id))
+                .where(eq(schema.marketplaceAccessRequests.id, requestId))
+                .limit(1);
+
+            if (!request) return res.status(404).json({ error: "Request not found" });
+            if (request.listing.seller !== walletAddress) return res.status(403).json({ error: "Unauthorized" });
+
+            await db.update(schema.marketplaceAccessRequests)
+                .set({ status: 'rejected', updatedAt: new Date() })
+                .where(eq(schema.marketplaceAccessRequests.id, requestId));
+
+            res.json({ success: true, message: "Access rejected" });
+        } catch (error: any) {
+            logger.error("Failed to reject access", "marketplace", { error: error.message });
+            res.status(500).json({ success: false, error: "Failed to reject access" });
         }
     });
 

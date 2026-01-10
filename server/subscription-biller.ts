@@ -132,10 +132,17 @@ export async function runBillingCycle() {
 }
 
 export function startBillingCron() {
+    // Run immediately on startup to catch up on any missed billing cycles
+    // (e.g., if server was down during the scheduled midnight run)
+    logger.info('🔄 Checking for missed subscription billing cycles...', 'biller');
+    runBillingCycle().catch(err => {
+        logger.error('Startup billing cycle check failed', 'biller', { error: err.message });
+    });
+
     // Run every day at midnight (UTC)
     cron.schedule('0 0 * * *', async () => {
         await runBillingCycle();
     });
 
-    logger.info('✅ Subscription Biller scheduled (Daily at 00:00 UTC)');
+    logger.info('✅ Subscription Biller scheduled (Daily at 00:00 UTC with Startup Catch-up)');
 }

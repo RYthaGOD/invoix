@@ -45,7 +45,7 @@ logger.info("Config reload trigger", "system", { timestamp: Date.now() });
 // Check security environment variables on startup
 checkSecurityEnvVars();
 
-const app = express();
+export const app = express();
 const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
 
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
@@ -171,7 +171,7 @@ app.use((req, res, next) => {
 });
 
 // GLOBAL STARTUP SEQUENCE
-(async () => {
+export const startupPromise = (async () => {
   try {
     logger.info("Initializing Invoix Platform Components...", "boot", { cluster: process.env.NODE_ENV });
 
@@ -245,28 +245,44 @@ app.use((req, res, next) => {
       name: "invoix_sid",
     }));
 
+    // TEST MODE: Auth Bypass Middleware
+    if (process.env.NODE_ENV === "test") {
+      app.use((req, res, next) => {
+        const testUser = req.headers['x-test-auth'];
+        if (testUser) {
+          (req.session as any).walletAddress = testUser;
+        }
+        next();
+      });
+    }
+
     // 8. Start server
     startupPhase = "server_start";
-    server.listen(port, () => {
-      log(`🚀 Server running on port ${port}`);
-      log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-      log(`   Health: http://localhost:${port}/api/health`);
-      startupPhase = "running";
+    if (process.env.NODE_ENV !== "test") {
+      server.listen(port, () => {
+        log(`🚀 Server running on port ${port}`);
+        log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+        log(`   Health: http://localhost:${port}/api/health`);
+        startupPhase = "running";
 
-      // Start automated cleanup jobs
-      import('./subscription-cleanup').then(({ startCleanupJobs }) => {
-        startCleanupJobs();
-      }).catch((error) => {
-        logger.error('Failed to start cleanup jobs', 'system', { error: String(error) });
-      });
+        // Start automated cleanup jobs
+        import('./subscription-cleanup').then(({ startCleanupJobs }) => {
+          startCleanupJobs();
+        }).catch((error) => {
+          logger.error('Failed to start cleanup jobs', 'system', { error: String(error) });
+        });
 
-      // Start Subscription Biller
-      import('./subscription-biller').then(({ startBillingCron }) => {
-        startBillingCron();
-      }).catch((error) => {
-        logger.error('Failed to start billing cron', 'system', { error: String(error) });
+        // Start Subscription Biller
+        import('./subscription-biller').then(({ startBillingCron }) => {
+          startBillingCron();
+        }).catch((error) => {
+          logger.error('Failed to start billing cron', 'system', { error: String(error) });
+        });
       });
-    });
+    } else {
+      startupPhase = "running_test";
+      logger.info("Test mode detected, skipping server.listen", "boot");
+    }
 
     // 4. Register Routes
     startupPhase = "route_registration";

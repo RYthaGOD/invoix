@@ -3,17 +3,20 @@ import axios from 'axios';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 
-const API_URL = "http://localhost:5000";
+const API_URL = "http://localhost:5001";
 
 async function verifyMarketplace() {
     console.log("🔍 Starting Marketplace API Verification...");
 
     // 1. Health Check
     try {
+        console.log(`📡 Connecting to ${API_URL}/health ...`);
         const health = await axios.get(`${API_URL}/health`);
         console.log("✅ Server Health:", health.data);
-    } catch (e) {
+    } catch (e: any) {
         console.error("❌ Server Down:", e.message);
+        if (e.code) console.error("   Error Code:", e.code);
+        if (e.cause) console.error("   Cause:", e.cause);
         process.exit(1);
     }
 

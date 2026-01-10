@@ -15,6 +15,7 @@ interface InvoiceEmailData {
     dueDate: string;
     payLink: string;
     businessName: string;
+    replyTo?: string;
 }
 
 interface PaymentReceiptEmailData {
@@ -25,6 +26,7 @@ interface PaymentReceiptEmailData {
     paymentDate: string;
     transactionSignature: string;
     businessName: string;
+    replyTo?: string;
 }
 
 /**
@@ -150,8 +152,9 @@ export class EmailService {
       `;
 
             const { data: resendData, error } = await this.resend.emails.send({
-                from: `Invoix <${this.config.fromAddress}>`, // Must be a verified domain in Resend
+                from: `${data.businessName} <${this.config.fromAddress}>`,
                 to: [data.to],
+                replyTo: data.replyTo,
                 subject: `Invoice ${data.invoiceNumber} from ${data.businessName}`,
                 html: htmlContent,
             });
@@ -193,8 +196,9 @@ export class EmailService {
             `;
 
             const { data: resendData, error } = await this.resend.emails.send({
-                from: `Invoix <${this.config.fromAddress}>`,
+                from: `${data.businessName} <${this.config.fromAddress}>`,
                 to: [data.to],
+                replyTo: data.replyTo,
                 subject: `Payment Receipt: Invoice ${data.invoiceNumber}`,
                 html: htmlContent,
             });
@@ -220,6 +224,7 @@ export class EmailService {
         logger.debug("Mock email send - Invoice notification", "email", {
             to: data.to,
             from: this.config.fromAddress,
+            replyTo: data.replyTo,
             invoiceNumber: data.invoiceNumber,
             businessName: data.businessName,
             amount: `${data.amount} ${data.currency}`,
@@ -236,6 +241,8 @@ export class EmailService {
     private async mockSendReceipt(data: PaymentReceiptEmailData): Promise<boolean> {
         logger.debug("Mock email send - Payment receipt", "email", {
             to: data.to,
+            from: this.config.fromAddress,
+            replyTo: data.replyTo,
             invoiceNumber: data.invoiceNumber,
             businessName: data.businessName,
             amountPaid: `${data.amountPaid} ${data.currency}`,

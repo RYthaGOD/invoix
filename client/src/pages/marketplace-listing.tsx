@@ -28,6 +28,7 @@ import {
     User,
     BadgeCheck,
     Store,
+    Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,9 @@ interface ListingDetail {
     nftMint: string;
     seller: string;
     invoicee: string;
+    isBlind: boolean;
+    hasAccess: boolean;
+    accessStatus: 'none' | 'pending' | 'approved' | 'rejected';
 }
 
 const riskConfig = {
@@ -277,6 +281,35 @@ export default function MarketplaceListing() {
             setPurchasing(false);
         }
     };
+
+    // Access Request Logic
+    const [requestingAccess, setRequestingAccess] = useState(false);
+
+    const handleRequestAccess = async () => {
+        if (!connected || !walletAddress) {
+            toast({ title: "Connect Wallet", description: "Please connect to request access.", variant: "destructive" });
+            return;
+        }
+
+        setRequestingAccess(true);
+        try {
+            const res = await fetch(`/api/marketplace/listings/${listing?.id}/request-access`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: "I am interested in this invoice." })
+            });
+
+            if (!res.ok) throw new Error("Failed to request access");
+
+            toast({ title: "Access Requested", description: "Seller has been notified." });
+            loadListing(); // Reload to update status
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+        } finally {
+            setRequestingAccess(false);
+        }
+    };
+
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -529,8 +562,8 @@ export default function MarketplaceListing() {
 
                             <Button
                                 className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-lg py-6"
-                                onClick={handlePurchase}
-                                disabled={purchasing || listing.status !== 'active'}
+                                onClick={listing.isBlind && !listing.hasAccess && listing.accessStatus === 'none' ? handleRequestAccess : handlePurchase}
+                                disabled={purchasing || listing.status !== 'active' || (listing.isBlind && !listing.hasAccess && listing.accessStatus !== 'none')}
                             >
                                 {purchasing ? (
                                     <>Processing...</>
@@ -542,7 +575,33 @@ export default function MarketplaceListing() {
                                         Purchase Invoice
                                     </>
                                 )}
+                                {purchasing ? (
+                                    <>Processing...</>
+                                ) : listing.status !== 'active' ? (
+                                    <>Listing Unavailable</>
+                                ) : listing.isBlind && !listing.hasAccess ? (
+                                    // Blind & Restricted View
+                                    listing.accessStatus === 'pending' ? (
+                                        <>Access Pending <Clock className="w-4 h-4 ml-2" /></>
+                                    ) : listing.accessStatus === 'rejected' ? (
+                                        <>Access Rejected</>
+                                    ) : (
+                                        <>Request Access <Lock className="w-4 h-4 ml-2" /></>
+                                    )
+                                ) : (
+                                    <>
+                                        <DollarSign className="w-5 h-5 mr-2" />
+                                        Purchase Invoice
+                                    </>
+                                )}
                             </Button>
+
+                            {/* Additional Blind Info */}
+                            {listing.isBlind && !listing.hasAccess && (
+                                <p className="text-xs text-yellow-400 text-center mt-2">
+                                    Sensitive details are hidden. Request access to view full invoice & seller info.
+                                </p>
+                            )}
 
                             <p className="text-xs text-gray-500 text-center mt-4">
                                 By purchasing, you acquire the right to collect payment

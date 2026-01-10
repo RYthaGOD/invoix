@@ -22,6 +22,7 @@ import {
 } from "@shared/invoice-schema";
 import { eq, and, sql, desc, count, sum, avg, ne, isNotNull } from "drizzle-orm";
 import { logger } from "./logger";
+import { getSolPrice } from "./pricing-service";
 
 // ============================================
 // TYPES & INTERFACES
@@ -533,10 +534,12 @@ export class CreditScoringService {
         // FIX: Convert to USD based on currency
         let amountUsd = parseFloat(totalAmount);
         if (currency === 'SOL') {
-            const solPriceEstimate = 200; // Conservative USD estimate
-            amountUsd = parseFloat(totalAmount) * solPriceEstimate;
+            const solPrice = await getSolPrice();
+            // Fallback to 200 if price fetch fails (returned 0)
+            const conversionRate = solPrice > 0 ? solPrice : 200;
+            amountUsd = parseFloat(totalAmount) * conversionRate;
         } else if (currency === 'EURC') {
-            amountUsd = parseFloat(totalAmount) * 1.1; // EUR to USD estimate
+            amountUsd = parseFloat(totalAmount) * 1.05; // EUR to USD estimate (Updated)
         }
 
         await db.update(businessCreditScores)
@@ -557,6 +560,35 @@ export class CreditScoringService {
             })
             .where(eq(businessCreditScores.walletAddress, invoiceeWalletAddress));
     }
+
+    /**
+     * Record a dispute against a wallet
+     */
+    async recordDispute(walletAddress: string, role: 'payer' | 'seller'): Promise<void> {
+        await this.getOrCreateCreditScore(walletAddress);
+
+        if (role === 'payer') {
+            await db.update(businessCreditScores)
+                .set({
+                    disputesAsPayer: sql`${businessCreditScores.disputesAsPayer} + 1`,
+                    updatedAt: new Date(),
+                })
+                .where(eq(businessCreditScores.walletAddress, walletAddress));
+        } else {
+            await db.update(businessCreditScores)
+                .set({
+                    disputesAsSeller: sql`${businessCreditScores.disputesAsSeller} + 1`,
+                    updatedAt: new Date(),
+                })
+                .where(eq(businessCreditScores.walletAddress, walletAddress));
+        }
+
+        // Queue recalculation
+        this.queueRecalculation(walletAddress);
+        logger.warn(`Dispute recorded for ${walletAddress} as ${role}`, "credit");
+    }
+
+
 
     // ============================================
     // PRIVATE METHODS

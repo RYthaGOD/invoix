@@ -498,6 +498,7 @@ export const invoiceMarketplace = pgTable("invoice_marketplace", {
   status: text("status").notNull().default("pending_transfer"), // pending_transfer, active, sold, cancelled, pending_cancellation, expired
   listedAt: timestamp("listed_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at"), // Optional listing expiration
+  isBlind: boolean("is_blind").notNull().default(false), // Blind/Hidden listing flag
 
   // Analytics
   viewCount: integer("view_count").notNull().default(0),
@@ -527,6 +528,26 @@ export const invoiceMarketplace = pgTable("invoice_marketplace", {
   currencyIdx: index("idx_marketplace_currency").on(table.currency),
   priceIdx: index("idx_marketplace_price").on(table.askingPrice),
   yieldIdx: index("idx_marketplace_yield").on(table.yieldPercentage),
+  blindIdx: index("idx_marketplace_blind").on(table.isBlind),
+}));
+
+/**
+ * Marketplace Access Requests - For blind listings
+ * Buyers request access to view details of blind listings
+ */
+export const marketplaceAccessRequests = pgTable("marketplace_access_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id").notNull().references(() => invoiceMarketplace.id, { onDelete: "cascade" }),
+  buyerWallet: text("buyer_wallet").notNull(),
+
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  requestMessage: text("request_message"), // Optional message from buyer
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  listingIdx: index("idx_access_req_listing").on(table.listingId),
+  buyerIdx: index("idx_access_req_buyer").on(table.buyerWallet),
 }));
 
 // ============================================
@@ -570,10 +591,18 @@ export const businessIdentityNFTsRelations = relations(businessIdentityNFTs, ({ 
   }),
 }));
 
-export const invoiceMarketplaceRelations = relations(invoiceMarketplace, ({ one }) => ({
+export const invoiceMarketplaceRelations = relations(invoiceMarketplace, ({ one, many }) => ({
   invoice: one(invoices, {
     fields: [invoiceMarketplace.invoiceId],
     references: [invoices.id],
+  }),
+  accessRequests: many(marketplaceAccessRequests),
+}));
+
+export const marketplaceAccessRequestsRelations = relations(marketplaceAccessRequests, ({ one }) => ({
+  listing: one(invoiceMarketplace, {
+    fields: [marketplaceAccessRequests.listingId],
+    references: [invoiceMarketplace.id],
   }),
 }));
 
@@ -694,6 +723,17 @@ export const insertInvoiceMarketplaceSchema = createInsertSchema(invoiceMarketpl
   seller: z.string().min(32, "Invalid seller wallet address"),
   faceValue: z.string().refine(val => parseFloat(val) > 0, "Face value must be positive"),
   askingPrice: z.string().refine(val => parseFloat(val) > 0, "Asking price must be positive"),
+  isBlind: z.boolean().optional(),
+});
+
+export const insertMarketplaceAccessRequestSchema = createInsertSchema(marketplaceAccessRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  status: true,
+}).extend({
+  listingId: z.string().uuid(),
+  buyerWallet: z.string().min(32, "Invalid wallet address"),
 });
 
 export const insertInvoiceTemplateSchema = createInsertSchema(invoiceTemplates).omit({
@@ -917,6 +957,9 @@ export type InsertBusinessIdentityNFT = z.infer<typeof insertBusinessIdentityNFT
 
 export type InvoiceMarketplaceListing = typeof invoiceMarketplace.$inferSelect;
 export type InsertInvoiceMarketplaceListing = z.infer<typeof insertInvoiceMarketplaceSchema>;
+
+export type MarketplaceAccessRequest = typeof marketplaceAccessRequests.$inferSelect;
+export type InsertMarketplaceAccessRequest = z.infer<typeof insertMarketplaceAccessRequestSchema>;
 
 export type BusinessCreditScore = typeof businessCreditScores.$inferSelect;
 export type InsertBusinessCreditScore = typeof businessCreditScores.$inferInsert;

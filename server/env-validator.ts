@@ -92,6 +92,12 @@ const ENVIRONMENT_VARIABLES: EnvVar[] = [
     description: "Enable Arcium encryption (true/false)",
     defaultValue: "false",
   },
+  {
+    key: "MARKETPLACE_PROGRAM_ID",
+    required: false,
+    description: "Program ID for the Invoice Marketplace Smart Contract",
+    defaultValue: "InvxMkt111111111111111111111111111111111111",
+  },
 ];
 
 export function validateEnvironment(): void {
@@ -112,7 +118,7 @@ export function validateEnvironment(): void {
       } else if (envVar.defaultValue) {
         process.env[envVar.key] = envVar.defaultValue;
         // Use warning for critical defaults to alert admin
-        const level = (envVar.key === 'SESSION_SECRET' || envVar.key === 'SOLANA_RPC_URL') ? 'warn' : 'info';
+        const level = (envVar.key === 'SESSION_SECRET' || envVar.key === 'SOLANA_RPC_URL' || envVar.key === 'MARKETPLACE_PROGRAM_ID') ? 'warn' : 'info';
         if (level === 'warn') {
           warnings.push(`⚠️  Using default for ${envVar.key}: ${envVar.key === 'SESSION_SECRET' ? '***' : envVar.defaultValue}`);
         } else {

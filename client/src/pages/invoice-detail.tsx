@@ -136,6 +136,7 @@ export default function InvoiceDetail() {
   const [sellPrice, setSellPrice] = useState("");
   const [sellDuration, setSellDuration] = useState("30"); // Default 30 days
   const [sellDescription, setSellDescription] = useState("");
+  const [isBlind, setIsBlind] = useState(false);
   const [isListing, setIsListing] = useState(false);
 
 
@@ -318,26 +319,38 @@ export default function InvoiceDetail() {
         credentials: "include",
         body: JSON.stringify({
           status: "sent",
-          customerEmail: customerEmail // Send provided email
+          customerEmail: customerEmail.trim() // Send trimmed email
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.message || "Failed to send invoice");
       }
 
-      const data = await response.json();
-      setInvoice(data.invoice);
+      // Update local state with the updated invoice from server
+      if (data.invoice) {
+        setInvoice(data.invoice);
+      }
+
       toast({
-        title: "Invoice Sent Successfully",
-        description: `Invoice has been sent to ${customerEmail || "the customer"}.`,
+        title: "Invoice Sent Successfully!",
+        description: `Your invoice has been marked as sent and emailed to ${customerEmail || "the customer"}.`,
+        variant: "default",
       });
+
+      // Close dialog only on success
       setShowSendDialog(false);
+
+      // Refresh invoice data to ensure everything is in sync
+      await loadInvoice(invoice.id);
+
     } catch (err: any) {
+      console.error("Send invoice failed:", err);
       toast({
         title: "Error Sending Invoice",
-        description: err.message,
+        description: err.message || "An unexpected error occurred while sending the invoice.",
         variant: "destructive"
       });
     } finally {
@@ -677,7 +690,8 @@ export default function InvoiceDetail() {
         invoiceId: invoice.id,
         askingPrice: parseFloat(sellPrice),
         description: sellDescription,
-        expiresInDays: parseInt(sellDuration)
+        expiresInDays: parseInt(sellDuration),
+        isBlind
       });
 
       if (!response.transaction) {
@@ -1018,25 +1032,55 @@ export default function InvoiceDetail() {
             </div>
           )}
 
-          {/* Mint Button for Invoicer */}
-          {isInvoicer && !invoice.nftMint && (
+          {/* Mint Button / NFT Info for Invoicer */}
+          {isInvoicer && (
             <div className="glass-card p-6 border-l-4 border-purple-500">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-bold text-white">Mint Invoice NFT</h3>
-                  <p className="text-sm text-gray-400 max-w-lg mt-1">
-                    This invoices has not been minted yet. Minting creates a verifiable on-chain record and allows for factoring/trading.
-                    You will pay the network fee (~0.002 SOL).
-                  </p>
+              {invoice.nftMint ? (
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      Invoice NFT Minted <CheckCircle className="w-5 h-5 text-green-500" />
+                    </h3>
+                    <p className="text-sm text-gray-400 max-w-lg mt-1">
+                      This invoice is permanently recorded on the Solana blockchain as a Compressed NFT (cNFT).
+                      It is cryptographically linked to the invoice data hash.
+                    </p>
+                    <div className="mt-4 flex gap-3">
+                      <a
+                        href={`https://explorer.solana.com/address/${invoice.nftMint}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'devnet'}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg text-sm flex items-center gap-2 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        View on Explorer
+                      </a>
+                    </div>
+                  </div>
+                  <div className="hidden md:block">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-xl flex items-center justify-center border border-purple-500/30">
+                      <Store className="w-8 h-8 text-purple-400" />
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={handleMintNFT}
-                  disabled={!!mintingStatus}
-                  className="smoke-shadow px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all"
-                >
-                  Mint NFT 🎨
-                </button>
-              </div>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Mint Invoice NFT</h3>
+                    <p className="text-sm text-gray-400 max-w-lg mt-1">
+                      This invoices has not been minted yet. Minting creates a verifiable on-chain record and allows for factoring/trading.
+                      You will pay the network fee (~0.002 SOL).
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleMintNFT}
+                    disabled={!!mintingStatus}
+                    className="smoke-shadow px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all"
+                  >
+                    Mint NFT 🎨
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1441,6 +1485,27 @@ export default function InvoiceDetail() {
                 value={sellDescription}
                 onChange={(e) => setSellDescription(e.target.value)}
               />
+            </div>
+
+            <div className="flex items-center space-x-2 bg-white/5 p-3 rounded-lg border border-white/10">
+              <input
+                type="checkbox"
+                id="isBlind"
+                checked={isBlind}
+                onChange={(e) => setIsBlind(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-500 bg-gray-700 text-purple-600 focus:ring-purple-500"
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="isBlind"
+                  className="text-sm font-medium leading-none text-white peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  List Blindly (Confidential)
+                </label>
+                <p className="text-xs text-gray-400">
+                  Hide invoice number and seller identity. Buyers must request access.
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">

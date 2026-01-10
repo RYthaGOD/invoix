@@ -86,6 +86,9 @@ export const invoices = sqliteTable("invoices", {
     viewedAt: integer("viewed_at", { mode: "timestamp" }),
     paidAt: integer("paid_at", { mode: "timestamp" }),
     cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
+
+    // Arcium On-Chain Account
+    arciumInvoicePda: text("arcium_invoice_pda"),
 });
 
 /**
@@ -342,6 +345,7 @@ export const invoiceMarketplace = sqliteTable("invoice_marketplace", {
     status: text("status").notNull().default("active"),
     listedAt: integer("listed_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     expiresAt: integer("expires_at", { mode: "timestamp" }),
+    isBlind: integer("is_blind", { mode: "boolean" }).notNull().default(false),
 
     soldAt: integer("sold_at", { mode: "timestamp" }),
     soldTo: text("sold_to"),
@@ -350,6 +354,35 @@ export const invoiceMarketplace = sqliteTable("invoice_marketplace", {
 
     listingDescription: text("listing_description"),
     minBuyerRating: text("min_buyer_rating"),
+
+    // Risk Assessment snapshots
+    riskScore: integer("risk_score"),
+    riskLevel: text("risk_level"),
+    riskFlags: text("risk_flags"), // JSON string in SQLite
+
+    // Credit Score Snapshots
+    sellerCreditScore: integer("seller_credit_score"),
+    sellerCreditTier: text("seller_credit_tier"),
+    customerCreditScore: integer("customer_credit_score"),
+
+    // Pricing Guidance
+    suggestedFloorPrice: text("suggested_floor_price"),
+    yieldPercentage: text("yield_percentage"),
+
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+/**
+ * Marketplace Access Requests
+ */
+export const marketplaceAccessRequests = sqliteTable("marketplace_access_requests", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    listingId: text("listing_id").notNull().references(() => invoiceMarketplace.id, { onDelete: "cascade" }),
+    buyerWallet: text("buyer_wallet").notNull(),
+
+    status: text("status").notNull().default("pending"),
+    requestMessage: text("request_message"),
 
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
@@ -486,6 +519,58 @@ export const webhookDeliveries = sqliteTable("webhook_deliveries", {
     deliveredAt: integer("delivered_at", { mode: "timestamp" }),
 });
 
+
+/**
+ * Business Credit Scores - Credit scoring for invoice marketplace
+ */
+export const businessCreditScores = sqliteTable("business_credit_scores", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    walletAddress: text("wallet_address").notNull().unique(),
+
+    // Overall Score (300-850)
+    overallScore: integer("overall_score").notNull().default(500),
+    creditTier: text("credit_tier").notNull().default("new"),
+
+    // Component Scores (300-850 each)
+    paymentHistoryScore: integer("payment_history_score").notNull().default(500),
+    volumeScore: integer("volume_score").notNull().default(500),
+    reliabilityScore: integer("reliability_score").notNull().default(500),
+    tenureScore: integer("tenure_score").notNull().default(500),
+
+    // Payment History Metrics
+    totalPaymentsMade: integer("total_payments_made").notNull().default(0),
+    onTimePayments: integer("on_time_payments").notNull().default(0),
+    latePayments: integer("late_payments").notNull().default(0),
+    avgDaysToPay: integer("avg_days_to_pay"),
+    lastPaymentDate: integer("last_payment_date", { mode: "timestamp" }),
+
+    // Volume Metrics
+    totalVolumeUsd: text("total_volume_usd").notNull().default("0"),
+    totalInvoicesIssued: integer("total_invoices_issued").notNull().default(0),
+    totalInvoicesReceived: integer("total_invoices_received").notNull().default(0),
+    uniqueCounterparties: integer("unique_counterparties").notNull().default(0),
+
+    // Reliability Metrics
+    paidInvoices: integer("paid_invoices").notNull().default(0),
+    cancelledInvoices: integer("cancelled_invoices").notNull().default(0),
+    avgDaysToCollect: integer("avg_days_to_collect"),
+    topCustomerShare: text("top_customer_share").default("0"),
+
+    // Tenure Metrics
+    firstActivityAt: integer("first_activity_at", { mode: "timestamp" }),
+    monthsWithActivity: integer("months_with_activity").notNull().default(0),
+
+    // Dispute Tracking
+    disputesAsPayer: integer("disputes_as_payer").notNull().default(0),
+    disputesAsSeller: integer("disputes_as_seller").notNull().default(0),
+
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    lastCalculatedAt: integer("last_calculated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+export type BusinessCreditScore = typeof businessCreditScores.$inferSelect;
+
 // ============================================
 // RELATIONS
 // ============================================
@@ -538,10 +623,18 @@ export const businessIdentityNFTsRelations = relations(businessIdentityNFTs, ({ 
     }),
 }));
 
-export const invoiceMarketplaceRelations = relations(invoiceMarketplace, ({ one }) => ({
+export const invoiceMarketplaceRelations = relations(invoiceMarketplace, ({ one, many }) => ({
     invoice: one(invoices, {
         fields: [invoiceMarketplace.invoiceId],
         references: [invoices.id],
+    }),
+    accessRequests: many(marketplaceAccessRequests),
+}));
+
+export const marketplaceAccessRequestsRelations = relations(marketplaceAccessRequests, ({ one }) => ({
+    listing: one(invoiceMarketplace, {
+        fields: [marketplaceAccessRequests.listingId],
+        references: [invoiceMarketplace.id],
     }),
 }));
 
@@ -636,6 +729,17 @@ export const insertInvoiceMarketplaceSchema = createInsertSchema(invoiceMarketpl
     seller: z.string().min(32, "Invalid seller wallet address"),
     faceValue: z.string().refine(val => parseFloat(val) > 0, "Face value must be positive"),
     askingPrice: z.string().refine(val => parseFloat(val) > 0, "Asking price must be positive"),
+    isBlind: z.boolean().optional(),
+});
+
+export const insertMarketplaceAccessRequestSchema = createInsertSchema(marketplaceAccessRequests).omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    status: true,
+}).extend({
+    listingId: z.string().uuid(),
+    buyerWallet: z.string().min(32, "Invalid wallet address"),
 });
 
 // ... existing code ...
@@ -682,6 +786,9 @@ export type InsertBusinessIdentityNFT = z.infer<typeof insertBusinessIdentityNFT
 
 export type InvoiceMarketplaceListing = typeof invoiceMarketplace.$inferSelect;
 export type InsertInvoiceMarketplaceListing = z.infer<typeof insertInvoiceMarketplaceSchema>;
+
+export type MarketplaceAccessRequest = typeof marketplaceAccessRequests.$inferSelect;
+export type InsertMarketplaceAccessRequest = z.infer<typeof insertMarketplaceAccessRequestSchema>;
 
 // Backwards compatibility aliases
 export type SelectInvoice = Invoice;

@@ -254,9 +254,20 @@ export async function processWebhookDeliveries(): Promise<void> {
 
     logger.debug(`Processing ${pendingDeliveries.length} webhook deliveries`, "webhook");
 
-    for (const { delivery, webhook } of pendingDeliveries) {
-        await attemptDelivery(delivery, webhook);
-    }
+    logger.debug(`Processing ${pendingDeliveries.length} webhook deliveries`, "webhook");
+
+    // Process in parallel for higher throughput
+    // Use allSettled to ensure one failure doesn't stop the batch
+    await Promise.allSettled(
+        pendingDeliveries.map(({ delivery, webhook }) =>
+            attemptDelivery(delivery, webhook).catch(err =>
+                logger.error(`Unexpected error in delivery attempt loop`, "webhook", {
+                    deliveryId: delivery.id,
+                    error: err.message
+                })
+            )
+        )
+    );
 }
 
 /**

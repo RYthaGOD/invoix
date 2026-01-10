@@ -156,13 +156,6 @@ function Router() {
             </DashboardLayout>
           )}
         </Route>
-        <Route path="/marketplace/:id">
-          {() => (
-            <DashboardLayout>
-              <MarketplaceListing />
-            </DashboardLayout>
-          )}
-        </Route>
         <Route path="/marketplace/my-listings">
           {() => (
             <DashboardLayout>
@@ -174,6 +167,13 @@ function Router() {
           {() => (
             <DashboardLayout>
               <Marketplace />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/marketplace/:id">
+          {() => (
+            <DashboardLayout>
+              <MarketplaceListing />
             </DashboardLayout>
           )}
         </Route>

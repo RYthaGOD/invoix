@@ -1,6 +1,4 @@
 {
-  "name": "invoix",
-  "version": "1.0.0",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -8,7 +6,7 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "dev": "cross-env NODE_ENV=development PORT=5001 tsx server/index.ts",
     "build": "vite build && tsx server/build.ts",
     "start": "cross-env NODE_ENV=production node --max-old-space-size=460 dist/index.js",
     "check": "tsc",
@@ -22,8 +20,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "clean": "rm -rf dist node_modules/.vite",
@@ -171,13 +169,20 @@
     "bufferutil": "^4.0.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/compression": "^1.8.1",
     "@types/connect-redis": "^0.0.23",
     "@types/json2csv": "^5.0.7",
     "@types/qrcode": "^1.5.6",
     "@types/supertest": "^6.0.3",
+    "eslint": "^9.39.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^17.0.0",
     "supabase": "^2.67.2",
     "supertest": "^7.1.4",
+    "typescript-eslint": "^8.52.0",
     "vite-plugin-node-polyfills": "^0.24.0"
   }
 }
