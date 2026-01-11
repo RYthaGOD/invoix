@@ -50,7 +50,10 @@ export function useTokenStats() {
                     priceChange24h: String(pair.priceChange?.h24 || 0),
                     marketCap: String(pair.marketCap || pair.fdv || 0),
                     fdv: String(pair.fdv || 0),
-                    solPrice: Number(pair.priceUsd || 0) // Derived, but convenient
+                    // Derive SOL price: Token Price (USD) / Token Price (SOL) = 1 SOL (USD)
+                    solPrice: Number(pair.priceNative) > 0
+                        ? Number(pair.priceUsd || 0) / Number(pair.priceNative)
+                        : 0
                 };
             } catch (error) {
                 console.error("Error fetching token stats:", error);
