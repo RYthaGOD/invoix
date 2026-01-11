@@ -360,12 +360,11 @@ export default function Marketplace() {
             ) : (
                 <>
                     {/* Stats Cards */}
-                    {/* Stats Cards */}
                     <MarketStats stats={stats} />
 
                     {/* Filters */}
                     <div className="glass-card p-4">
-                        <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex flex-col md:flex-row gap-4" id="tour-marketplace-filter">
                             {/* Search */}
                             <div className="flex-1 relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />

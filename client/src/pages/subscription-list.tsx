@@ -65,7 +65,7 @@ export default function SubscriptionList() {
             <div className="flex items-center gap-4">
                 <Tabs value={viewType} onValueChange={(v) => setViewType(v as 'merchant' | 'customer')}>
                     <TabsList>
-                        <TabsTrigger value="merchant">As Merchant</TabsTrigger>
+                        <TabsTrigger value="merchant" id="tour-subscription-create">As Merchant</TabsTrigger>
                         <TabsTrigger value="customer">As Customer</TabsTrigger>
                     </TabsList>
                 </Tabs>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { User, Lock, Loader2, FileText, ShieldCheck, Zap, Info } from "lucide-react";
+import { Plus, Trash2, FileText, User, ArrowLeft, Loader2, Lock, ShieldCheck, Info, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader } from "@/components/ui/loader"; // Import premium loader
 import { CurrencySelector } from "@/components/currency-selector";
@@ -100,7 +100,12 @@ export function InvoiceForm({
 
             {/* Template Selector (Optional) */}
             {templates.length > 0 && onTemplateSelect && (
-                <div className="glass-card p-6">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="glass-card p-6"
+                >
                     <label className="block text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
                         <FileText className="w-4 h-4" />
                         Start from Template (Optional)
@@ -116,11 +121,16 @@ export function InvoiceForm({
                             </option>
                         ))}
                     </select>
-                </div>
+                </motion.div>
             )}
 
             {/* Basic Information */}
-            <div className="glass-card p-6">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="glass-card p-6"
+            >
                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <User className="w-5 h-5 text-purple-400" />
                     Invoice Details
@@ -237,10 +247,15 @@ export function InvoiceForm({
                         placeholder="Internal notes (not visible to customer)"
                     />
                 </div>
-            </div>
+            </motion.div>
 
             {/* Editor & Calculations */}
-            <div id="tour-items-section">
+            <motion.div
+                id="tour-items-section"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+            >
                 <LineItemEditor
                     register={register}
                     control={control}
@@ -249,9 +264,14 @@ export function InvoiceForm({
                     currency={currency}
                     solPrice={solPrice}
                 />
-            </div>
+            </motion.div>
 
-            <div className="glass-card p-6">
+            <motion.div
+                className="glass-card p-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+            >
                 {/* Totals Display */}
                 <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-4 max-w-md ml-auto">
@@ -300,10 +320,16 @@ export function InvoiceForm({
                         </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Privacy & NFT Options */}
-            <div className="glass-card p-6" id="tour-mint-settings">
+            <motion.div
+                className="glass-card p-6"
+                id="tour-mint-settings"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+            >
                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <Lock className="w-5 h-5 text-purple-400" />
                     Privacy & Features
@@ -314,11 +340,17 @@ export function InvoiceForm({
                     <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-3">
                         <Info className="w-5 h-5 text-indigo-400 mt-1 flex-shrink-0" />
                         <div>
-                            <div className="text-white text-sm font-semibold">
-                                Service Fee Required
+                            <div className="text-white text-sm font-semibold flex items-center gap-2">
+                                Safe and Secure Anti-Spam Protection
+                                <div className="relative group/tooltip">
+                                    <HelpCircle className="w-3 h-3 text-gray-500 cursor-help" />
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-black/90 border border-white/10 rounded text-xs text-gray-300 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10">
+                                        Small fee prevents network congestion and ensures transaction priority.
+                                    </div>
+                                </div>
                             </div>
                             <p className="text-xs text-gray-400 mt-1">
-                                Creating an invoice requires a small service fee of <strong className="text-white">0.0001 SOL</strong> (~$0.02) to prevent spam.
+                                Creating an invoice requires a small service fee of <strong className="text-white">0.0001 SOL</strong> (~$0.02) to verify legitimacy.
                             </p>
                         </div>
                     </div>
@@ -373,8 +405,14 @@ export function InvoiceForm({
                                 />
                             </div>
                             <div className="flex-1">
-                                <div className="text-white font-medium group-hover:text-cyan-300 transition-colors">
+                                <div className="text-white font-medium group-hover:text-cyan-300 transition-colors flex items-center gap-2">
                                     Arcium MXE Encryption 🔐
+                                    <div className="relative group/tooltip">
+                                        <Info className="w-3 h-3 text-cyan-500/50 cursor-help" />
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-black/90 border border-cyan-500/20 rounded text-xs text-cyan-100 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10">
+                                            Multi-Party Execution Environment ensures data remains encrypted even during processing. Only you and the client hold the keys.
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="text-gray-400 text-sm">
                                     End-to-end encryption using Arcium Confidential Computing.
@@ -404,10 +442,15 @@ export function InvoiceForm({
                         </AnimatePresence>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Submit */}
-            <div className="flex justify-end pt-4">
+            <motion.div
+                className="flex justify-end pt-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+            >
                 <button
                     type="submit"
                     disabled={isSubmitting}
@@ -422,7 +465,7 @@ export function InvoiceForm({
                         "Create Invoice"
                     )}
                 </button>
-            </div>
+            </motion.div>
 
             {/* Status Overlay (for minting) */}
             {mintingStatus && (

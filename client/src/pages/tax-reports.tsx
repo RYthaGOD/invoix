@@ -116,7 +116,7 @@ export default function TaxReports() {
             </Alert>
 
             {/* Year Selector */}
-            <div className="mb-6">
+            <div className="mb-6" id="tour-tax-year-select">
                 <label className="block text-sm font-medium mb-2">Tax Year</label>
                 <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
                     <SelectTrigger className="w-[200px]">
@@ -219,7 +219,7 @@ export default function TaxReports() {
 
                     {/* Download Actions */}
                     <div className="flex flex-wrap gap-3 mb-6">
-                        <Button onClick={downloadCSV} variant="default">
+                        <Button onClick={downloadCSV} variant="default" id="tour-tax-export-csv">
                             <Download className="h-4 w-4 mr-2" />
                             Download CSV
                         </Button>

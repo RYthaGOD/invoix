@@ -1,8 +1,8 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { Button } from "@/components/ui/button";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 
 // Define Step Type
@@ -19,14 +19,21 @@ type DriveStep = {
 export function TourGuide() {
     const driverRef = useRef<any>(null);
     const [location] = useLocation();
+    const [hasSeenWelcome, setHasSeenWelcome] = useState(false);
+
+    // Initial check for welcome tour
+    useEffect(() => {
+        const seen = localStorage.getItem('invoix_welcome_tour_seen');
+        if (seen) setHasSeenWelcome(true);
+    }, []);
 
     // 1. Landing Page / Fallback Steps
     const landingSteps: DriveStep[] = [
         {
             element: '#tour-welcome',
             popover: {
-                title: 'Welcome to Invoix 👋',
-                description: 'The easiest way to send invoices and get paid in Crypto (USDC, SOL). Safe, fast, and private.',
+                title: 'Welcome to the Future of Invoicing ✨',
+                description: 'Experience the power of Solana payments. Fast, secure, and designed for modern business.',
                 side: "bottom",
                 align: 'start'
             }
@@ -34,24 +41,24 @@ export function TourGuide() {
         {
             element: '#hero-create-invoice',
             popover: {
-                title: 'Get Started Here 🚀',
-                description: 'Click here to launch the app. You\'ll need a "Wallet" (like a digital bank account) to sign in.',
+                title: 'Start Getting Paid 🚀',
+                description: 'Launch the app to create your first blockchain-verified invoice. No wallet? No problem, we\'ll guide you.',
                 side: "bottom"
             }
         },
         {
             element: '#tour-create-invoice',
             popover: {
-                title: 'Send an Invoice 📝',
-                description: 'Click here to bill a client. It takes less than a minute.',
+                title: 'Instant Billing ⚡',
+                description: 'Create a professional invoice in seconds. Get paid in USDC or SOL instantly.',
                 side: "right"
             }
         },
         {
             element: '#tour-wallet-connect',
             popover: {
-                title: 'Connect Your Wallet 💳',
-                description: 'This is your login key. Use Phantom or Solflare to securely sign in and receive payments.',
+                title: 'Your Digital Vault 🔐',
+                description: 'Connect your wallet to sign in securely. It\'s safe, private, and you own your data completely.',
                 side: "left"
             }
         }
@@ -62,8 +69,8 @@ export function TourGuide() {
         {
             element: '#tour-welcome',
             popover: {
-                title: 'Your Dashboard 📊',
-                description: 'Overview of all your sent and received invoices.',
+                title: 'Command Center 📊',
+                description: 'This is your financial hub. Track every invoice, payment, and subscription in real-time.',
                 side: "bottom",
                 align: 'start'
             }
@@ -71,32 +78,32 @@ export function TourGuide() {
         {
             element: '#tour-stats-overview',
             popover: {
-                title: 'Quick Stats 📈',
-                description: 'Track total invoices, sent/received counts, and overdue items at a glance.',
+                title: 'Pulse Check 📈',
+                description: 'Your key metrics at a glance. Spot overdue payments and cash flow trends instantly.',
                 side: "bottom"
             }
         },
         {
             element: '#tour-create-invoice',
             popover: {
-                title: 'Create New Invoice ➕',
-                description: 'Click here to draft a new invoice for your client.',
+                title: 'New Opportunity ➕',
+                description: 'Ready to bill? Click here to draft a smart invoice that handles payments automatically.',
                 side: "left"
             }
         },
         {
             element: '#tour-invoice-table',
             popover: {
-                title: 'Invoice List 📝',
-                description: 'Manage your invoices here. Click on any row to view details, pay, or download PDF.',
+                title: 'Ledger View 📝',
+                description: 'Your complete history. manage status, download PDFs, or mint NFTs for proof-of-business.',
                 side: "top"
             }
         },
         {
             element: '#tour-system-status',
             popover: {
-                title: 'System Security 🛡️',
-                description: 'Green indicates our Arcium Confidential Computing nodes are active and securing your data.',
+                title: 'Fortress Security 🛡️',
+                description: 'State-of-the-art protection active. Arcium Confidential Computing ensures your data stays private.',
                 side: "bottom"
             }
         }
@@ -107,132 +114,154 @@ export function TourGuide() {
         {
             element: '#tour-client-select',
             popover: {
-                title: 'Who is this for? 👤',
-                description: 'Paste your Client\'s "Wallet Address" here. \n(Think of this like their email address or bank account number for Crypto).',
+                title: 'Select Recipient 👤',
+                description: 'Enter your client\'s wallet address. It\'s like their digital email for money.',
                 side: "right"
             }
         },
         {
             element: '#tour-currency-select',
             popover: {
-                title: 'How do you want to get paid? 💰',
-                description: 'Select USDC (Digital Dollar) or SOL. The price is locked when you create the invoice.',
+                title: 'Choose Payment 💰',
+                description: 'Get paid in stable USDC or SOL. Rates are locked at creation to prevent volatility.',
                 side: "right"
             }
         },
         {
             element: '#tour-items-section',
             popover: {
-                title: 'What are you billing for? 📋',
-                description: 'List your services or products here. We\'ll do the math for you.',
+                title: 'Itemize Services 📋',
+                description: 'Add line items for clarity. Calculations for tax and discounts are handled automatically.',
                 side: "top"
             }
         },
         {
             element: '#tour-mint-settings',
             popover: {
-                title: 'Privacy Settings 🔐',
-                description: 'Turn on "Private Invoice" to keep details secret, or "Mint NFT" to create a permanent receipt on the blockchain.',
+                title: 'Smart Features 🧠',
+                description: 'Enable "Private Invoice" for confidentiality or "Mint NFT" for an immutable on-chain record.',
                 side: "top"
             }
         }
     ];
 
-    // 4. Customers Steps
+    // 4. Marketplace Steps
+    const marketplaceSteps: DriveStep[] = [
+        {
+            element: '#tour-marketplace-listings',
+            popover: {
+                title: 'Invoice Marketplace 🏪',
+                description: 'Browse verified invoices listed for sale. Purchase at a discount to earn yield on payment.',
+                side: "bottom"
+            }
+        },
+        {
+            element: '#tour-marketplace-filter',
+            popover: {
+                title: 'Smart Filters 🔍',
+                description: 'Find the perfect opportunity. Filter by Risk Score, Yield, or Asset Type.',
+                side: "bottom"
+            }
+        },
+        {
+            element: '#tour-marketplace-buy',
+            popover: {
+                title: 'Instant Purchase ⚡',
+                description: 'Buy invoices instantly with smart contract security. Revenue is routed directly to your wallet.',
+                side: "left"
+            }
+        }
+    ];
+
+    // 5. Subscription Steps
+    const subscriptionSteps: DriveStep[] = [
+        {
+            element: '#tour-subscription-create',
+            popover: {
+                title: 'Recurring Revenue 🔄',
+                description: 'Set up automated billing cycles. Perfect for retainers and SaaS pricing.',
+                side: "left"
+            }
+        },
+        {
+            element: '#tour-subscription-active',
+            popover: {
+                title: 'Active Streams 🌊',
+                description: 'Monitor your active subscriptions. Payments are automatically pulled and settled on-chain.',
+                side: "top"
+            }
+        }
+    ];
+
+    // 6. Tax Reports Steps
+    const taxReportSteps: DriveStep[] = [
+        {
+            element: '#tour-tax-year-select',
+            popover: {
+                title: 'Tax Periods 📅',
+                description: 'Select accurate reporting periods for your financial records.',
+                side: "right"
+            }
+        },
+        {
+            element: '#tour-tax-export-csv',
+            popover: {
+                title: 'Data Export 📥',
+                description: 'Download comprehensive CSV reports compatible with major accounting software.',
+                side: "bottom"
+            }
+        }
+    ];
+
+    // 7. Customers Steps
     const customerSteps: DriveStep[] = [
         {
             element: '#tour-add-customer',
             popover: {
-                title: 'Add New Customer 👥',
-                description: 'Save frequently used customer profiles for quick access later.',
+                title: 'Build Relationships 🤝',
+                description: 'Save customer profiles for faster invoicing. Track lifetime value per client.',
                 side: "left"
             }
         },
         {
             element: '#tour-customer-list',
             popover: {
-                title: 'Customer Directory 📂',
-                description: 'View and manage your saved customers. Click "Create Invoice" on any card to start drafting.',
+                title: 'CRM Lite 📇',
+                description: 'Your business rolodex. Click any card to instantly start a new invoice for that client.',
                 side: "top"
             }
         }
     ];
 
-    // 5. Settings Steps
+    // 8. Settings Steps
     const settingsSteps: DriveStep[] = [
         {
             element: '#tour-profile-settings',
             popover: {
-                title: 'Business Profile 🏢',
-                description: 'Manage your business identity here. This information appears on your invoices.',
+                title: 'Business Identity 🆔',
+                description: 'Manage your on-chain presence. This is how the world sees your business.',
                 side: "bottom"
-            }
-        },
-        {
-            element: '#tour-profile-name',
-            popover: {
-                title: 'Business Name 🏷️',
-                description: 'Enter your legal business or trade name.',
-                side: "right"
-            }
-        },
-        {
-            element: '#tour-profile-email',
-            popover: {
-                title: 'Contact Email 📧',
-                description: 'Where should customers contact you? This is optional but recommended.',
-                side: "right"
-            }
-        },
-        {
-            element: '#tour-profile-save',
-            popover: {
-                title: 'Save Profile 💾',
-                description: 'Don\'t forget to save your changes! You must save a profile before you can mint your identity.',
-                side: "top"
             }
         },
         {
             element: '#tour-identity-verification',
             popover: {
-                title: 'On-Chain Verification ✅',
-                description: 'Establish trust by minting an Identity NFT. This proves your wallet owns this business profile.',
+                title: 'Trust Badge ✅',
+                description: 'Mint your verified Identity NFT. Increases trust and unlocks lower platform fees.',
                 side: "top"
-            }
-        },
-        {
-            element: '#tour-identity-mint-btn',
-            popover: {
-                title: 'Mint Your Badge 🏅',
-                description: 'Click here to mint. It costs a small network fee (~0.008 SOL) and is non-transferable.',
-                side: "left"
             }
         }
     ];
 
     const getStepsForRoute = (path: string): DriveStep[] => {
-        // Dashboard / Invoice List
-        if (path === '/invoices' || path === '/dashboard') {
-            return dashboardSteps;
-        }
-        // Create Invoice
-        if (path.includes('/invoices/create')) {
-            return createInvoiceSteps;
-        }
-        // Customers
-        if (path.includes('/customers')) {
-            return customerSteps;
-        }
-        // Settings
-        if (path.includes('/settings')) {
-            return settingsSteps;
-        }
-        // Landing Page (Root)
-        if (path === '/' || path === '') {
-            return landingSteps;
-        }
+        if (path.includes('/marketplace')) return marketplaceSteps;
+        if (path.includes('/subscriptions')) return subscriptionSteps;
+        if (path.includes('/tax-reports')) return taxReportSteps;
+        if (path.includes('/invoices/create')) return createInvoiceSteps;
+        if (path.includes('/customers')) return customerSteps;
+        if (path.includes('/settings')) return settingsSteps;
+        if (path === '/invoices' || path === '/dashboard') return dashboardSteps;
 
-        // Default to landing steps if no match (or could return empty)
         return landingSteps;
     };
 
@@ -253,16 +282,39 @@ export function TourGuide() {
             showProgress: true,
             animate: true,
             allowClose: true,
-            overlayColor: 'rgba(0, 0, 0, 0.8)',
+            overlayColor: 'rgba(0, 0, 0, 0.85)', // Darker overlay for focus
+            popoverClass: 'driver-popover-premium', // Custom premium class
             steps: validSteps,
             onDestroyed: () => {
                 driverRef.current = null;
-            }
+                // Mark as seen if it was the welcome tour
+                if (location === '/invoices/create' || location === '/dashboard') {
+                    localStorage.setItem('invoix_welcome_tour_seen', 'true');
+                    setHasSeenWelcome(true);
+                }
+            },
+            nextBtnText: 'Next →',
+            prevBtnText: '← Back',
+            doneBtnText: 'Complete ✨'
         });
 
         driverRef.current = driverObj;
         driverObj.drive();
     };
+
+    // Auto-trigger for new users on create invoice page
+    useEffect(() => {
+        if (!hasSeenWelcome && (location === '/invoices/create' || location === '/dashboard')) {
+            // Small delay to ensure DOM is ready
+            const timer = setTimeout(() => {
+                // Double check it hasn't run
+                if (!driverRef.current) {
+                    startTour();
+                }
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [location, hasSeenWelcome]);
 
     useEffect(() => {
         return () => {
@@ -274,8 +326,7 @@ export function TourGuide() {
 
     // Helper to determine button text based on context
     const getButtonText = () => {
-        if (location === '/') return 'Tour';
-        return 'Page Guide';
+        return 'Guide';
     };
 
     return (
@@ -283,9 +334,9 @@ export function TourGuide() {
             variant="ghost"
             size="sm"
             onClick={startTour}
-            className="gap-2 text-muted-foreground hover:text-primary transition-colors"
+            className="gap-2 text-muted-foreground hover:text-primary hover:bg-white/5 transition-all duration-300"
         >
-            <HelpCircle className="h-4 w-4" />
+            <Sparkles className="h-4 w-4" />
             <span className="hidden sm:inline">{getButtonText()}</span>
         </Button>
     );
