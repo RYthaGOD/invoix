@@ -1013,7 +1013,7 @@ class InvoiceStorage implements IInvoiceStorage {
       }));
 
       // Legacy fallback: Sum of all raw numbers (deprecated but kept for safety)
-      const totalPaidVolume = volumes.reduce((sum, v) => safeAdd(sum, v.amount), "0");
+      const totalPaidVolume = volumes.reduce((sum, v) => new Decimal(sum).plus(v.amount).toString(), "0");
 
       // 6. Unique Users (Union of Business and Customer Wallets)
       // We use a raw query for the UNION operation to ensure distinctness across both tables
