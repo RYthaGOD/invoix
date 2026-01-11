@@ -139,7 +139,7 @@ npm run test
 Distributed under the MIT License. See `LICENSE.md` for more information.
 
 ## 🤝 Community
-- **X (Twitter)**: [@InvoixSola24238](https://x.com/InvoixSola24238)
+- **X (Twitter)**: [@Invoix_solana]
 - **Community**: [Join the Invoix Community](https://x.com/i/communities/1998417251041718386)
 
 ---
