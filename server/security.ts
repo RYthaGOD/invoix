@@ -77,7 +77,7 @@ function getClientIp(req: Request): string {
  */
 export const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased from 100 for better UX
+  max: 300, // Reduced from 1000 for better production protection
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,

@@ -6,13 +6,14 @@ import { db, schema } from "./db";
 import { eq } from "drizzle-orm";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
-import { TREASURY_WALLET_ADDRESS } from "@shared/config";
+import { TREASURY_WALLET_ADDRESS, PLATFORM_FEE_RATE } from "@shared/config";
 import { loadKeypairFromPrivateKey } from "./arcium-service"; // Reuse this helper
 import { invoiceStorage } from "./invoice-storage";
 
 import { strictRateLimit } from "./security";
 import { logger } from "./logger";
 import { emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
+import Decimal from "decimal.js";
 
 const router = Router();
 
@@ -134,17 +135,18 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             decimals = 9; // SOL has 9 decimals
             const LAMPORTS_PER_SOL = 1_000_000_000;
 
-            // Parse strings to atomic units (lamports) safely
-            // We can use Math.round(parseFloat * 1e9) but direct BigInt parsing is safer if we wrote a util
-            // For now, let's use the existing pattern but adhere to integer outcomes immediately
+            // Parse strings to atomic units (lamports) safely using Decimal
+            // We use safe arithmetic to avoid floating point errors
 
-            const totalAmount = parseFloat(invoice.remainingAmount);
+            const totalAmount = new Decimal(invoice.remainingAmount);
             // Fee logic: 1% 
-            const feeAmount = invoice.platformFee ? parseFloat(invoice.platformFee) : totalAmount * 0.01;
-            const sellerAmt = invoice.subtotal ? parseFloat(invoice.subtotal) : totalAmount - feeAmount;
+            const feeRate = new Decimal(PLATFORM_FEE_RATE || "0.01");
+            const feeAmount = invoice.platformFee ? new Decimal(invoice.platformFee) : totalAmount.mul(feeRate);
+            const sellerAmt = invoice.subtotal ? new Decimal(invoice.subtotal) : totalAmount.sub(feeAmount);
 
-            platformFeeAtomic = BigInt(Math.round(feeAmount * LAMPORTS_PER_SOL));
-            sellerAmountAtomic = BigInt(Math.round(sellerAmt * LAMPORTS_PER_SOL));
+            // Convert to Atomic Units (Lamports)
+            platformFeeAtomic = BigInt(feeAmount.mul(LAMPORTS_PER_SOL).toFixed(0, Decimal.ROUND_HALF_UP));
+            sellerAmountAtomic = BigInt(sellerAmt.mul(LAMPORTS_PER_SOL).toFixed(0, Decimal.ROUND_HALF_UP));
             paymentAmountAtomic = platformFeeAtomic + sellerAmountAtomic;
 
             let treasuryPaidAmount = BigInt(0);
@@ -206,18 +208,19 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             const treasuryAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), treasuryPubkey);
             const sellerAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), sellerPubkey);
 
-            const totalAmount = parseFloat(invoice.remainingAmount);
+            const totalAmount = new Decimal(invoice.remainingAmount);
             // Fee logic: 1% + Gas (0.15 USDC)
-            const feeInfo = invoice.platformFee ? parseFloat(invoice.platformFee) : totalAmount * 0.01;
-            const gasFee = GAS_FEE_USDC;
+            const feeRate = new Decimal(PLATFORM_FEE_RATE || "0.01");
+            const feeInfo = invoice.platformFee ? new Decimal(invoice.platformFee) : totalAmount.mul(feeRate);
+            const gasFee = new Decimal(GAS_FEE_USDC.toString()); // GAS_FEE_USDC is number, convert safely
 
-            const sellerAmt = invoice.subtotal ? parseFloat(invoice.subtotal) : totalAmount - feeInfo;
-            const treasuryAmt = feeInfo + gasFee;
+            const sellerAmt = invoice.subtotal ? new Decimal(invoice.subtotal) : totalAmount.sub(feeInfo);
+            const treasuryAmt = feeInfo.add(gasFee);
 
             // Convert to BigInt atomic units
             const multiplier = Math.pow(10, decimals);
-            sellerAmountAtomic = BigInt(Math.round(sellerAmt * multiplier));
-            platformFeeAtomic = BigInt(Math.round(treasuryAmt * multiplier));
+            sellerAmountAtomic = BigInt(sellerAmt.mul(multiplier).toFixed(0, Decimal.ROUND_HALF_UP));
+            platformFeeAtomic = BigInt(treasuryAmt.mul(multiplier).toFixed(0, Decimal.ROUND_HALF_UP));
 
             let treasuryPaidAmount = BigInt(0);
             let sellerPaidAmount = BigInt(0);

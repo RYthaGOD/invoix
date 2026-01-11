@@ -11,6 +11,8 @@
  * - For high-value systems with very large numbers, consider BigInt or decimal.js
  * 
  * Current usage is safe for typical invoice amounts (up to billions of USD).
+ * 
+ * @deprecated Use shared/monetary.ts instead. This uses inherent unsafe native JS numbers.
  */
 
 const PRECISION = 1_000_000_000; // 9 decimals

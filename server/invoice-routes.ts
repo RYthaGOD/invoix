@@ -8,7 +8,8 @@ import type { Express } from "express";
 import { logger } from "./logger";
 import { invoiceStorage } from "./invoice-storage";
 import { asyncHandler } from "./error-handler";
-import { safeSubtract, safeAdd, safeMultiply } from "@shared/math";
+import { safeSub as safeSubtract, safeAdd, safeMul as safeMultiply } from "@shared/monetary";
+import Decimal from "decimal.js";
 import {
   insertInvoiceSchema,
   insertInvoiceWithItemsSchema,
@@ -211,8 +212,8 @@ export function registerInvoiceRoutes(app: Express): void {
             timestamp: Date.now(),
             items: (lineItems || []).map((item: any) => ({
               description: item.description,
-              quantity: parseFloat(item.quantity),
-              price: parseFloat(item.unitPrice)
+              quantity: new Decimal(item.quantity).toNumber(), // Warning: converted to number for Arcium compatibility
+              price: new Decimal(item.unitPrice).toNumber()    // Warning: converted to number for Arcium compatibility
             })),
           },
           req.body.allowedParties

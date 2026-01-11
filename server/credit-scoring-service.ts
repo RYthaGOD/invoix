@@ -23,6 +23,7 @@ import {
 import { eq, and, sql, desc, count, sum, avg, ne, isNotNull } from "drizzle-orm";
 import { logger } from "./logger";
 import { getSolPrice } from "./pricing-service";
+import Decimal from "decimal.js";
 
 // ============================================
 // TYPES & INTERFACES
@@ -519,11 +520,17 @@ export class CreditScoringService {
     /**
      * Incremental update after an invoice is created
      */
+
+    // ... inside class ...
+
+    /**
+     * Incremental update after an invoice is created
+     */
     async updateScoreOnInvoiceCreated(invoice: {
         invoicerWalletAddress: string;
         invoiceeWalletAddress: string;
         totalAmount: string;
-        currency?: string; // FIX: Add currency for proper USD conversion
+        currency?: string;
     }): Promise<void> {
         const { invoicerWalletAddress, invoiceeWalletAddress, totalAmount, currency } = invoice;
 
@@ -531,21 +538,23 @@ export class CreditScoringService {
         await this.getOrCreateCreditScore(invoicerWalletAddress);
         await this.getOrCreateCreditScore(invoiceeWalletAddress);
 
-        // FIX: Convert to USD based on currency
-        let amountUsd = parseFloat(totalAmount);
+        // FIX: Convert to USD based on currency using Decimal
+        let amountUsd = new Decimal(totalAmount);
+
         if (currency === 'SOL') {
             const solPrice = await getSolPrice();
-            // Fallback to 200 if price fetch fails (returned 0)
             const conversionRate = solPrice > 0 ? solPrice : 200;
-            amountUsd = parseFloat(totalAmount) * conversionRate;
+            amountUsd = amountUsd.mul(conversionRate);
         } else if (currency === 'EURC') {
-            amountUsd = parseFloat(totalAmount) * 1.05; // EUR to USD estimate (Updated)
+            amountUsd = amountUsd.mul(1.05); // EUR to USD estimate
         }
+
+        const amountUsdVal = amountUsd.toNumber();
 
         await db.update(businessCreditScores)
             .set({
                 totalInvoicesIssued: sql`${businessCreditScores.totalInvoicesIssued} + 1`,
-                totalVolumeUsd: sql`${businessCreditScores.totalVolumeUsd} + ${amountUsd}`,
+                totalVolumeUsd: sql`${businessCreditScores.totalVolumeUsd} + ${amountUsdVal}`,
                 firstActivityAt: sql`COALESCE(${businessCreditScores.firstActivityAt}, NOW())`,
                 updatedAt: new Date(),
             })
@@ -560,6 +569,51 @@ export class CreditScoringService {
             })
             .where(eq(businessCreditScores.walletAddress, invoiceeWalletAddress));
     }
+
+    // ...
+
+    private async getVolumeMetrics(walletAddress: string): Promise<VolumeMetrics> {
+        // Get volume from stored metrics first (more efficient)
+        const [stored] = await db.select({
+            totalVolumeUsd: businessCreditScores.totalVolumeUsd,
+            totalInvoicesIssued: businessCreditScores.totalInvoicesIssued,
+            uniqueCounterparties: businessCreditScores.uniqueCounterparties,
+        })
+            .from(businessCreditScores)
+            .where(eq(businessCreditScores.walletAddress, walletAddress))
+            .limit(1);
+
+        if (stored) {
+            return {
+                totalVolumeUSD: new Decimal(stored.totalVolumeUsd || "0").toNumber(),
+                totalInvoicesIssued: stored.totalInvoicesIssued,
+                uniqueCounterparties: stored.uniqueCounterparties,
+            };
+        }
+
+        // Calculate from scratch if no stored data
+        const invoiceStats = await db.select({
+            totalAmount: sum(invoices.totalAmount),
+            count: count(),
+        })
+            .from(invoices)
+            .where(eq(invoices.invoicerWalletAddress, walletAddress));
+
+        // Count unique counterparties
+        const counterparties = await db.selectDistinct({ customer: invoices.invoiceeWalletAddress })
+            .from(invoices)
+            .where(eq(invoices.invoicerWalletAddress, walletAddress));
+
+        return {
+            totalVolumeUSD: new Decimal(invoiceStats[0]?.totalAmount || "0").toNumber(),
+            totalInvoicesIssued: Number(invoiceStats[0]?.count || 0),
+            uniqueCounterparties: counterparties.length,
+        };
+    }
+
+    // ...
+
+
 
     /**
      * Record a dispute against a wallet
@@ -643,44 +697,7 @@ export class CreditScoringService {
         };
     }
 
-    private async getVolumeMetrics(walletAddress: string): Promise<VolumeMetrics> {
-        // Get volume from stored metrics first (more efficient)
-        const [stored] = await db.select({
-            totalVolumeUsd: businessCreditScores.totalVolumeUsd,
-            totalInvoicesIssued: businessCreditScores.totalInvoicesIssued,
-            uniqueCounterparties: businessCreditScores.uniqueCounterparties,
-        })
-            .from(businessCreditScores)
-            .where(eq(businessCreditScores.walletAddress, walletAddress))
-            .limit(1);
 
-        if (stored) {
-            return {
-                totalVolumeUSD: parseFloat(stored.totalVolumeUsd || "0"),
-                totalInvoicesIssued: stored.totalInvoicesIssued,
-                uniqueCounterparties: stored.uniqueCounterparties,
-            };
-        }
-
-        // Calculate from scratch if no stored data
-        const invoiceStats = await db.select({
-            totalAmount: sum(invoices.totalAmount),
-            count: count(),
-        })
-            .from(invoices)
-            .where(eq(invoices.invoicerWalletAddress, walletAddress));
-
-        // Count unique counterparties
-        const counterparties = await db.selectDistinct({ customer: invoices.invoiceeWalletAddress })
-            .from(invoices)
-            .where(eq(invoices.invoicerWalletAddress, walletAddress));
-
-        return {
-            totalVolumeUSD: parseFloat(invoiceStats[0]?.totalAmount || "0"),
-            totalInvoicesIssued: Number(invoiceStats[0]?.count || 0),
-            uniqueCounterparties: counterparties.length,
-        };
-    }
 
     private async getSellerMetrics(walletAddress: string): Promise<SellerMetrics> {
         // Get invoice stats as seller
@@ -712,7 +729,8 @@ export class CreditScoringService {
         const customerVolumes: Record<string, number> = {};
         for (const inv of allInvoices) {
             const customer = inv.invoiceeWalletAddress;
-            customerVolumes[customer] = (customerVolumes[customer] || 0) + parseFloat(inv.totalAmount);
+            const currentVol = new Decimal(customerVolumes[customer] || 0);
+            customerVolumes[customer] = currentVol.plus(inv.totalAmount).toNumber();
         }
 
         const totalVolume = Object.values(customerVolumes).reduce((a, b) => a + b, 0);
@@ -727,6 +745,7 @@ export class CreditScoringService {
             topCustomerShare,
         };
     }
+
 
     private async getTenureMetrics(walletAddress: string): Promise<TenureMetrics> {
         const [stored] = await db.select({
@@ -839,10 +858,10 @@ export class CreditScoringService {
         }
 
         // Volume
-        const volumeUsd = parseFloat(stored.totalVolumeUsd || "0");
-        if (volumeUsd >= 10000) {
-            helping.push(`$${volumeUsd.toLocaleString()} total volume`);
-        } else if (volumeUsd < 1000 && stored.totalInvoicesIssued > 0) {
+        const volumeUsd = new Decimal(stored.totalVolumeUsd || "0");
+        if (volumeUsd.gte(10000)) {
+            helping.push(`$${volumeUsd.toNumber().toLocaleString()} total volume`);
+        } else if (volumeUsd.lt(1000) && stored.totalInvoicesIssued > 0) {
             hurting.push("Limited transaction volume");
         }
 
@@ -866,8 +885,8 @@ export class CreditScoringService {
             tips.push("Complete more payments to build your payment history");
         }
 
-        const volumeUsd = parseFloat(stored.totalVolumeUsd || "0");
-        if (volumeUsd < 1000) {
+        const volumeUsd = new Decimal(stored.totalVolumeUsd || "0");
+        if (volumeUsd.lt(1000)) {
             tips.push("Increase your transaction volume to improve your score");
         }
 

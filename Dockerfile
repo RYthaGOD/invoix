@@ -20,23 +20,23 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Build the application
-# This runs "vite build" (client) and "tsx server/build.ts" (server)
-# We pass benign values for build-time variables if Vite needs them, 
-# but runtime vars come from the environment at startup.
 RUN npm run build
+
+# Prune development dependencies to keep production image small
+RUN npm prune --production --legacy-peer-deps
 
 # --- Production Stage ---
 FROM node:20-slim
 
 WORKDIR /app
 
+# Set environment variable for production
+ENV NODE_ENV=production
+
 # Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
-
-# Copy migrations explicitly if they aren't bundled (build.ts copies them, but let's be safe)
-# server/build.ts copies them to dist/migrations, so we are good.
 
 # Expose port
 EXPOSE 5000

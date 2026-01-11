@@ -10,6 +10,7 @@ import { pgTable, text, varchar, timestamp, decimal, integer, boolean, index } f
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import Decimal from "decimal.js";
 
 // ============================================
 // CORE INVOICING TABLES
@@ -113,7 +114,7 @@ export const invoices = pgTable("invoices", {
  */
 export function serializeInvoiceForHashing(invoice: any): string {
   // 1. Amount: Strict 2 decimal places
-  const amount = Number(invoice.totalAmount).toFixed(2);
+  const amount = new Decimal(invoice.totalAmount).toFixed(2);
 
   // 2. Line Items: Sort and Format
   // We expect invoice.lineItems to be populated
@@ -123,8 +124,8 @@ export function serializeInvoiceForHashing(invoice: any): string {
     const sortedItems = [...invoice.lineItems].sort((a, b) => a.lineNumber - b.lineNumber);
 
     lineItemsString = sortedItems.map(item => {
-      const qty = Number(item.quantity).toString(); // remove trailing zeros if any? keep simple
-      const price = Number(item.unitPrice).toFixed(2);
+      const qty = new Decimal(item.quantity).toString();
+      const price = new Decimal(item.unitPrice).toFixed(2);
       // Clean description of pipe characters to avoid injection
       const cleanDesc = (item.description || "").replace(/\|/g, "");
       return `${cleanDesc}|${qty}|${price}`;
@@ -632,7 +633,9 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   invoicerWalletAddress: z.string().min(32, "Invalid Solana wallet address").optional(), // Backend injects this from Session
   invoiceeWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
   tokenMintAddress: z.string().min(32, "Invalid token mint address").optional(), // Backend defaults this if missing
-  totalAmount: z.string().refine(val => parseFloat(val) > 0, "Total amount must be positive"),
+  totalAmount: z.string().refine(val => {
+    try { return new Decimal(val).isPositive(); } catch { return false; }
+  }, "Total amount must be positive"),
   dueDate: z.date().or(z.string()),
   x402PaymentSignature: z.string().optional(), // Spam control payment signature
 });
@@ -644,8 +647,12 @@ export const insertLineItemSchema = createInsertSchema(invoiceLineItems).omit({
   lineNumber: true, // Backend generated
 }).extend({
   invoiceId: z.string().uuid(),
-  quantity: z.string().refine(val => parseFloat(val) > 0, "Quantity must be positive"),
-  unitPrice: z.string().refine(val => parseFloat(val) >= 0, "Unit price cannot be negative"),
+  quantity: z.string().refine(val => {
+    try { return new Decimal(val).isPositive(); } catch { return false; }
+  }, "Quantity must be positive"),
+  unitPrice: z.string().refine(val => {
+    try { return new Decimal(val).gte(0); } catch { return false; }
+  }, "Unit price cannot be negative"),
 });
 
 export const insertInvoiceWithItemsSchema = insertInvoiceSchema.extend({
@@ -661,7 +668,9 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
 }).extend({
   invoiceId: z.string().uuid(),
   txSignature: z.string().min(88, "Invalid Solana transaction signature"), // Fixed: Solana signatures are 88 chars
-  amount: z.string().refine(val => parseFloat(val) > 0, "Payment amount must be positive"),
+  amount: z.string().refine(val => {
+    try { return new Decimal(val).isPositive(); } catch { return false; }
+  }, "Payment amount must be positive"),
   usdValueAtPayment: z.string().optional(), // Optional: can be passed from client or fetched
   isBusinessExpense: z.boolean().optional(),
 
@@ -699,7 +708,9 @@ export const insertPaymentReceiptNFTSchema = createInsertSchema(paymentReceiptNF
   invoiceId: z.string().uuid(),
   nftMint: z.string().min(32, "Invalid NFT mint address"),
   nftOwner: z.string().min(32, "Invalid owner wallet address"),
-  amount: z.string().refine(val => parseFloat(val) > 0, "Amount must be positive"),
+  amount: z.string().refine(val => {
+    try { return new Decimal(val).isPositive(); } catch { return false; }
+  }, "Amount must be positive"),
 });
 
 export const insertBusinessIdentityNFTSchema = createInsertSchema(businessIdentityNFTs).omit({
@@ -721,8 +732,12 @@ export const insertInvoiceMarketplaceSchema = createInsertSchema(invoiceMarketpl
   invoiceId: z.string().uuid(),
   nftMint: z.string().min(32, "Invalid NFT mint address"),
   seller: z.string().min(32, "Invalid seller wallet address"),
-  faceValue: z.string().refine(val => parseFloat(val) > 0, "Face value must be positive"),
-  askingPrice: z.string().refine(val => parseFloat(val) > 0, "Asking price must be positive"),
+  faceValue: z.string().refine(val => {
+    try { return new Decimal(val).isPositive(); } catch { return false; }
+  }, "Face value must be positive"),
+  askingPrice: z.string().refine(val => {
+    try { return new Decimal(val).isPositive(); } catch { return false; }
+  }, "Asking price must be positive"),
   isBlind: z.boolean().optional(),
 });
 
