@@ -112,6 +112,39 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             return res.status(400).json({ success: false, message: "Transaction fee payer must be the protocol" });
         }
 
+        // --- SECURITY FIX: Payer Authorization ---
+        let userPayer = "unknown";
+        if (isVersioned) {
+            const vTx = transaction as VersionedTransaction;
+            // The user is likely the 2nd signer (index 1) if fee payer is 0
+            if (vTx.message.header.numRequiredSignatures > 1) {
+                userPayer = vTx.message.staticAccountKeys[1].toString();
+            }
+        } else {
+            const lTx = transaction as Transaction;
+            if (lTx.signatures) {
+                for (const sig of lTx.signatures) {
+                    if (sig.publicKey && !sig.publicKey.equals(payerKeypair.publicKey)) {
+                        userPayer = sig.publicKey.toString();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (userPayer !== invoice.invoiceeWalletAddress) {
+            logger.warn("Unauthorized Gasless Relay attempt", "security", {
+                invoiceId,
+                attemptedBy: userPayer,
+                authorizedPayer: invoice.invoiceeWalletAddress
+            });
+            return res.status(403).json({
+                success: false,
+                message: "Unauthorized: Only the designated recipient can pay this invoice"
+            });
+        }
+        // ------------------------------------------
+
         // 4. Detect if this is a native SOL payment
         const isNativeSOL = invoice.currency === "SOL" ||
             invoice.tokenMint === "So11111111111111111111111111111111111111112";
@@ -387,83 +420,11 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
 
             logger.info("Relay transaction sent", "payment", { signature, invoiceId, isVersioned });
 
-            // 6. Record Payment (Immediate)
             if (invoiceId) {
-                let userPayer = "unknown";
-                try {
-                    // Try to find user payer for record
-                    if (isVersioned) {
-                        const vTx = transaction as VersionedTransaction;
-                        // The user is likely the 2nd signer (index 1) if fee payer is 0
-                        if (vTx.message.header.numRequiredSignatures > 1) {
-                            userPayer = vTx.message.staticAccountKeys[1].toString();
-                        }
-                    } else {
-                        const lTx = transaction as Transaction;
-                        // First signer that isn't protocol
-                        // ... logic to find other signer ...
-                        if (lTx.signatures) {
-                            for (const sig of lTx.signatures) {
-                                if (sig.publicKey && !sig.publicKey.equals(payerKeypair.publicKey)) {
-                                    userPayer = sig.publicKey.toString();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    const paymentData = {
-                        invoiceId: invoiceId,
-                        amount: invoice.remainingAmount,
-                        currency: invoice.currency,
-                        txSignature: signature,
-                        fromAddress: userPayer,
-                        toAddress: invoice.invoicerWalletAddress,
-                        status: "confirmed",
-                        confirmedAt: new Date(),
-                    };
-                    await invoiceStorage.createPayment(paymentData as any);
-                    logger.info("Payment recorded locally", "payment", { signature, invoiceId });
-
-                    // --- EMIT WEBHOOK EVENT ---
-                    emitWebhookEvent(
-                        invoice.invoicerWalletAddress,
-                        WEBHOOK_EVENTS.INVOICE_PAID,
-                        {
-                            invoiceId,
-                            paymentId: signature, // Using signature as ID for now since DB id isn't returned above
-                            amount: invoice.remainingAmount,
-                            currency: invoice.currency,
-                            payoutTx: signature,
-                            payer: userPayer,
-                            timestamp: new Date().toISOString()
-                        }
-                    ).catch(err => logger.error("Failed to emit invoice.paid webhook", "webhook", { error: err }));
-                    // --------------------------
-
-                    // --- CREDIT SCORE UPDATE ---
-                    // Update credit scores for payer and payee (non-blocking)
-                    try {
-                        const { creditScoringService } = await import("./credit-scoring-service");
-                        creditScoringService.updateScoreOnPayment({
-                            fromAddress: userPayer,
-                            toAddress: invoice.invoicerWalletAddress,
-                            amount: invoice.remainingAmount,
-                            invoiceDueDate: new Date(invoice.dueDate),
-                            paidAt: new Date(),
-                        }).catch(err => logger.warn("Credit score update failed", "credit", { error: err.message }));
-                    } catch (creditErr) {
-                        logger.warn("Credit scoring service unavailable", "credit", { error: creditErr });
-                    }
-                    // ---------------------------
-                } catch (paymentErr: any) {
-                    logger.error("Error recording payment", "payment", { error: paymentErr.message || paymentErr });
-                }
-
                 import("./payment-confirmation-service").then(service => {
                     // Pass the determined userPayer to the confirmation service
                     service.confirmPaymentAndMintOutcome(signature, invoiceId, userPayer);
-                }).catch(err => logger.error("Failed to start NFT minting", "nft", { error: err.message || err }));
+                }).catch(err => logger.error("Failed to start confirmation service", "payment", { error: err.message || err }));
             }
 
             res.json({ success: true, signature });

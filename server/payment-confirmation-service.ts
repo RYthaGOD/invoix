@@ -8,6 +8,7 @@ import { Connection } from "@solana/web3.js";
 import crypto from "crypto";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 import { logger } from "./logger";
+import { emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
 import Decimal from "decimal.js";
 
 const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
@@ -20,6 +21,13 @@ const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.dev
  */
 export async function confirmPaymentAndMintOutcome(signature: string, invoiceId: string, payerAddress: string) {
     try {
+        // 0. Global Replay Protection: Check if signature already exists anywhere
+        const isReplay = await invoiceStorage.isSignatureUsed(signature);
+        if (isReplay) {
+            logger.warn(`Potential replay attack blocked: Signature ${signature} already used.`, "security");
+            return;
+        }
+
         logger.info(`Confirming payment ${signature} for invoice ${invoiceId}...`, "payment");
 
         // 1. Confirm Transaction with explicit timeout (30 seconds max)
@@ -73,6 +81,17 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             return;
         }
 
+        // --- SECURITY FIX: Defense-in-Depth Payer Authorization ---
+        if (verification.fromAddress !== invoice.invoiceeWalletAddress) {
+            logger.error(`Security Alert: Unauthorized payer detected for invoice ${invoiceId}`, "security", {
+                expected: invoice.invoiceeWalletAddress,
+                got: verification.fromAddress,
+                signature
+            });
+            // Stop processing - this payment was not from the authorized invoicee
+            return;
+        }
+
         logger.info(`Verified amount: ${verification.amount} ${verification.currency}`, "payment");
 
         // 3. ATOMIC TRANSACTION: Record Payment & Update Invoice
@@ -92,14 +111,21 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             let paymentRecord = existingPayments[0];
             let paymentAlreadyExists = !!paymentRecord;
 
+            // FIX: Re-fetch Invoice INSIDE transaction with lock to prevent Race Conditions on Partial Payments
+            let invQuery = tx.select().from(invoices).where(eq(invoices.id, invoiceId));
+            if (process.env.DATABASE_URL) invQuery = invQuery.for('update');
+            const [freshInvoice] = await invQuery.limit(1);
+
+            if (!freshInvoice) throw new Error("Invoice not found during payment recording");
+
             const paymentData = {
                 invoiceId: invoiceId,
-                paymentNumber: `PAY-${Date.now().toString().slice(-6)}`,
-                amount: invoice.remainingAmount,
-                currency: invoice.currency,
+                paymentNumber: `PAY-${Date.now().toString().slice(-6)}-${crypto.randomBytes(3).toString('hex')}`,
+                amount: verification.amount, // Use the actual verified amount (string)
+                currency: verification.currency,
                 txSignature: signature,
-                fromAddress: payerAddress,
-                toAddress: invoice.invoicerWalletAddress,
+                fromAddress: verification.fromAddress,
+                toAddress: verification.toAddress,
                 status: "confirmed",
                 confirmedAt: new Date(),
             };
@@ -114,7 +140,8 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                 logger.info(`Payment recorded: ${newPayment.id}`, "payment");
 
                 // 4. Update Invoice: Decrease remaining amount using SAFE MATH
-                const currentRemaining = new Decimal(invoice.remainingAmount);
+                // Use freshInvoice data from inside the lock
+                const currentRemaining = new Decimal(freshInvoice.remainingAmount);
                 const paidAmt = new Decimal(paymentRecord.amount);
 
                 // newRemaining = max(0, current - paid)
@@ -122,21 +149,24 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                 if (newRemainingDec.isNegative()) {
                     newRemainingDec = new Decimal(0);
                 }
-                const newRemaining = newRemainingDec.toFixed(invoice.tokenDecimals || 6); // Match precision
+                // Use strict decimal formatting based on token decimals
+                const newRemaining = newRemainingDec.toFixed(freshInvoice.tokenDecimals || 6);
 
-                const isFullyPaid = newRemainingDec.isZero();
-                const newStatus = isFullyPaid ? "paid" : "sent";
+                const isFullyPaid = newRemainingDec.lte(0);
+                // Status Logic: If fully paid -> paid. If not -> partial (unless it was already something else? partial is correct)
+                const newStatus = isFullyPaid ? "paid" : "partial";
 
                 // Update Invoice
-                const currentPaidTotal = new Decimal(invoice.paidAmount || "0");
-                const newPaidTotal = currentPaidTotal.plus(paidAmt).toFixed(invoice.tokenDecimals || 6);
+                const currentPaidTotal = new Decimal(freshInvoice.paidAmount || "0");
+                const newPaidTotal = currentPaidTotal.plus(paidAmt).toFixed(freshInvoice.tokenDecimals || 6);
 
                 await tx.update(invoices)
                     .set({
                         remainingAmount: newRemaining,
                         status: newStatus,
                         paidAmount: newPaidTotal,
-                        paidAt: isFullyPaid ? new Date() : invoice.paidAt
+                        paidAt: isFullyPaid ? new Date() : freshInvoice.paidAt,
+                        updatedAt: new Date()
                     })
                     .where(eq(invoices.id, invoiceId));
 
@@ -155,25 +185,41 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
                     await tx.update(invoiceMarketplace)
                         .set({ status: 'cancelled', updatedAt: new Date() })
                         .where(eq(invoiceMarketplace.id, activeListing.id));
-
-                    // NFT Return logic remains technically internal to the service but triggered here
-                    // We can't do the side-effect (NFT transfer) inside the DB transaction easily if it fails.
-                    // But we MUST ensure DB state reflects cancellation.
-                    // The NFT transfer is a side effect. Ideally, we queue it. 
-                    // For now, we'll keep the transfer logic *after* the TX or simply risk it (audit finding: split effect).
-                    // Refactor decision: Logic below accesses 'invoice' which is consistent. 
-                    // We will perform the NFT transfer JUST AFTER this transaction block successfully commits if possible,
-                    // but for this refactor we are effectively locking the DB state first.
-
-                    // Actually, to be safe, we should assume the NFT transfer logic is robust. 
-                    // We'll leave the NFT transfer call adjacent or extract it? 
-                    // The original code had it inline. To strictly follow 'db.transaction', 
-                    // we cannot easily await an external API cleanly without blocking the DB connection.
-                    // However, we MUST update the DB status.
                 }
             }
-            return paymentData;
+            return { payment: paymentRecord, isNew: !paymentAlreadyExists };
         });
+
+        if (paymentData.isNew) {
+            // --- EMIT WEBHOOK EVENT ---
+            emitWebhookEvent(
+                invoice.invoicerWalletAddress,
+                WEBHOOK_EVENTS.INVOICE_PAID,
+                {
+                    invoiceId,
+                    paymentId: paymentData.payment.id,
+                    amount: paymentData.payment.amount,
+                    currency: paymentData.payment.currency,
+                    payoutTx: signature,
+                    payer: verification.fromAddress,
+                    timestamp: new Date().toISOString()
+                }
+            ).catch(err => logger.error("Failed to emit invoice.paid webhook", "webhook", { error: err }));
+
+            // --- CREDIT SCORE UPDATE ---
+            try {
+                const { creditScoringService } = await import("./credit-scoring-service");
+                creditScoringService.updateScoreOnPayment({
+                    fromAddress: verification.fromAddress,
+                    toAddress: invoice.invoicerWalletAddress,
+                    amount: paymentData.payment.amount,
+                    invoiceDueDate: new Date(invoice.dueDate),
+                    paidAt: new Date(),
+                }).catch(err => logger.warn("Credit score update failed", "credit", { error: err.message }));
+            } catch (creditErr) {
+                logger.warn("Credit scoring service unavailable", "credit", { error: creditErr });
+            }
+        }
 
         // RE-FETCH Invoice for Post-Payment Logic (NFTs) outside the transaction lock
         // This ensures we're working with committed state for the NFT service side-effects.
@@ -304,6 +350,19 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
         const isReady = await waitForNftService(nftService);
 
         if (isReady) {
+            // IDEMPOTENCY CHECK: Ensure we haven't already minted a receipt for this payment
+            // We need to re-fetch the payment record to be sure, or trust the 'paymentData' if it was just returned.
+            // Since side-effects happen after the transaction, sticking to a re-fetch is safest or check local state if reliable.
+            // Let's check the payment status if we have the ID.
+            const [currentPaymentStatus] = await db.select({ minted: payments.nftReceiptMinted })
+                .from(payments)
+                .where(eq(payments.txSignature, signature))
+                .limit(1);
+
+            if (currentPaymentStatus && currentPaymentStatus.minted) {
+                logger.info("Receipt NFT already minted, skipping side-effect.", "nft");
+                return;
+            }
 
             // Construct the payment object expected by the service
             // We use 'as any' safely here because paymentData matches the DB schema expected by SelectPayment

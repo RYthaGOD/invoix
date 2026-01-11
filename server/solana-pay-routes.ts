@@ -73,6 +73,18 @@ export function registerSolanaPayRoutes(app: Express) {
                 return res.status(400).json({ error: "Invoice already paid" });
             }
 
+            // --- SECURITY FIX: Payer Authorization ---
+            if (account !== invoice.invoiceeWalletAddress) {
+                logger.warn("Unauthorized Solana Pay attempt", "solana-pay", {
+                    invoiceId: id,
+                    attemptedBy: account,
+                    authorizedPayer: invoice.invoiceeWalletAddress
+                });
+                return res.status(403).json({
+                    error: "Unauthorized: Only the designated recipient can pay this invoice",
+                });
+            }
+
             const userPubkey = new PublicKey(account);
             const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
 
@@ -90,7 +102,8 @@ export function registerSolanaPayRoutes(app: Express) {
 
             // --- 2. Build Transaction ---
             const transaction = new Transaction();
-            const recipientPubkey = new PublicKey(invoice.invoicerWalletAddress);
+            // --- SECURITY FIX: Dynamic Payee Routing (Marketplace Support) ---
+            const recipientPubkey = new PublicKey(invoice.nftTransferredTo || invoice.invoicerWalletAddress);
             const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
 
             if (isNativeSOL) {

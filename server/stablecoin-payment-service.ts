@@ -10,7 +10,7 @@ import { logger } from "./logger";
 
 export interface PaymentVerificationResult {
     verified: boolean;
-    amount: number;
+    amount: string; // Changed to string for strict precision
     currency: string;
     fromAddress: string;
     toAddress: string;
@@ -19,9 +19,6 @@ export interface PaymentVerificationResult {
     error?: string;
 }
 
-/**
- * Verify a stablecoin payment transaction on Solana
- */
 /**
  * Verify a stablecoin payment transaction on Solana
  * Checks:
@@ -53,7 +50,7 @@ export async function verifyStablecoinPayment(
             if (!stablecoinConfig) {
                 return {
                     verified: false,
-                    amount: 0,
+                    amount: "0",
                     currency: expectedCurrency,
                     fromAddress: "",
                     toAddress: "",
@@ -82,7 +79,7 @@ export async function verifyStablecoinPayment(
         if (!tx) {
             return {
                 verified: false,
-                amount: 0,
+                amount: "0",
                 currency: expectedCurrency,
                 fromAddress: "",
                 toAddress: "",
@@ -95,7 +92,7 @@ export async function verifyStablecoinPayment(
         if (tx.meta?.err) {
             return {
                 verified: false,
-                amount: 0,
+                amount: "0",
                 currency: expectedCurrency,
                 fromAddress: "",
                 toAddress: "",
@@ -110,7 +107,7 @@ export async function verifyStablecoinPayment(
         if (transfers.length === 0) {
             return {
                 verified: false,
-                amount: 0,
+                amount: "0",
                 currency: expectedCurrency,
                 fromAddress: "",
                 toAddress: "",
@@ -136,13 +133,28 @@ export async function verifyStablecoinPayment(
             });
             return {
                 verified: false,
-                amount: 0,
+                amount: "0",
                 currency: expectedCurrency,
                 fromAddress: transfers[0]?.source || "", // Best guess
                 toAddress: "",
                 txSignature,
                 timestamp: new Date(),
                 error: `Recipient did not receive any funds. Expected: ${expectedRecipient.slice(0, 8)}..., Got payments to: ${transfers.map(t => t.destination.slice(0, 8) + '...').join(', ') || 'none'}`,
+            };
+        }
+
+        // --- SECURITY FIX: Spoofing Protection ---
+        // Ensure the sender is NOT the recipient (self-transfer attack)
+        if (paymentTransfer.source.toLowerCase() === paymentTransfer.destination.toLowerCase()) {
+            return {
+                verified: false,
+                amount: "0",
+                currency: expectedCurrency,
+                fromAddress: paymentTransfer.source,
+                toAddress: paymentTransfer.destination,
+                txSignature,
+                timestamp: new Date(),
+                error: "Security Alert: Self-transfer detected. Payment rejected.",
             };
         }
 
@@ -167,14 +179,23 @@ export async function verifyStablecoinPayment(
         // Exact match check
         const diff = receivedAmount > expectedAmountBigInt ? receivedAmount - expectedAmountBigInt : expectedAmountBigInt - receivedAmount;
 
-        // FIX R2-6: TOLERANCE DOCUMENTATION
+        // FIX R3-3: Precision Formatting
+        // Helper to convert atomic BigInt back to human string
+        const toHuman = (atomic: bigint): string => {
+            const s = atomic.toString().padStart(decimals + 1, "0");
+            const whole = s.slice(0, -decimals);
+            const frac = s.slice(-decimals);
+            // Remove trailing zeros
+            let cleanFrac = frac.replace(/0+$/, "");
+            return cleanFrac ? `${whole}.${cleanFrac}` : whole;
+        };
+
+        // R2-6: TOLERANCE
         // Allow max 100 atomic units difference (~0.0001 USDC or ~0.0000001 SOL)
-        // This tolerance accounts for potential rounding in UI or wallet calculations
-        // For high-security/high-value payments, consider tightening to 0 in future
         if (diff > BigInt(100)) {
             return {
                 verified: false,
-                amount: Number(receivedAmount) / Math.pow(10, decimals),
+                amount: toHuman(receivedAmount),
                 currency: expectedCurrency,
                 fromAddress: paymentTransfer.source,
                 toAddress: paymentTransfer.destination,
@@ -192,7 +213,7 @@ export async function verifyStablecoinPayment(
             if (!feeTransfer) {
                 return {
                     verified: false,
-                    amount: Number(receivedAmount) / Math.pow(10, decimals),
+                    amount: toHuman(receivedAmount),
                     currency: expectedCurrency,
                     fromAddress: paymentTransfer.source,
                     toAddress: paymentTransfer.destination,
@@ -208,7 +229,7 @@ export async function verifyStablecoinPayment(
             if (feeDiff > BigInt(100)) {
                 return {
                     verified: false,
-                    amount: Number(receivedAmount) / Math.pow(10, decimals),
+                    amount: toHuman(receivedAmount),
                     currency: expectedCurrency,
                     fromAddress: paymentTransfer.source,
                     toAddress: paymentTransfer.destination,
@@ -222,7 +243,7 @@ export async function verifyStablecoinPayment(
         // Success!
         return {
             verified: true,
-            amount: Number(receivedAmount) / Math.pow(10, decimals),
+            amount: toHuman(receivedAmount),
             currency: expectedCurrency,
             fromAddress: paymentTransfer.source,
             toAddress: paymentTransfer.destination,
@@ -234,7 +255,7 @@ export async function verifyStablecoinPayment(
         logger.error("Error verifying payment", "payment", { error });
         return {
             verified: false,
-            amount: 0,
+            amount: "0",
             currency: expectedCurrency,
             fromAddress: "",
             toAddress: "",

@@ -51,7 +51,7 @@ import type {
 export type { Invoice, InvoiceLineItem, Payment, BusinessProfile, CustomerProfile };
 import { db, runTransaction } from "./db";
 import { eq, and, or, ne, desc, asc, sql, isNotNull } from "drizzle-orm";
-import { safeAdd, safeSubtract, safeMultiply } from "@shared/math";
+import Decimal from "decimal.js";
 
 export interface IInvoiceStorage {
   // Invoice operations
@@ -339,7 +339,7 @@ class InvoiceStorage implements IInvoiceStorage {
           ...item,
           invoiceId: newInvoice.id,
           lineNumber: index + 1,
-          lineTotal: safeMultiply(item.quantity, item.unitPrice),
+          lineTotal: new Decimal(item.quantity).times(item.unitPrice).toString(),
         }));
 
         await tx.insert(invoiceLineItems).values(itemsToInsert as any[]);
@@ -396,7 +396,7 @@ class InvoiceStorage implements IInvoiceStorage {
 
   async createLineItem(lineItem: InsertLineItem): Promise<InvoiceLineItem> {
     // Calculate derived fields
-    const lineTotal = safeMultiply(lineItem.quantity, lineItem.unitPrice);
+    const lineTotal = new Decimal(lineItem.quantity).times(lineItem.unitPrice).toString();
 
     // Get next line number
     const [lastItem] = await db.select({ lineNumber: invoiceLineItems.lineNumber })
@@ -504,12 +504,17 @@ class InvoiceStorage implements IInvoiceStorage {
         .limit(1);
 
       if (invoice) {
-        // Use safe string-based math to avoid floating point errors
-        const newPaidAmount = safeAdd(invoice.paidAmount, payment.amount);
-        const remainingAmount = safeSubtract(invoice.totalAmount, newPaidAmount);
+        // Use high-precision Decimal math to avoid floating point errors
+        const invoicePaid = new Decimal(invoice.paidAmount || "0");
+        const paymentAmt = new Decimal(payment.amount);
+        const invoiceTotal = new Decimal(invoice.totalAmount);
 
-        const isPaid = parseFloat(remainingAmount) <= 0;
-        const isPartial = parseFloat(newPaidAmount) > 0;
+        const newPaidAmount = invoicePaid.plus(paymentAmt).toString();
+        const remainingAmountDec = invoiceTotal.minus(invoicePaid.plus(paymentAmt));
+        const remainingAmount = remainingAmountDec.isNegative() ? "0" : remainingAmountDec.toString();
+
+        const isPaid = remainingAmountDec.lte(0);
+        const isPartial = invoicePaid.plus(paymentAmt).gt(0);
 
         // FIX R2-4: Track and log overpayments
         const overpaymentAmount = parseFloat(remainingAmount) < 0
@@ -643,8 +648,8 @@ class InvoiceStorage implements IInvoiceStorage {
     const totalAmountStr = stats[0]?.totalAmount || "0";
     const paidAmountStr = stats[0]?.paidAmount || "0";
 
-    // Calculate pending using safe math on aggregated strings
-    const pendingAmount = safeSubtract(totalAmountStr, paidAmountStr);
+    // Calculate pending using high-precision math on aggregated strings
+    const pendingAmount = new Decimal(totalAmountStr).minus(paidAmountStr).toString();
 
     // Count overdue efficiently
     const now = new Date();
@@ -705,8 +710,8 @@ class InvoiceStorage implements IInvoiceStorage {
       ));
 
     const totalInvoices = customerInvoices.length;
-    const totalAmount = customerInvoices.reduce((sum, inv) => safeAdd(sum, inv.totalAmount), "0");
-    const paidAmount = customerInvoices.reduce((sum, inv) => safeAdd(sum, inv.paidAmount), "0");
+    const totalAmount = customerInvoices.reduce((sum, inv) => new Decimal(sum).plus(inv.totalAmount).toString(), "0");
+    const paidAmount = customerInvoices.reduce((sum, inv) => new Decimal(sum).plus(inv.paidAmount).toString(), "0");
 
     // Calculate average payment days
     const paidInvoices = customerInvoices.filter(inv => inv.status === "paid" && inv.paidAt);

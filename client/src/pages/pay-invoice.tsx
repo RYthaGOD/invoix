@@ -32,6 +32,7 @@ interface Invoice {
     dueDate: string;
     description: string;
     createdAt: string;
+    nftTransferredTo?: string; // New: For marketplace support
 }
 
 export default function PayInvoice() {
@@ -160,7 +161,8 @@ export default function PayInvoice() {
             const recipientAmount = subtotalAmount; // Seller gets full subtotal (no fee deduction)
             // Platform fee goes to treasury
 
-            const recipientPubkey = new PublicKey(invoice.invoicerWalletAddress);
+            // --- SECURITY FIX: Dynamic Payee Routing (Marketplace Support) ---
+            const recipientPubkey = new PublicKey(invoice.nftTransferredTo || invoice.invoicerWalletAddress);
             const transaction = new Transaction();
             transaction.feePayer = FEE_PAYER_PUBKEY; // Protocol Pays Gas
 
@@ -439,6 +441,10 @@ export default function PayInvoice() {
     const isPaid = invoice.status === "paid" || paymentStatus === 'verified';
     const isOverdue = new Date(invoice.dueDate) < new Date() && !isPaid;
 
+    // --- SECURITY FIX: Payer Authorization Check ---
+    const isAuthorizedPayer = publicKey && publicKey.toString() === invoice.invoiceeWalletAddress;
+    const authWarning = publicKey && !isAuthorizedPayer;
+
     return (
         <div className="min-h-screen" style={{ background: "hsl(225 20% 8%)" }}>
             {/* Header */}
@@ -652,6 +658,19 @@ export default function PayInvoice() {
                                     </div>
                                 )}
 
+                                {authWarning && (
+                                    <div className="mb-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex items-start gap-3">
+                                        <ShieldCheck className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-yellow-400 text-sm font-semibold">Restricted Access</p>
+                                            <p className="text-yellow-500/70 text-xs">
+                                                Only the designated recipient ({invoice.invoiceeWalletAddress.slice(0, 6)}...{invoice.invoiceeWalletAddress.slice(-4)})
+                                                can pay this invoice.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {!publicKey ? (
                                     <div className="text-center py-8">
                                         <p className="text-gray-400 mb-4">Connect your wallet to pay this invoice</p>
@@ -660,10 +679,12 @@ export default function PayInvoice() {
                                 ) : (
                                     <button
                                         onClick={handlePayment}
-                                        disabled={paying}
-                                        className="w-full smoke-shadow px-8 py-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                                        disabled={paying || !isAuthorizedPayer}
+                                        className="w-full smoke-shadow px-8 py-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed text-lg"
                                     >
-                                        {paying ? "Processing Payment..." : `Pay ${parseFloat(invoice.remainingAmount).toFixed(2)} ${invoice.currency}`}
+                                        {paying ? "Processing Payment..." : (
+                                            !isAuthorizedPayer ? "Unauthorized Wallet" : `Pay ${parseFloat(invoice.remainingAmount).toFixed(2)} ${invoice.currency}`
+                                        )}
                                     </button>
                                 )}
                             </div>

@@ -761,11 +761,11 @@ export function registerInvoiceRoutes(app: Express): void {
 
       // Platform Fee Enforcement (1%)
       // We verify that the transaction split funds: 99% to Seller, 1% to Platform
-      const totalAmount = validatedData.amount; // Keep as string ensures no float loss from DB/Input
-      const feeRate = "0.01";
-      // Calculate fee using safe math which returns strings
-      const feeAmount = safeMultiply(totalAmount, feeRate);
-      const recipientAmount = safeSubtract(totalAmount, feeAmount);
+      const totalAmount = new Decimal(validatedData.amount);
+      const feeRate = new Decimal("0.01");
+      // Calculate fee using high-precision math
+      const feeAmount = totalAmount.times(feeRate).toString();
+      const recipientAmount = totalAmount.minus(feeAmount).toString();
 
       logger.debug(`Payment Amount Calculations`, "invoice", {
         totalAmount,
@@ -776,11 +776,14 @@ export function registerInvoiceRoutes(app: Express): void {
         treasuryAddress: TREASURY_WALLET_ADDRESS,
       });
 
+      // --- SECURITY FIX: Dynamic Payee Routing (Marketplace Support) ---
+      const expectedRecipient = invoice.nftTransferredTo || invoice.invoicerWalletAddress;
+
       const verification = await verifyStablecoinPayment(
         connection,
         validatedData.txSignature || "",
         recipientAmount, // Pass as string
-        validatedData.toAddress || "",
+        expectedRecipient, // FIX: Use current owner
         validatedData.currency || "",
         feeAmount || "0", // Pass as string
         TREASURY_WALLET_ADDRESS
@@ -790,6 +793,18 @@ export function registerInvoiceRoutes(app: Express): void {
         logger.error(`Payment verification failed`, "invoice", { verification });
         return res.status(400).json({
           message: `Payment verification failed: ${verification.error || "Transaction invalid"}`
+        });
+      }
+
+      // --- SECURITY FIX: Payer Authorization ---
+      if (verification.fromAddress !== invoice.invoiceeWalletAddress) {
+        logger.warn("Unauthorized manual payment attempt", "security", {
+          invoiceId: invoice.id,
+          attemptedBy: verification.fromAddress,
+          authorizedPayer: invoice.invoiceeWalletAddress
+        });
+        return res.status(403).json({
+          message: "Unauthorized: Only the designated recipient can pay this invoice"
         });
       }
 
@@ -820,6 +835,8 @@ export function registerInvoiceRoutes(app: Express): void {
     // Pass the new accounting fields
     const payment = await invoiceStorage.createPayment({
       ...validatedData,
+      // FIX R2-Verify: Use verified verified on-chain amount if available
+      amount: (verification && verification.verified) ? verification.amount : validatedData.amount,
       // paymentNumber: `PAY-${Date.now()}`, // Removed as it doesn't exist in schema
       usdValueAtPayment: validatedData.usdValueAtPayment || undefined, // explicit pass
       isBusinessExpense: validatedData.isBusinessExpense || false,
