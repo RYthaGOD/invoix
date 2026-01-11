@@ -849,7 +849,9 @@
 
 .animate-pulse-glow {
   animation: pulse-glow 3s infinite;
-}/* ============================================
+}
+
+/* ============================================
    Driver.js Premium Popovers - 'Noir Delight'
    ============================================ */
 
@@ -884,8 +886,8 @@
 .driver-popover.driver-popover-premium .driver-popover-next-btn,
 .driver-popover.driver-popover-premium .driver-popover-prev-btn {
   @apply px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   color: white;
   text-shadow: none;
 }
@@ -897,7 +899,7 @@
 }
 
 .driver-popover.driver-popover-premium .driver-popover-prev-btn:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Progress Text */
@@ -918,7 +920,7 @@
 
 /* Arrow Tip */
 .driver-popover-arrow {
-  border-width: 8px !important; 
+  border-width: 8px !important;
 }
 
 /* Dark Mode Specifics handled by glass-card classes */
@@ -928,7 +930,9 @@
     opacity: 0;
     transform: translateY(10px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
