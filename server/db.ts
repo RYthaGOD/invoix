@@ -13,7 +13,8 @@ const schemaPg = { ...schemaPgCore, ...schemaWebhooks };
 
 // Use SQLite for local development (no DATABASE_URL needed)
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
-const useSQLite = isDevelopment && !process.env.DATABASE_URL;
+// Fail-safe: Use SQLite if no DATABASE_URL is provided, even in production (e.g. local preview)
+const useSQLite = !process.env.DATABASE_URL;
 
 // Export the schema so other files can use the correct one (SQLite vs Postgres)
 // WE CAST TO schemaPg TYPE TO SATISFY TYPESCRIPT
