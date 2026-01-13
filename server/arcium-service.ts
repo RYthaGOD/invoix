@@ -22,6 +22,9 @@ interface ConfidentialTransactionData {
   toAddress: string;
   txSignature: string;
   timestamp: number;
+  description?: string;
+  paymentTerms?: string;
+  notes?: string;
   items: Array<{
     description: string;
     quantity: number;

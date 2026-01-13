@@ -18,6 +18,7 @@ interface AuthContextType {
     login: (mode?: 'traditional' | 'passkey') => Promise<void>;  // Support dual modes
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
+    lazorkitWallet: any; // Exposed for transaction signing in other components
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -141,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
                     body: JSON.stringify({
-                        smartWalletAddress,
+                        smartWalletAddress: walletInfo.smartWallet, // FIX: Use correct property from walletInfo
                         message,
                         signature,
                     }),
@@ -287,6 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 login,
                 logout,
                 checkAuth,
+                lazorkitWallet,
             }}
         >
             {children}

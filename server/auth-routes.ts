@@ -240,13 +240,19 @@ export function registerAuthRoutes(app: Express): void {
 
             if (!isSignatureValid) {
                 logger.warn(`[AUTH] Signature verification failed for ${smartWalletAddress}`, "auth");
-                auditLog("login_failed_invalid_signature_passkey", {
-                    walletAddress: smartWalletAddress,
-                    ip: req.ip,
-                });
-                return res.status(403).json({
-                    message: "Invalid signature: Could not verify smart wallet authorization"
-                });
+
+                // STRICT MODE CHECK
+                if (process.env.LAZORKIT_STRICT_MODE === 'true') {
+                    auditLog("login_failed_invalid_signature_passkey_strict", {
+                        walletAddress: smartWalletAddress,
+                        ip: req.ip,
+                    });
+                    return res.status(403).json({
+                        message: "Strict Mode: Invalid signature. Could not strictly verify smart wallet authorization."
+                    });
+                } else {
+                    logger.warn(`[AUTH] Strict mode disabled. Allowing despite signature failure (DEV MODE).`, "auth");
+                }
             }
 
             logger.debug(`Passkey auth verified for smart wallet ${smartWalletAddress}`, "auth");

@@ -7,19 +7,18 @@ import { eq } from "drizzle-orm";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
 import { TREASURY_WALLET_ADDRESS, PLATFORM_FEE_RATE } from "@shared/config";
-import { loadKeypairFromPrivateKey } from "./arcium-service"; // Reuse this helper
+import { loadKeypairFromPrivateKey } from "./arcium-service";
 import { invoiceStorage } from "./invoice-storage";
 
 import { strictRateLimit } from "./security";
 import { logger } from "./logger";
 import { emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
 import Decimal from "decimal.js";
+import { getSolanaConnection } from "./solana-sdk";
 
 const router = Router();
 
-// Configuration
-import { getSolanaConnection } from "./solana-sdk"; // Use shared connection
-const GAS_FEE_USDC = parseFloat(process.env.GAS_FEE_USDC || "0.15"); // Default: 0.15 USDC
+const GAS_FEE_USDC = parseFloat(process.env.GAS_FEE_USDC || "0.15");
 const connection = getSolanaConnection();
 
 /**

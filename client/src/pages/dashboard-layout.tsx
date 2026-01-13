@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WalletButton } from "@/components/wallet-button";
+import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { useLocation, Link } from "wouter";
 import {
   ShieldCheck,
@@ -71,6 +72,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={style as CSSProperties}>
+      <OnboardingFlow />
       <div className="flex h-screen w-full bg-background transition-colors duration-300" id="tour-welcome">
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">

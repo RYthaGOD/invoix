@@ -47,10 +47,11 @@ vi.mock("../server/arcium-service", () => ({
 }));
 
 // Mock Credit Scoring Service
-vi.mock("./credit-scoring-service", () => ({
+vi.mock("../server/credit-scoring-service", () => ({
     initializeCreditScoringService: vi.fn().mockResolvedValue(true),
     creditScoringService: {
-        getScore: vi.fn().mockResolvedValue({ score: 750, tier: "gold" })
+        getScore: vi.fn().mockResolvedValue({ score: 750, tier: "gold" }),
+        getQuickScore: vi.fn().mockResolvedValue({ score: 750, tier: "gold" })
     }
 }));
 

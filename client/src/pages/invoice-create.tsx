@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { Trash2 } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { InvoiceForm, InvoiceFormData } from "@/components/invoice-form";
 import { VersionedTransaction, Connection, clusterApiUrl, Transaction, SystemProgram, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
@@ -347,10 +348,15 @@ export default function InvoiceCreate() {
           </div>
         </div>
 
-        {/* Error Alert */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400">
-            {error}
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400 flex justify-between items-start gap-4 animate-in fade-in slide-in-from-top-2">
+            <div>{error}</div>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-300 transition-colors"
+            >
+              <Trash2 className="w-4 h-4 text-current" />
+            </button>
           </div>
         )}
 

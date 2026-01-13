@@ -43,7 +43,7 @@ export default function PayInvoice() {
     const { publicKey, signTransaction, connected } = useWallet();
 
     // Auth hook for SIWS authentication
-    const { isAuthenticated, login, isLoading: authLoading } = useAuth();
+    const { isAuthenticated, login, isLoading: authLoading, authMode, lazorkitWallet } = useAuth();
 
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [loading, setLoading] = useState(true);
@@ -141,6 +141,94 @@ export default function PayInvoice() {
         setPageError(null);
 
         try {
+            // ==========================================
+            // PASSKEY / LAZORKIT PAYMENT FLOW
+            // ==========================================
+            if (authMode === 'passkey' && lazorkitWallet) {
+                // 1. Prepare Transaction Data
+                const recipientPubkey = new PublicKey(invoice.nftTransferredTo || invoice.invoicerWalletAddress);
+                const FEE_PAYER_PUBKEY = new PublicKey(TREASURY_WALLET_ADDRESS); // Placeholder, adjusted by paymaster
+
+                // TODO: LazorKit constructs the specific transaction internally or we pass instructions
+                // The current SDK pattern suggests we can use the web3.js connection and standard instructions
+                // and then ask lazorkitWallet.signTransaction() with feeMode='paymaster'
+
+                const amountToPay = parseFloat(invoice.remainingAmount);
+                const platformFeeAmount = parseFloat(invoice.platformFee) || (amountToPay * 0.01);
+                const subtotalAmount = parseFloat(invoice.subtotal) || (amountToPay - platformFeeAmount);
+                const recipientAmount = subtotalAmount;
+
+                const isNativeSOL = invoice.currency === "SOL" ||
+                    invoice.tokenMint === "So11111111111111111111111111111111111111112";
+
+                const transaction = new Transaction();
+
+                if (isNativeSOL) {
+                    const LAMPORTS_PER_SOL = 1_000_000_000;
+                    const recipientLamports = Math.floor(recipientAmount * LAMPORTS_PER_SOL);
+                    const platformFeeLamports = Math.floor(platformFeeAmount * LAMPORTS_PER_SOL);
+
+                    if (recipientLamports > 0) {
+                        transaction.add(
+                            SystemProgram.transfer({
+                                fromPubkey: new PublicKey(isAuthenticated ? (await lazorkitWallet.getAddress()) : publicKey!), // Use smart wallet address
+                                toPubkey: recipientPubkey,
+                                lamports: recipientLamports,
+                            })
+                        );
+                    }
+                    if (platformFeeLamports > 0) {
+                        transaction.add(
+                            SystemProgram.transfer({
+                                fromPubkey: new PublicKey(isAuthenticated ? (await lazorkitWallet.getAddress()) : publicKey!),
+                                toPubkey: new PublicKey(TREASURY_WALLET_ADDRESS),
+                                lamports: platformFeeLamports,
+                            })
+                        );
+                    }
+                } else {
+                    // SPL Token logic for Smart Wallet (similar to below but source is smart wallet)
+                    const decimals = invoice.tokenDecimals;
+                    const toAtomic = (val: number) => Math.floor(val * Math.pow(10, decimals));
+                    const mintPubkey = new PublicKey(invoice.tokenMint);
+                    const smartWalletAddress = new PublicKey(await lazorkitWallet.getAddress());
+                    const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey);
+                    const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, new PublicKey(TREASURY_WALLET_ADDRESS));
+                    const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, smartWalletAddress);
+
+                    // Assume ATAs exist or are created (Smart Wallet should handle ATA creation via bundled tx if needed)
+                    // Simple transfer for now
+                    const { createTransferInstruction } = await import('@solana/spl-token');
+
+                    transaction.add(
+                        createTransferInstruction(
+                            senderTokenAccount, recipientTokenAccount, smartWalletAddress, toAtomic(recipientAmount), [], TOKEN_PROGRAM_ID
+                        )
+                    );
+                    transaction.add(
+                        createTransferInstruction(
+                            senderTokenAccount, treasuryTokenAccount, smartWalletAddress, toAtomic(platformFeeAmount), [], TOKEN_PROGRAM_ID
+                        )
+                    );
+                }
+
+                // 2. Sign with LazorKit (Paymaster Mode)
+                const signature = await lazorkitWallet.signTransaction(transaction, {
+                    feeMode: 'paymaster'
+                });
+
+                if (!signature) throw new Error("Paymaster signature failed");
+
+                // 3. Confirm
+                setTxSignature(signature); // Hook handles the rest
+                setPaying(false);
+                return;
+            }
+
+            // ==========================================
+            // STANDARD WALLET FLOW
+            // ==========================================
+
             // 1. Fetch Fee Payer Config
             const configRes = await fetch("/api/config/fee-payer");
             const config = await configRes.json();

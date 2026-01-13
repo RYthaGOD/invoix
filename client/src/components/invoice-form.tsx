@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader } from "@/components/ui/loader"; // Import premium loader
 import { CurrencySelector } from "@/components/currency-selector";
 import { LineItemEditor } from "@/components/line-item-editor";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { safeAdd, safeMultiply, safeSubtract } from "@shared/math";
 import { useAuth } from "@/hooks/use-auth";
 import { getCurrencySymbol } from "@/lib/currency-utils";
@@ -138,8 +139,18 @@ export function InvoiceForm({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2" id="tour-client-select">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                             Customer Wallet Address *
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info className="w-4 h-4 text-gray-500 hover:text-gray-300 cursor-help transition-colors" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="max-w-xs">The Solana address that will receive this invoice and pay the funds.</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </label>
                         <input
                             {...register("invoiceeWalletAddress", {

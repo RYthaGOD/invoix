@@ -61,6 +61,12 @@ export default function InvoiceList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Reset selection on filter change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [statusFilter, currencyFilter, searchTerm]);
 
   useEffect(() => {
     if (walletAddress) {
@@ -145,7 +151,20 @@ export default function InvoiceList() {
         className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-all duration-200 group relative"
         onClick={() => navigate(`/invoices/${invoice.id}`)}
       >
-        <td className="px-6 py-4">
+        <td className="px-6 py-4 w-12" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={selectedIds.has(invoice.id)}
+            onChange={() => {
+              const newSet = new Set(selectedIds);
+              if (newSet.has(invoice.id)) newSet.delete(invoice.id);
+              else newSet.add(invoice.id);
+              setSelectedIds(newSet);
+            }}
+            className="rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500"
+          />
+        </td>
+        <td className="px-6 py-4" onClick={() => navigate(`/invoices/${invoice.id}`)}>
           <div className="flex items-center gap-3">
             <div>
               <div className="text-white font-medium">{invoice.invoiceNumber}</div>
@@ -199,6 +218,46 @@ export default function InvoiceList() {
       <div className="flex justify-between items-center">
         <h1 id="tour-welcome" className="text-3xl font-bold text-white tracking-tight">Invoices</h1>
         <div className="flex gap-3">
+          {/* Bulk Action Bar - Only shows when items are selected */}
+          {selectedIds.size > 0 && (
+            <div className="mr-auto flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+              <span className="text-sm font-medium text-purple-300 bg-purple-500/10 px-3 py-1.5 rounded-full border border-purple-500/20">
+                {selectedIds.size} Selected
+              </span>
+              <div className="h-6 w-px bg-white/10 mx-1"></div>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/invoices/bulk-remind', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ invoiceIds: Array.from(selectedIds) })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                      alert(data.message); // Ideally replace with a toast
+                      setSelectedIds(new Set());
+                    } else {
+                      alert('Failed: ' + data.message);
+                    }
+                  } catch (err) {
+                    console.error('Bulk action failed', err);
+                  }
+                }}
+                className="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-sm font-medium rounded-lg transition-colors border border-indigo-500/30 flex items-center gap-2"
+              >
+                <AlertCircle className="w-3.5 h-3.5" />
+                Send Reminders
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs text-gray-400 hover:text-white transition-colors underline"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           <button
             onClick={async () => {
               if (!walletAddress) return;
@@ -394,6 +453,20 @@ export default function InvoiceList() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/5">
+                    <th className="px-6 py-4 w-12 text-left">
+                      <input
+                        type="checkbox"
+                        checked={filteredInvoices.length > 0 && selectedIds.size === filteredInvoices.length}
+                        onChange={() => {
+                          if (selectedIds.size === filteredInvoices.length) {
+                            setSelectedIds(new Set());
+                          } else {
+                            setSelectedIds(new Set(filteredInvoices.map(i => i.id)));
+                          }
+                        }}
+                        className="rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500"
+                      />
+                    </th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest">
                       Invoice
                     </th>

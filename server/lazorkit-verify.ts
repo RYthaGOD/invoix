@@ -100,6 +100,8 @@ export async function verifySmartWalletSignature(
 
     } catch (error) {
         logger.error('[Signature Verify] Verification error', "auth", { error });
+        // Fail open only if explicitly NOT strict and error is related to SDK missing? 
+        // No, fail closed by default is safer.
         return false;
     }
 }

@@ -289,6 +289,15 @@ export const startupPromise = (async () => {
     await registerRoutes(app);
     logger.info("App routes registered", "boot");
 
+    // FIX: Global API 404 Handler (Prevent HTML Fallback)
+    // This ensures that any missing /api/* route returns JSON 404
+    // instead of falling through to the React implementation (index.html)
+    app.all("/api/*", (req, res) => {
+      if (!res.headersSent) {
+        res.status(404).json({ success: false, message: "API endpoint not found" });
+      }
+    });
+
     // 5. Static Assets
     if (app.get("env") === "development") {
       await setupVite(app, server);

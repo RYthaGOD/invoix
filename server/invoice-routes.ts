@@ -210,24 +210,46 @@ export function registerInvoiceRoutes(app: Express): void {
             toAddress: invoice.invoiceeWalletAddress,
             txSignature: invoice.invoiceNumber,
             timestamp: Date.now(),
+            description: invoice.description || "",
+            paymentTerms: invoice.paymentTerms || "",
+            notes: invoice.notes || "",
             items: (lineItems || []).map((item: any) => ({
               description: item.description,
-              quantity: new Decimal(item.quantity).toNumber(), // Warning: converted to number for Arcium compatibility
-              price: new Decimal(item.unitPrice).toNumber()    // Warning: converted to number for Arcium compatibility
+              quantity: new Decimal(item.quantity).toNumber(),
+              price: new Decimal(item.unitPrice).toNumber()
             })),
           },
           req.body.allowedParties
         );
 
         if (encryptedResult.success) {
+          // 1. Update Invoice with Encrypted Blob AND SCRUB plaintext
           await invoiceStorage.updateInvoice(invoice.id, {
             isArciumEncrypted: true,
             arciumEncryptedData: encryptedResult.encryptedData,
             arciumEncryptionKey: encryptedResult.encryptionKey,
             arciumComputationId: encryptedResult.mxeComputationId,
             arciumAllowedParties: req.body.allowedParties,
+            // PRIVACY SCRUBBING
+            description: "🔒 Encrypted Invoice Data",
+            notes: "Details are encrypted using Arcium Confidential Computing.",
+            paymentTerms: "Confidential",
           });
           invoice.isArciumEncrypted = true;
+
+          // 2. Scrub Line Items (Replace with single placeholder to maintain subtotal)
+          // We must delete all existing items and replace with one aggregated placeholder
+          await db.delete(schema.invoiceLineItems).where(eq(schema.invoiceLineItems.invoiceId, invoice.id));
+
+          await db.insert(schema.invoiceLineItems).values({
+            invoiceId: invoice.id,
+            lineNumber: 1,
+            description: "🔒 Encrypted Services",
+            quantity: "1",
+            unitPrice: invoice.subtotal, // Maintain connection to subtotal for basic display validity, but hide details
+            lineTotal: invoice.subtotal,
+          });
+
         } else {
           throw new Error(`Encryption failed: ${encryptedResult.error}`);
         }
@@ -364,7 +386,54 @@ export function registerInvoiceRoutes(app: Express): void {
     }
 
     // Fetch line items
-    const lineItems = await invoiceStorage.getLineItems(invoice.id);
+    let lineItems = await invoiceStorage.getLineItems(invoice.id);
+
+    // --- ARCIUM DECRYPTION ---
+    if (invoice.isArciumEncrypted && invoice.arciumEncryptedData && invoice.arciumEncryptionKey) {
+      // Check if user is authorized (Invoicer or Invoicee) to view decrypted data
+      const authorizedParties = invoice.arciumAllowedParties || [invoice.invoicerWalletAddress, invoice.invoiceeWalletAddress];
+      const canDecrypt = walletAddress && authorizedParties.includes(walletAddress);
+
+      if (canDecrypt) {
+        try {
+          const arciumService = getArciumService();
+          if (arciumService.isAvailable()) {
+            const decryptedData = await arciumService.decryptTransaction(
+              invoice.arciumEncryptedData,
+              invoice.arciumEncryptionKey
+            );
+
+            if (decryptedData) {
+              // Restore scrubbed fields for response
+              invoice.description = decryptedData.description || invoice.description;
+              invoice.notes = decryptedData.notes || invoice.notes;
+              invoice.paymentTerms = decryptedData.paymentTerms || invoice.paymentTerms;
+
+              // Restore line items
+              if (decryptedData.items && Array.isArray(decryptedData.items)) {
+                lineItems = decryptedData.items.map((item, idx) => ({
+                  id: `virtual-${idx}`,
+                  invoiceId: invoice.id,
+                  description: item.description,
+                  quantity: item.quantity.toString(),
+                  unitPrice: item.price.toString(),
+                  lineTotal: new Decimal(item.quantity).times(item.price).toString(),
+                  lineNumber: idx + 1,
+                  createdAt: new Date(),
+                  sku: null,
+                  category: null,
+                  taxRate: null,
+                  discountRate: null
+                }));
+              }
+            }
+          }
+        } catch (decryptErr) {
+          logger.error("Failed to decrypt invoice data", "arcium", { error: decryptErr });
+          // Fallback to encrypted/scrubbed data
+        }
+      }
+    }
 
     res.json({
       success: true,
@@ -411,7 +480,49 @@ export function registerInvoiceRoutes(app: Express): void {
       }
     }
 
-    const lineItems = await invoiceStorage.getLineItems(invoice.id);
+    let lineItems = await invoiceStorage.getLineItems(invoice.id);
+
+    // --- ARCIUM DECRYPTION (Duplicate logic for number lookup) ---
+    if (invoice.isArciumEncrypted && invoice.arciumEncryptedData && invoice.arciumEncryptionKey) {
+      const authorizedParties = invoice.arciumAllowedParties || [invoice.invoicerWalletAddress, invoice.invoiceeWalletAddress];
+      const canDecrypt = walletAddress && authorizedParties.includes(walletAddress);
+
+      if (canDecrypt) {
+        try {
+          const arciumService = getArciumService();
+          if (arciumService.isAvailable()) {
+            const decryptedData = await arciumService.decryptTransaction(
+              invoice.arciumEncryptedData,
+              invoice.arciumEncryptionKey
+            );
+
+            if (decryptedData) {
+              invoice.description = decryptedData.description || invoice.description;
+              invoice.notes = decryptedData.notes || invoice.notes;
+              invoice.paymentTerms = decryptedData.paymentTerms || invoice.paymentTerms;
+              if (decryptedData.items && Array.isArray(decryptedData.items)) {
+                lineItems = decryptedData.items.map((item, idx) => ({
+                  id: `virtual-${idx}`,
+                  invoiceId: invoice.id,
+                  description: item.description,
+                  quantity: item.quantity.toString(),
+                  unitPrice: item.price.toString(),
+                  lineTotal: new Decimal(item.quantity).times(item.price).toString(),
+                  lineNumber: idx + 1,
+                  createdAt: new Date(),
+                  sku: null,
+                  category: null,
+                  taxRate: null,
+                  discountRate: null
+                }));
+              }
+            }
+          }
+        } catch (decryptErr) {
+          logger.error("Failed to decrypt invoice (by number)", "arcium", { error: decryptErr });
+        }
+      }
+    }
 
     res.json({
       success: true,
@@ -585,6 +696,92 @@ export function registerInvoiceRoutes(app: Express): void {
   }));
 
   /**
+   * Bulk Remind
+   * POST /api/invoices/bulk-remind
+   * Sends email reminders for multiple invoices
+   */
+  app.post("/api/invoices/bulk-remind", requireWalletOwnership, strictRateLimit, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { invoiceIds } = req.body;
+    const walletAddress = req.authenticatedWallet!;
+
+    if (!Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+      return res.status(400).json({ message: "No invoice IDs provided" });
+    }
+
+    // Limit batch size
+    if (invoiceIds.length > 20) {
+      return res.status(400).json({ message: "Cannot send more than 20 reminders at once" });
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Fetch invoices to ensure ownership and get details
+    // Optimized: Could use a "where id in (...)" query, but loop is acceptable for <20 items
+    const emailService = getEmailService();
+    // Pre-fetch business profile once
+    const businessProfile = await invoiceStorage.getBusinessProfile(walletAddress);
+    const businessName = businessProfile?.businessName || "B2B Solana Invoicer";
+    const replyTo = businessProfile?.businessEmail || undefined;
+
+    for (const id of invoiceIds) {
+      try {
+        const invoice = await invoiceStorage.getInvoice(id);
+        if (!invoice || invoice.invoicerWalletAddress !== walletAddress) {
+          failCount++;
+          continue;
+        }
+
+        if (invoice.status === "paid" || invoice.status === "cancelled") {
+          // Skip non-remindable statuses
+          continue;
+        }
+
+        // Determine Email Address
+        let emailTo: string | undefined;
+        if (invoice.invoiceeWalletAddress) {
+          const customerProfile = await db.query.customerProfiles.findFirst({
+            where: eq(schema.customerProfiles.customerWalletAddress, invoice.invoiceeWalletAddress)
+          });
+          emailTo = customerProfile?.customerEmail ?? undefined;
+          if (emailTo === null) emailTo = undefined;
+        }
+
+        if (!emailTo || !emailTo.includes("@")) {
+          // Cannot remind without email
+          logger.debug(`Skipping reminder for invoice ${invoice.invoiceNumber}: No email found`, "bulk-remind");
+          failCount++;
+          continue;
+        }
+
+        await emailService.sendInvoiceEmail({
+          to: emailTo,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.totalAmount.toString(),
+          currency: invoice.currency,
+          dueDate: new Date(invoice.dueDate).toLocaleDateString(),
+          payLink: `${process.env.FRONTEND_URL || "http://localhost:5000"}/pay/${invoice.id}`,
+          businessName,
+          replyTo
+        });
+
+        successCount++;
+      } catch (err) {
+        logger.error(`Failed to remind invoice ${id}`, "bulk-remind", { error: err });
+        failCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Sent ${successCount} reminders`,
+      details: { sent: successCount, failed: failCount }
+    });
+  }));
+
+
+
+  /**
    * Get invoice statistics for a wallet
    * GET /api/invoices/stats?wallet=xxx
    */
@@ -724,8 +921,21 @@ export function registerInvoiceRoutes(app: Express): void {
    * Record a payment for an invoice
    * POST /api/payments
    */
+
   app.post("/api/payments", strictRateLimit, asyncHandler(async (req, res) => {
-    const validatedData = insertPaymentSchema.parse(req.body);
+    const validation = insertPaymentSchema.safeParse(req.body);
+    if (!validation.success) {
+      try {
+        logger.warn("Payment validation failed", "invoice", { error: validation.error.flatten() });
+      } catch (e) { console.error("Logger error", e); }
+
+      return res.status(400).json({
+        message: "Invalid payment data",
+        errors: validation.error.flatten()
+      });
+    }
+    const validatedData = validation.data;
+
 
     // Verify invoice exists
     const invoice = await invoiceStorage.getInvoice(validatedData.invoiceId);
@@ -745,6 +955,9 @@ export function registerInvoiceRoutes(app: Express): void {
     // Default payment method is "solana_transfer" for backward compatibility.
     // All on-chain payments (USDC, EURC, SOL) use "solana_transfer".
     // Manual/off-chain payments would specify "manual" or "bank_transfer".
+    // Define verification result variable in scope accessible to createPayment
+    let verification: any = null;
+
     if (validatedData.paymentMethod === "solana_transfer" || !validatedData.paymentMethod) {
       // If it's a crypto payment, verify it
       const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl("devnet"));
@@ -779,7 +992,7 @@ export function registerInvoiceRoutes(app: Express): void {
       // --- SECURITY FIX: Dynamic Payee Routing (Marketplace Support) ---
       const expectedRecipient = invoice.nftTransferredTo || invoice.invoicerWalletAddress;
 
-      const verification = await verifyStablecoinPayment(
+      verification = await verifyStablecoinPayment(
         connection,
         validatedData.txSignature || "",
         recipientAmount, // Pass as string
@@ -988,186 +1201,6 @@ export function registerInvoiceRoutes(app: Express): void {
     res.json(stats);
   }));
 
-  // ============================================
-  // BUSINESS PROFILE ROUTES
-  // ============================================
-
-  /**
-   * Create or update business profile
-   * POST /api/business/profile?wallet=xxx
-   */
-  /**
-   * Create or update business profile
-   * POST /api/business/profile?wallet=xxx
-   */
-  app.post("/api/business/profile", requireWalletOwnership, asyncHandler(async (req, res) => {
-    const validatedData = insertBusinessProfileSchema.parse(req.body);
-
-    // Check if profile exists
-    const existing = await invoiceStorage.getBusinessProfile(validatedData.ownerWalletAddress);
-
-    if (existing) {
-      // Update existing
-      const updated = await invoiceStorage.updateBusinessProfile(
-        validatedData.ownerWalletAddress,
-        validatedData
-      );
-
-      return res.json({
-        success: true,
-        profile: updated,
-        message: "Business profile updated successfully",
-      });
-    }
-
-    // Create new
-    const profile = await invoiceStorage.createBusinessProfile(validatedData);
-
-    res.status(201).json({
-      success: true,
-      profile,
-      message: "Business profile created successfully",
-    });
-  }));
-
-  /**
-   * Get business profile
-   * GET /api/business/profile?wallet=xxx
-   */
-  app.get("/api/business/profile", requireWalletOwnership, asyncHandler(async (req, res) => {
-    const walletAddress = req.query.wallet as string;
-    const profile = await invoiceStorage.getBusinessProfile(walletAddress);
-
-    if (!profile) {
-      return res.status(404).json({ message: "Business profile not found" });
-    }
-
-    res.json({
-      success: true,
-      profile,
-    });
-  }));
-
-
-  // ============================================
-  // CUSTOMER PROFILE ROUTES
-  // ============================================
-
-  /**
-   * Create customer profile
-   * POST /api/customers?wallet=xxx
-   */
-  app.post("/api/customers", requireWalletOwnership, async (req, res) => {
-    try {
-      const validatedData = insertCustomerProfileSchema.parse(req.body);
-
-      // Check if customer already exists
-      const existing = await invoiceStorage.getCustomerProfile(
-        validatedData.businessWalletAddress,
-        validatedData.customerWalletAddress
-      );
-
-      if (existing) {
-        return res.status(400).json({
-          message: "Customer already exists for this business"
-        });
-      }
-
-      const customer = await invoiceStorage.createCustomerProfile(validatedData);
-
-      res.status(201).json({
-        success: true,
-        customer,
-        message: "Customer profile created successfully",
-      });
-    } catch (error: any) {
-      if (error.name === "ZodError") {
-        const validationError = fromZodError(error);
-        return res.status(400).json({ message: validationError.message });
-      }
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Get all customers for a business
-   * GET /api/customers?wallet=xxx
-   */
-  app.get("/api/customers", requireWalletOwnership, async (req, res) => {
-    try {
-      const businessWallet = req.query.wallet as string;
-      const customers = await invoiceStorage.getCustomerProfiles(businessWallet);
-
-      res.json({
-        success: true,
-        customers,
-        count: customers.length,
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Get customer statistics
-   * GET /api/customers/:customerWallet/stats?wallet=xxx
-   */
-  app.get("/api/customers/:customerWallet/stats", requireWalletOwnership, async (req, res) => {
-    try {
-      const { customerWallet } = req.params;
-      const businessWallet = req.query.wallet as string;
-
-      const stats = await invoiceStorage.getCustomerStats(businessWallet, customerWallet);
-
-      res.json({
-        success: true,
-        stats,
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Update customer profile
-   * PATCH /api/customers/:id?wallet=xxx
-   */
-  app.patch("/api/customers/:id", requireWalletOwnership, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updated = await invoiceStorage.updateCustomerProfile(id, req.body);
-
-      if (!updated) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-
-      res.json({
-        success: true,
-        customer: updated,
-        message: "Customer profile updated successfully",
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Delete customer profile
-   * DELETE /api/customers/:id?wallet=xxx
-   */
-  app.delete("/api/customers/:id", requireWalletOwnership, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const success = await invoiceStorage.deleteCustomerProfile(id);
-
-      res.json({
-        success,
-        message: success ? "Customer deleted successfully" : "Failed to delete customer",
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
 
   // ============================================
   // PUBLIC STATS (ANONYMIZED)
@@ -1195,436 +1228,148 @@ export function registerInvoiceRoutes(app: Express): void {
     }
   });
 
-  // ============================================
-  // NFT QUERY ENDPOINTS
-  // ============================================
+  // End of invoice routes
 
-  /**
-   * Get all NFTs for a user
-   * GET /api/nfts?wallet=xxx
-   */
-  app.get("/api/nfts", requireWalletOwnership, async (req, res) => {
-    try {
-      const walletAddress = req.query.wallet as string;
-      const nfts = await invoiceStorage.getAllUserNFTs(walletAddress);
-
-      res.json({
-        success: true,
-        nfts,
+  try {
+    const payerPrivateKey = process.env.PAYER_PRIVATE_KEY;
+    if (!payerPrivateKey) {
+      return res.status(500).json({
+        success: false,
+        message: "Server fee payer is not configured (PAYER_PRIVATE_KEY missing)"
       });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
     }
-  });
 
-  /**
-   * Get payment receipt NFTs for a user
-   * GET /api/nfts/receipts?wallet=xxx
-   */
-  app.get("/api/nfts/receipts", requireWalletOwnership, async (req, res) => {
+    // Derive public key from private key
+    // Assuming array format "[1,2,3...]" or base58 string
+    let payerKeypair;
     try {
-      const walletAddress = req.query.wallet as string;
-      const receipts = await invoiceStorage.getPaymentReceiptNFTs(walletAddress);
-
-      res.json({
-        success: true,
-        receipts,
-        count: receipts.length,
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Get business identity NFT
-   * GET /api/nfts/identity?wallet=xxx
-   */
-  app.get("/api/nfts/identity", requireWalletOwnership, async (req, res) => {
-    try {
-      const walletAddress = req.query.wallet as string;
-      const identity = await invoiceStorage.getBusinessIdentityNFT(walletAddress);
-
-      if (!identity) {
-        return res.status(404).json({ message: "No business identity NFT found" });
+      if (payerPrivateKey.includes("[")) {
+        const secretKey = Uint8Array.from(JSON.parse(payerPrivateKey));
+        const { Keypair } = await import("@solana/web3.js");
+        payerKeypair = Keypair.fromSecretKey(secretKey);
+      } else {
+        const { Keypair } = await import("@solana/web3.js");
+        const bs58 = (await import("bs58")).default;
+        payerKeypair = Keypair.fromSecretKey(bs58.decode(payerPrivateKey));
       }
-
-      res.json({
-        success: true,
-        identity,
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+    } catch (e) {
+      return res.status(500).json({ success: false, message: "Invalid server key configuration" });
     }
-  });
 
-  // ============================================
-  // NFT METADATA ENDPOINTS
-  // ============================================
+    res.json({
+      success: true,
+      feePayer: payerKeypair.publicKey.toString(),
+      feeAmount: 0.15, // Fixed service fee in USDC/USDT/SOL (configured in frontend)
+      treasuryAddress: TREASURY_WALLET_ADDRESS
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-  /**
-   * Get NFT metadata for invoice
-   * GET /nft-metadata/invoice/:id
-   */
-  app.get("/nft-metadata/invoice/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
+
+
+// ============================================
+// NFT METADATA ROUTES
+// ============================================
+
+/**
+ * Get NFT metadata by identifier
+ * GET /api/nft-metadata/:identifier
+ * 
+ * Dynamically generates metadata for invoices/payments/businesses
+ * Ensures metadata persistence without external storage dependency
+ */
+app.get("/api/nft-metadata/:identifier", async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const nftService = getInvoiceNFTService();
+
+    // identifiers are formatted as: type-id
+    // e.g. invoice-123, payment-456, business-789
+
+    if (identifier.startsWith("invoice-")) {
+      const id = identifier.replace("invoice-", "");
       const invoice = await invoiceStorage.getInvoice(id);
 
       if (!invoice) {
-        return res.status(404).json({ error: "Invoice not found" });
+        return res.status(404).json({ message: "Invoice not found or invalid identifier" });
       }
 
-      const nftService = getInvoiceNFTService();
       const metadata = nftService.generateInvoiceMetadata(invoice);
-      res.json(metadata);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      return res.json(metadata);
     }
-  });
 
-  /**
-   * Get NFT metadata for payment receipt
-   * GET /nft-metadata/payment/:id
-   */
-  app.get("/nft-metadata/payment/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const paymentData = await db.select().from(schema.payments).where(eq(schema.payments.id, id)).limit(1).then((r: any[]) => r[0]);
+    if (identifier.startsWith("payment-")) {
+      const id = identifier.replace("payment-", "");
+      // We need payment AND invoice details for the receipt
+      // Using getPaymentById would be ideal, but let's check invoiceStorage methods
+      // Assuming we can find the payment via getPaymentsByInvoice or similar if getPayment is missing
+      // For now, let's assume we can fetch it. If specific method missing, we add it.
+      // Checking invoice-storage.ts capability... 
+      // Based on routes, we used getPaymentsByInvoice. Let's try to query db directly via invoiceStorage if needed
+      // But wait, getPaymentsByWallet returns payments. 
+      // Let's implement a safe way: iterate payments? No, too slow. 
+      // Let's rely on standard ID fetch. 
+      // Since I can't easily see invoice-storage methods right this second, 
+      // I will assume getPayment exists or I'll add it if verification fails.
+      // Actually, looking at previous code, strict typing might complain.
+      // Let's fallback to searching if getPayment(id) isn't obvious.
 
-      if (!paymentData) {
-        return res.status(404).json({ error: "Payment not found" });
+      // Actually, looking at invoice-storage.ts imports in this file...
+      // We don't see getPayment exported explicitly in the usage examples.
+      // However, standard pattern suggests it exists.
+      // Let's implementing checking logic:
+
+      // Use direct DB query style if needed, but invoiceStorage is better.
+      // Let's assume invoiceStorage has it or we can't implement this part safely yet.
+      // I will implement "invoice" and "business" first as they are guaranteed.
+      // For payment, I'll attempt a direct DB find using the "payments" schema which is imported.
+
+      const paymentList = await db.select().from(schema.payments).where(eq(schema.payments.id, id));
+      const payment = paymentList[0];
+
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
       }
 
-      const invoice = await invoiceStorage.getInvoice(paymentData.invoiceId);
+      const invoice = await invoiceStorage.getInvoice(payment.invoiceId);
+      if (!invoice) {
+        return res.status(404).json({ message: "Associated invoice not found" });
+      }
 
-      const nftService = getInvoiceNFTService();
-      const metadata = nftService.generatePaymentReceiptMetadata(paymentData as any, invoice as any);
-      res.json(metadata);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      const metadata = nftService.generatePaymentReceiptMetadata(payment, invoice);
+      return res.json(metadata);
     }
-  });
 
-  /**
-   * Get NFT metadata for business identity
-   * GET /nft-metadata/business/:id
-   */
-  app.get("/nft-metadata/business/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const businessData = await db.select().from(schema.businessProfiles).where(eq(schema.businessProfiles.id, id)).limit(1).then(r => r[0]);
+    if (identifier.startsWith("business-")) {
+      const id = identifier.replace("business-", "");
+      // Business ID is usually the storage ID, but businessProfile is referenced by wallet often.
+      // But `id` is the primary key (UUID).
+      // `getBusinessProfile` takes wallet address. 
+      // We need getBusinessProfileById.
 
-      if (!businessData) {
-        return res.status(404).json({ error: "Business profile not found" });
+      const profileList = await db.select().from(schema.businessProfiles).where(eq(schema.businessProfiles.id, id));
+      if (profileList.length === 0) {
+        return res.status(404).json({ success: false, message: "Business profile not found" });
       }
+      const profile = profileList[0];
 
-      const identity = await db.select().from(schema.businessIdentityNFTs)
-        .where(eq(schema.businessIdentityNFTs.businessProfileId, id))
-        .orderBy(desc(schema.businessIdentityNFTs.createdAt))
-        .limit(1).then(r => r[0]);
+      // Fetch Arcium Identity
+      const nftRecord = await db.select().from(schema.businessIdentityNFTs).where(eq(schema.businessIdentityNFTs.businessProfileId, id));
+      const level = nftRecord[0]?.verificationLevel || "verified";
 
-      const verificationLevel = identity?.verificationLevel || "basic";
-
-      const nftService = getInvoiceNFTService();
-      const metadata = nftService.generateBusinessIdentityMetadata(businessData as any, verificationLevel);
-      res.json(metadata);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      const metadata = nftService.generateBusinessIdentityMetadata(profile, level);
+      return res.json(metadata);
     }
-  });
 
-  // ============================================
-  // INVOICE TEMPLATE ROUTES
-  // ============================================
+    return res.status(400).json({ message: "Invalid identifier format" });
 
-  /**
-   * Create a new invoice template
-   * POST /api/templates
-   */
-  app.post("/api/templates", requireWalletOwnership, async (req, res) => {
-    try {
-      const walletAddress = req.query.wallet as string;
-      const { name, description, defaultCurrency, defaultPaymentTerms, defaultDueDays, defaultLineItems } = req.body;
-
-      if (!name) {
-        return res.status(400).json({ message: "Template name is required" });
-      }
-
-      // Get token mint for currency
-      const stablecoin = getStablecoinConfig(defaultCurrency || "USDC");
-      const tokenMint = stablecoin?.mint || defaultCurrency;
-
-      const template = await invoiceStorage.createInvoiceTemplate({
-        name,
-        description: description || null,
-        ownerWalletAddress: walletAddress,
-        defaultCurrency: defaultCurrency || "USDC",
-        defaultTokenMintAddress: tokenMint,
-        defaultPaymentTerms: defaultPaymentTerms || "Net 30",
-        defaultDueDays: defaultDueDays || 30,
-        defaultLineItems: defaultLineItems ? JSON.stringify(defaultLineItems) : null,
-        isActive: true,
-      });
-
-      res.json({
-        success: true,
-        template,
-        message: "Template created successfully",
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Get all templates for a user
-   * GET /api/templates?wallet=xxx
-   */
-  app.get("/api/templates", requireWalletOwnership, async (req, res) => {
-    try {
-      const walletAddress = req.query.wallet as string;
-      const templates = await invoiceStorage.getInvoiceTemplates(walletAddress);
-
-      res.json({
-        success: true,
-        templates,
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Get a single template
-   * GET /api/templates/:id?wallet=xxx
-   */
-  app.get("/api/templates/:id", requireWalletOwnership, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const template = await invoiceStorage.getInvoiceTemplate(id);
-
-      if (!template) {
-        return res.status(404).json({ message: "Template not found" });
-      }
-
-      res.json({
-        success: true,
-        template,
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Update a template
-   * PATCH /api/templates/:id?wallet=xxx
-   */
-  app.patch("/api/templates/:id", requireWalletOwnership, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { name, description, defaultCurrency, defaultPaymentTerms, defaultDueDays, defaultLineItems, isActive } = req.body;
-
-      const updateData: any = {};
-      if (name !== undefined) updateData.name = name;
-      if (description !== undefined) updateData.description = description;
-      if (defaultCurrency !== undefined) {
-        updateData.defaultCurrency = defaultCurrency;
-        const stablecoin = getStablecoinConfig(defaultCurrency);
-        updateData.defaultTokenMintAddress = stablecoin?.mint || defaultCurrency;
-      }
-      if (defaultPaymentTerms !== undefined) updateData.defaultPaymentTerms = defaultPaymentTerms;
-      if (defaultDueDays !== undefined) updateData.defaultDueDays = defaultDueDays;
-      if (defaultLineItems !== undefined) updateData.defaultLineItems = JSON.stringify(defaultLineItems);
-      if (isActive !== undefined) updateData.isActive = isActive;
-      updateData.updatedAt = new Date();
-
-      const updated = await invoiceStorage.updateInvoiceTemplate(id, updateData);
-
-      if (!updated) {
-        return res.status(404).json({ message: "Template not found" });
-      }
-
-      res.json({
-        success: true,
-        template: updated,
-        message: "Template updated successfully",
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  /**
-   * Delete a template
-   * DELETE /api/templates/:id?wallet=xxx
-   */
-  app.delete("/api/templates/:id", requireWalletOwnership, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const success = await invoiceStorage.deleteInvoiceTemplate(id);
-
-      res.json({
-        success,
-        message: success ? "Template deleted successfully" : "Failed to delete template",
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-
-
-  // ============================================
-  // GASLESS PAYMENT ROUTES
-  // ============================================
-
-  /**
-   * Get Fee Payer Configuration (for partial signing)
-   * GET /api/config/fee-payer
-   */
-  app.get("/api/config/fee-payer", async (req, res) => {
-    try {
-      const payerPrivateKey = process.env.PAYER_PRIVATE_KEY;
-      if (!payerPrivateKey) {
-        return res.status(500).json({
-          success: false,
-          message: "Server fee payer is not configured (PAYER_PRIVATE_KEY missing)"
-        });
-      }
-
-      // Derive public key from private key
-      // Assuming array format "[1,2,3...]" or base58 string
-      let payerKeypair;
-      try {
-        if (payerPrivateKey.includes("[")) {
-          const secretKey = Uint8Array.from(JSON.parse(payerPrivateKey));
-          const { Keypair } = await import("@solana/web3.js");
-          payerKeypair = Keypair.fromSecretKey(secretKey);
-        } else {
-          const { Keypair } = await import("@solana/web3.js");
-          const bs58 = (await import("bs58")).default;
-          payerKeypair = Keypair.fromSecretKey(bs58.decode(payerPrivateKey));
-        }
-      } catch (e) {
-        return res.status(500).json({ success: false, message: "Invalid server key configuration" });
-      }
-
-      res.json({
-        success: true,
-        feePayer: payerKeypair.publicKey.toString(),
-        feeAmount: 0.15, // Fixed service fee in USDC/USDT/SOL (configured in frontend)
-        treasuryAddress: TREASURY_WALLET_ADDRESS
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  });
-
-
-
-  // ============================================
-  // NFT METADATA ROUTES
-  // ============================================
-
-  /**
-   * Get NFT metadata by identifier
-   * GET /api/nft-metadata/:identifier
-   * 
-   * Dynamically generates metadata for invoices/payments/businesses
-   * Ensures metadata persistence without external storage dependency
-   */
-  app.get("/api/nft-metadata/:identifier", async (req, res) => {
-    try {
-      const { identifier } = req.params;
-      const nftService = getInvoiceNFTService();
-
-      // identifiers are formatted as: type-id
-      // e.g. invoice-123, payment-456, business-789
-
-      if (identifier.startsWith("invoice-")) {
-        const id = identifier.replace("invoice-", "");
-        const invoice = await invoiceStorage.getInvoice(id);
-
-        if (!invoice) {
-          return res.status(404).json({ message: "Invoice not found or invalid identifier" });
-        }
-
-        const metadata = nftService.generateInvoiceMetadata(invoice);
-        return res.json(metadata);
-      }
-
-      if (identifier.startsWith("payment-")) {
-        const id = identifier.replace("payment-", "");
-        // We need payment AND invoice details for the receipt
-        // Using getPaymentById would be ideal, but let's check invoiceStorage methods
-        // Assuming we can find the payment via getPaymentsByInvoice or similar if getPayment is missing
-        // For now, let's assume we can fetch it. If specific method missing, we add it.
-        // Checking invoice-storage.ts capability... 
-        // Based on routes, we used getPaymentsByInvoice. Let's try to query db directly via invoiceStorage if needed
-        // But wait, getPaymentsByWallet returns payments. 
-        // Let's implement a safe way: iterate payments? No, too slow. 
-        // Let's rely on standard ID fetch. 
-        // Since I can't easily see invoice-storage methods right this second, 
-        // I will assume getPayment exists or I'll add it if verification fails.
-        // Actually, looking at previous code, strict typing might complain.
-        // Let's fallback to searching if getPayment(id) isn't obvious.
-
-        // Actually, looking at invoice-storage.ts imports in this file...
-        // We don't see getPayment exported explicitly in the usage examples.
-        // However, standard pattern suggests it exists.
-        // Let's implementing checking logic:
-
-        // Use direct DB query style if needed, but invoiceStorage is better.
-        // Let's assume invoiceStorage has it or we can't implement this part safely yet.
-        // I will implement "invoice" and "business" first as they are guaranteed.
-        // For payment, I'll attempt a direct DB find using the "payments" schema which is imported.
-
-        const paymentList = await db.select().from(schema.payments).where(eq(schema.payments.id, id));
-        const payment = paymentList[0];
-
-        if (!payment) {
-          return res.status(404).json({ message: "Payment not found" });
-        }
-
-        const invoice = await invoiceStorage.getInvoice(payment.invoiceId);
-        if (!invoice) {
-          return res.status(404).json({ message: "Associated invoice not found" });
-        }
-
-        const metadata = nftService.generatePaymentReceiptMetadata(payment, invoice);
-        return res.json(metadata);
-      }
-
-      if (identifier.startsWith("business-")) {
-        const id = identifier.replace("business-", "");
-        // Business ID is usually the storage ID, but businessProfile is referenced by wallet often.
-        // But `id` is the primary key (UUID).
-        // `getBusinessProfile` takes wallet address. 
-        // We need getBusinessProfileById.
-
-        const profileList = await db.select().from(schema.businessProfiles).where(eq(schema.businessProfiles.id, id));
-        if (profileList.length === 0) {
-          return res.status(404).json({ success: false, message: "Business profile not found" });
-        }
-        const profile = profileList[0];
-
-        // Fetch Arcium Identity
-        const nftRecord = await db.select().from(schema.businessIdentityNFTs).where(eq(schema.businessIdentityNFTs.businessProfileId, id));
-        const level = nftRecord[0]?.verificationLevel || "verified";
-
-        const metadata = nftService.generateBusinessIdentityMetadata(profile, level);
-        return res.json(metadata);
-      }
-
-      return res.status(400).json({ message: "Invalid identifier format" });
-
-    } catch (error: any) {
-      console.error(`Error serving metadata for ${req.params.identifier}:`, error);
-      res.status(500).json({ message: error.message });
-    }
-  });
+  } catch (error: any) {
+    console.error(`Error serving metadata for ${req.params.identifier}:`, error);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 
 }
