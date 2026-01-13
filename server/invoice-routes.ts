@@ -1230,146 +1230,76 @@ export function registerInvoiceRoutes(app: Express): void {
 
   // End of invoice routes
 
-  try {
-    const payerPrivateKey = process.env.PAYER_PRIVATE_KEY;
-    if (!payerPrivateKey) {
-      return res.status(500).json({
-        success: false,
-        message: "Server fee payer is not configured (PAYER_PRIVATE_KEY missing)"
-      });
-    }
 
-    // Derive public key from private key
-    // Assuming array format "[1,2,3...]" or base58 string
-    let payerKeypair;
+  // ============================================
+  // NFT METADATA ROUTES
+  // ============================================
+
+  app.get("/api/nft-metadata/:identifier", async (req, res) => {
     try {
-      if (payerPrivateKey.includes("[")) {
-        const secretKey = Uint8Array.from(JSON.parse(payerPrivateKey));
-        const { Keypair } = await import("@solana/web3.js");
-        payerKeypair = Keypair.fromSecretKey(secretKey);
-      } else {
-        const { Keypair } = await import("@solana/web3.js");
-        const bs58 = (await import("bs58")).default;
-        payerKeypair = Keypair.fromSecretKey(bs58.decode(payerPrivateKey));
+      const { identifier } = req.params;
+      const nftService = getInvoiceNFTService();
+
+      // identifiers are formatted as: type-id
+      // e.g. invoice-123, payment-456, business-789
+
+      if (identifier.startsWith("invoice-")) {
+        const id = identifier.replace("invoice-", "");
+        const invoice = await invoiceStorage.getInvoice(id);
+
+        if (!invoice) {
+          return res.status(404).json({ message: "Invoice not found or invalid identifier" });
+        }
+
+        const metadata = nftService.generateInvoiceMetadata(invoice);
+        return res.json(metadata);
       }
-    } catch (e) {
-      return res.status(500).json({ success: false, message: "Invalid server key configuration" });
+
+      if (identifier.startsWith("payment-")) {
+        const id = identifier.replace("payment-", "");
+        // We need payment AND invoice details for the receipt
+
+        // Use direct DB query as fallback if specific storage method missing
+        const paymentList = await db.select().from(schema.payments).where(eq(schema.payments.id, id));
+        const payment = paymentList[0];
+
+        if (!payment) {
+          return res.status(404).json({ message: "Payment not found" });
+        }
+
+        const invoice = await invoiceStorage.getInvoice(payment.invoiceId as string);
+        if (!invoice) {
+          return res.status(404).json({ message: "Associated invoice not found" });
+        }
+
+        const metadata = nftService.generatePaymentReceiptMetadata(payment as any, invoice as any);
+        return res.json(metadata);
+      }
+
+      if (identifier.startsWith("business-")) {
+        const id = identifier.replace("business-", "");
+
+        const profileList = await db.select().from(schema.businessProfiles).where(eq(schema.businessProfiles.id, id));
+        if (profileList.length === 0) {
+          return res.status(404).json({ success: false, message: "Business profile not found" });
+        }
+        const profile = profileList[0];
+
+        // Fetch Arcium Identity
+        const nftRecord = await db.select().from(schema.businessIdentityNFTs).where(eq(schema.businessIdentityNFTs.businessProfileId, id));
+        const level = nftRecord[0]?.verificationLevel || "verified";
+
+        const metadata = nftService.generateBusinessIdentityMetadata(profile as any, level);
+        return res.json(metadata);
+      }
+
+      return res.status(400).json({ message: "Invalid identifier format" });
+
+    } catch (error: any) {
+      logger.error(`Error serving metadata for ${req.params.identifier}`, "nft", { error });
+      res.status(500).json({ message: error.message });
     }
-
-    res.json({
-      success: true,
-      feePayer: payerKeypair.publicKey.toString(),
-      feeAmount: 0.15, // Fixed service fee in USDC/USDT/SOL (configured in frontend)
-      treasuryAddress: TREASURY_WALLET_ADDRESS
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-
-
-// ============================================
-// NFT METADATA ROUTES
-// ============================================
-
-/**
- * Get NFT metadata by identifier
- * GET /api/nft-metadata/:identifier
- * 
- * Dynamically generates metadata for invoices/payments/businesses
- * Ensures metadata persistence without external storage dependency
- */
-app.get("/api/nft-metadata/:identifier", async (req, res) => {
-  try {
-    const { identifier } = req.params;
-    const nftService = getInvoiceNFTService();
-
-    // identifiers are formatted as: type-id
-    // e.g. invoice-123, payment-456, business-789
-
-    if (identifier.startsWith("invoice-")) {
-      const id = identifier.replace("invoice-", "");
-      const invoice = await invoiceStorage.getInvoice(id);
-
-      if (!invoice) {
-        return res.status(404).json({ message: "Invoice not found or invalid identifier" });
-      }
-
-      const metadata = nftService.generateInvoiceMetadata(invoice);
-      return res.json(metadata);
-    }
-
-    if (identifier.startsWith("payment-")) {
-      const id = identifier.replace("payment-", "");
-      // We need payment AND invoice details for the receipt
-      // Using getPaymentById would be ideal, but let's check invoiceStorage methods
-      // Assuming we can find the payment via getPaymentsByInvoice or similar if getPayment is missing
-      // For now, let's assume we can fetch it. If specific method missing, we add it.
-      // Checking invoice-storage.ts capability... 
-      // Based on routes, we used getPaymentsByInvoice. Let's try to query db directly via invoiceStorage if needed
-      // But wait, getPaymentsByWallet returns payments. 
-      // Let's implement a safe way: iterate payments? No, too slow. 
-      // Let's rely on standard ID fetch. 
-      // Since I can't easily see invoice-storage methods right this second, 
-      // I will assume getPayment exists or I'll add it if verification fails.
-      // Actually, looking at previous code, strict typing might complain.
-      // Let's fallback to searching if getPayment(id) isn't obvious.
-
-      // Actually, looking at invoice-storage.ts imports in this file...
-      // We don't see getPayment exported explicitly in the usage examples.
-      // However, standard pattern suggests it exists.
-      // Let's implementing checking logic:
-
-      // Use direct DB query style if needed, but invoiceStorage is better.
-      // Let's assume invoiceStorage has it or we can't implement this part safely yet.
-      // I will implement "invoice" and "business" first as they are guaranteed.
-      // For payment, I'll attempt a direct DB find using the "payments" schema which is imported.
-
-      const paymentList = await db.select().from(schema.payments).where(eq(schema.payments.id, id));
-      const payment = paymentList[0];
-
-      if (!payment) {
-        return res.status(404).json({ message: "Payment not found" });
-      }
-
-      const invoice = await invoiceStorage.getInvoice(payment.invoiceId);
-      if (!invoice) {
-        return res.status(404).json({ message: "Associated invoice not found" });
-      }
-
-      const metadata = nftService.generatePaymentReceiptMetadata(payment, invoice);
-      return res.json(metadata);
-    }
-
-    if (identifier.startsWith("business-")) {
-      const id = identifier.replace("business-", "");
-      // Business ID is usually the storage ID, but businessProfile is referenced by wallet often.
-      // But `id` is the primary key (UUID).
-      // `getBusinessProfile` takes wallet address. 
-      // We need getBusinessProfileById.
-
-      const profileList = await db.select().from(schema.businessProfiles).where(eq(schema.businessProfiles.id, id));
-      if (profileList.length === 0) {
-        return res.status(404).json({ success: false, message: "Business profile not found" });
-      }
-      const profile = profileList[0];
-
-      // Fetch Arcium Identity
-      const nftRecord = await db.select().from(schema.businessIdentityNFTs).where(eq(schema.businessIdentityNFTs.businessProfileId, id));
-      const level = nftRecord[0]?.verificationLevel || "verified";
-
-      const metadata = nftService.generateBusinessIdentityMetadata(profile, level);
-      return res.json(metadata);
-    }
-
-    return res.status(400).json({ message: "Invalid identifier format" });
-
-  } catch (error: any) {
-    console.error(`Error serving metadata for ${req.params.identifier}:`, error);
-    res.status(500).json({ message: error.message });
-  }
-});
+  });
 
 
 }
