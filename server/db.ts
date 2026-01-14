@@ -192,7 +192,7 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
 
             // Recreate Pool
             console.log("♻️  Recreating DB Pool with IPv4 Address...");
-            await pool.end().catch(() => { });
+            await pool.end().catch((e) => console.debug('Pool end failed during IPv4 fallback', e));
 
             const isInternal = newConnectionString.includes('railway.internal');
             // For IP addresses, always require SSL unless internal, but often we need rejectUnauthorized: false since IP won't match cert

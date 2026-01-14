@@ -7,6 +7,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet as useLazorkitWallet } from "@lazorkit/wallet";
 import { useToast } from "@/hooks/use-toast";
 import bs58 from "bs58";
 
@@ -30,21 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [authMode, setAuthMode] = useState<'traditional' | 'passkey' | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [lazorkitWallet, setLazorkitWallet] = useState<any>(null);
 
-    // Load LazorKit hook dynamically
-    useEffect(() => {
-        if (!lazorkitWallet) {
-            import('@lazorkit/wallet')
-                .then((module) => {
-                    // Create hook instance on successful import
-                    setLazorkitWallet(module.useWallet());
-                })
-                .catch((e) => {
-                    console.warn('[Auth] LazorKit not available:', e);
-                });
-        }
-    }, [lazorkitWallet]);
+    // Use LazorKit hook at top level (proper React hook usage)
+    const lazorkitWallet = useLazorkitWallet();
 
     // Check authentication status on mount and wallet change
     useEffect(() => {

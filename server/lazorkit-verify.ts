@@ -82,7 +82,9 @@ export async function verifySmartWalletSignature(
             if (nacl.sign.detached.verify(messageBytes, signature, walletPubkey.toBytes())) {
                 return true;
             }
-        } catch (e) { }
+        } catch (e) {
+            logger.debug('[Signature Verify] Direct PDA verify failed (expected for smart wallets)', 'auth');
+        }
 
         if (LAZORKIT_STRICT_MODE) {
             logger.warn('[Signature Verify] Strict mode: Verification failed.', "auth");

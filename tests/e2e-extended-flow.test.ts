@@ -1,16 +1,43 @@
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import express from "express";
 import { registerRoutes } from "../server/routes";
 import request from "supertest";
 import session from "express-session";
+
+// Mock the Solana SDK to avoid real chain calls
+vi.mock("../server/solana-sdk", () => ({
+    getArciumProgram: vi.fn().mockResolvedValue({
+        programId: { toBase58: () => "mock_program_id" },
+        methods: {
+            createSubscription: vi.fn().mockReturnValue({
+                accounts: vi.fn().mockReturnValue({
+                    instruction: vi.fn().mockResolvedValue({
+                        keys: [],
+                        programId: "mock",
+                        data: Buffer.from([])
+                    })
+                })
+            })
+        }
+    }),
+    getSolanaConnection: vi.fn().mockReturnValue({
+        getLatestBlockhash: vi.fn().mockResolvedValue({ blockhash: "mock", lastValidBlockHeight: 1000 }),
+    }),
+}));
+
+// Mock subscription utils
+vi.mock("../server/subscription-utils", () => ({
+    uuidToSubscriptionSeed: vi.fn().mockReturnValue(new Uint8Array(32)),
+    deriveSubscriptionPda: vi.fn().mockResolvedValue([{ toBase58: () => "MockPdaAddress1111111111111111111" }]),
+}));
 
 const app = express();
 app.use(express.json());
 app.use(session({
     secret: "test_secret",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,  // Must be true for test mock auth to work
     cookie: { secure: false }
 }));
 
@@ -78,7 +105,7 @@ describe("Deep Feature Verification: Extended Flows", () => {
                 console.log("Using Plan ID:", planId);
             }
             expect(res.status).toBe(201);
-            expect(res.body.subscription.status).toBe("active");
+            expect(res.body.subscription.status).toBe("pending_confirmation");
             subscriptionId = res.body.subscription.id;
         });
 

@@ -58,7 +58,7 @@ interface AuthenticatedRequest extends Request {
 /**
  * Register invoice-related API routes
  */
-export function registerInvoiceRoutes(app: Express): void {
+export async function registerInvoiceRoutes(app: Express): Promise<void> {
 
   // ============================================
   // INVOICE ROUTES

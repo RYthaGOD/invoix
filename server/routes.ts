@@ -63,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   // INVOICE ROUTES (New B2B Invoicing System)
   // ================================================
-  registerInvoiceRoutes(app);
+  await registerInvoiceRoutes(app);
 
   // ================================================
   // EXPORT ROUTES

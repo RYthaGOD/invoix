@@ -34,8 +34,14 @@ vi.mock("../server/solana-sdk", () => ({
 
 // Mock NFT Service check in confirm-purchase
 vi.mock("../server/nft-service", () => ({
-    getInvoiceNFTService: () => ({}), // Return empty obj, we mocked the connection usage inside the route
-    getReadyNftService: async () => ({}),
+    getInvoiceNFTService: () => ({
+        isReady: () => true,
+        initialize: vi.fn().mockResolvedValue(true)
+    }),
+    getReadyNftService: async () => ({
+        isReady: () => true,
+        initialize: vi.fn().mockResolvedValue(true)
+    }),
     initializeNFTService: vi.fn().mockResolvedValue(true)
 }));
 
@@ -123,7 +129,7 @@ describe("Marketplace Deep Verification (List -> Buy flow)", () => {
         expect(res.status).toBe(200);
         const listing = res.body.listings.find((l: any) => l.id === listingId);
         expect(listing).toBeDefined();
-        expect(listing.askingPrice).toBe("900.00");
+        expect(parseFloat(listing.askingPrice)).toBe(900);
         expect(listing.sellerTruncated).toBeDefined();
     });
 

@@ -351,7 +351,7 @@ export const startupPromise = (async () => {
     wss.on("connection", (ws: WebSocket) => {
       invoiceStorage.getGlobalStats().then((stats: any) => {
         if (ws.readyState === 1) ws.send(JSON.stringify({ type: "global_stats_update", data: stats }));
-      }).catch(() => { });
+      }).catch((e: Error) => logger.debug('WS initial stats failed', 'websocket', { error: e }));
     });
 
     setInterval(async () => {
@@ -360,7 +360,9 @@ export const startupPromise = (async () => {
           const stats = await invoiceStorage.getGlobalStats();
           const msg = JSON.stringify({ type: "global_stats_update", data: stats });
           wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
-        } catch (e) { }
+        } catch (e) {
+          logger.debug('WS stats broadcast failed', 'websocket', { error: e });
+        }
       }
     }, 5000);
 
