@@ -513,6 +513,7 @@ export function checkSecurityEnvVars(): void {
   const recommendedVars = [
     "INVOICE_ENCRYPTION_KEY",
     "PLATFORM_TREASURY_WALLET",
+    "PAYER_PRIVATE_KEY",
     "SOL_PRICE_FALLBACK"
   ];
 

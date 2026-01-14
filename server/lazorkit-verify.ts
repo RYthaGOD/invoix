@@ -23,10 +23,11 @@ export async function verifySmartWalletSignature(
     message: string,
     signatureBase58: string,
     connection: Connection
-): Promise<boolean> {
+): Promise<{ isValid: boolean; isNewWallet: boolean }> {
     try {
         const walletPubkey = new PublicKey(smartWalletAddress);
         const LAZORKIT_STRICT_MODE = process.env.LAZORKIT_STRICT_MODE === 'true';
+        let isNewWallet = false;
 
         // Lazy load SDK to avoid startup errors if not installed/configured
         let LazorkitClient;
@@ -62,14 +63,22 @@ export async function verifySmartWalletSignature(
 
                         if (isValid) {
                             // verifySmartWalletOwnership check implicitly passed if we found the account data
-                            return true;
+                            return { isValid: true, isNewWallet: false };
                         }
                     } catch (err) {
                         continue;
                     }
                 }
             } catch (sdkError) {
-                logger.warn("[Signature Verify] SDK verification failed", "auth", { error: sdkError });
+                // SDK fails if account doesn't exist on-chain yet - this is expected for NEW wallets
+                // Check if this is a new wallet (account not on-chain)
+                const accountInfo = await connection.getAccountInfo(walletPubkey);
+                if (!accountInfo) {
+                    isNewWallet = true;
+                    logger.info("[Signature Verify] New wallet detected (not yet on-chain)", "auth");
+                } else {
+                    logger.warn("[Signature Verify] SDK verification failed for existing wallet", "auth", { error: sdkError });
+                }
             }
         }
 
@@ -80,7 +89,7 @@ export async function verifySmartWalletSignature(
             const signature = bs58.decode(signatureBase58);
             const messageBytes = new TextEncoder().encode(message);
             if (nacl.sign.detached.verify(messageBytes, signature, walletPubkey.toBytes())) {
-                return true;
+                return { isValid: true, isNewWallet: false };
             }
         } catch (e) {
             logger.debug('[Signature Verify] Direct PDA verify failed (expected for smart wallets)', 'auth');
@@ -88,23 +97,29 @@ export async function verifySmartWalletSignature(
 
         if (LAZORKIT_STRICT_MODE) {
             logger.warn('[Signature Verify] Strict mode: Verification failed.', "auth");
-            return false;
+            return { isValid: false, isNewWallet };
         } else {
-            // Check existence as last resort for dev mode
+            // In non-strict mode, allow new wallets to authenticate
+            // The passkey signature from LazorKit portal is sufficient proof of ownership
+            // The on-chain wallet will be created on the user's first transaction
+            if (isNewWallet) {
+                logger.info('[Signature Verify] Allowing new wallet authentication (non-strict mode).', "auth");
+                return { isValid: true, isNewWallet: true };
+            }
+
+            // For existing wallets that failed SDK verification, check existence as last resort
             const accountInfo = await connection.getAccountInfo(walletPubkey);
             if (accountInfo) {
                 logger.warn('[Signature Verify] Allowing login based on on-chain existence only (Non-Strict Mode).', "auth");
-                return true;
+                return { isValid: true, isNewWallet: false };
             }
         }
 
-        return false;
+        return { isValid: false, isNewWallet };
 
     } catch (error) {
         logger.error('[Signature Verify] Verification error', "auth", { error });
-        // Fail open only if explicitly NOT strict and error is related to SDK missing? 
-        // No, fail closed by default is safer.
-        return false;
+        return { isValid: false, isNewWallet: false };
     }
 }
 

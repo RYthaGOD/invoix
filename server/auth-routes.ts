@@ -219,19 +219,39 @@ export function registerAuthRoutes(app: Express): void {
             const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl('devnet');
             const connection = new Connection(rpcUrl, 'confirmed');
 
-            // Step 1: Verify account exists (basic check)
+            // Verify signature authenticity
+            // Note: For NEW wallets, the on-chain account may not exist yet
+            // If we have credential data, we try to initialize it first
+
+            // Check if account exists first
             const walletPubkey = new PublicKey(smartWalletAddress);
             const accountInfo = await connection.getAccountInfo(walletPubkey);
 
             if (!accountInfo) {
-                logger.warn(`[AUTH] Smart wallet account not found on-chain: ${smartWalletAddress}`, "auth");
-                return res.status(403).json({
-                    message: "Invalid smart wallet: Account not found"
-                });
+                // NEW USER: Initialize wallet on-chain using treasury
+                // We only do this if we received the necessary credential data
+                const { passkeyPublicKey, credentialId } = req.body;
+
+                if (passkeyPublicKey && credentialId) {
+                    logger.info(`[AUTH] New wallet detected. Initializing on-chain...`, "auth");
+
+                    const { initializeSmartWallet } = await import('./lazorkit-init-service');
+                    const initResult = await initializeSmartWallet(
+                        passkeyPublicKey,
+                        credentialId,
+                        connection
+                    );
+
+                    if (!initResult.success) {
+                        logger.error(`[AUTH] Failed to initialize wallet: ${initResult.error}`, 'auth');
+                        // Fall through to standard verification - it will likely fail in strict mode
+                    } else {
+                        logger.info(`[AUTH] Successfully initialized new wallet: ${smartWalletAddress}`, 'auth');
+                    }
+                }
             }
 
-            // Step 2: Verify signature authenticity
-            const isSignatureValid = await verifySmartWalletSignature(
+            const { isValid: isSignatureValid, isNewWallet } = await verifySmartWalletSignature(
                 smartWalletAddress,
                 message,
                 signature,
@@ -253,6 +273,11 @@ export function registerAuthRoutes(app: Express): void {
                 } else {
                     logger.warn(`[AUTH] Strict mode disabled. Allowing despite signature failure (DEV MODE).`, "auth");
                 }
+            }
+
+            // Log new wallet authentication (if it's still considered new by verifySmartWalletSignature)
+            if (isNewWallet) {
+                logger.info(`[AUTH] LazorKit wallet authenticated (validated as new/off-chain): ${smartWalletAddress}`, "auth");
             }
 
             logger.debug(`Passkey auth verified for smart wallet ${smartWalletAddress}`, "auth");

@@ -131,9 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
                     body: JSON.stringify({
-                        smartWalletAddress: walletInfo.smartWallet, // FIX: Use correct property from walletInfo
+                        smartWalletAddress: walletInfo.smartWallet,
                         message,
                         signature,
+                        // Send credential data for new wallet initialization
+                        passkeyPublicKey: walletInfo.passkeyPubkey,
+                        credentialId: walletInfo.credentialId
                     }),
                 });
 
