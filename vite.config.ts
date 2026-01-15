@@ -51,8 +51,10 @@ export default defineConfig({
     global: 'globalThis',
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     // Explicitly define Solana RPC URL for client
+    // Use public devnet RPC as fallback (slower but no rate limits)
+    // For production, set VITE_SOLANA_RPC_URL to a dedicated Helius/QuickNode endpoint
     'import.meta.env.VITE_SOLANA_RPC_URL': JSON.stringify(
-      process.env.VITE_SOLANA_RPC_URL || 'https://devnet.helius-rpc.com/?api-key=f901ea4c-bd09-48be-9e7c-43f35d35bcf5'
+      process.env.VITE_SOLANA_RPC_URL || 'https://api.devnet.solana.com'
     ),
   },
   optimizeDeps: {
