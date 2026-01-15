@@ -386,8 +386,14 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
 
     // --- ARCIUM DECRYPTION ---
     if (invoice.isArciumEncrypted && invoice.arciumEncryptedData && invoice.arciumEncryptionKey) {
-      // Check if user is authorized (Invoicer or Invoicee) to view decrypted data
-      const authorizedParties = invoice.arciumAllowedParties || [invoice.invoicerWalletAddress, invoice.invoiceeWalletAddress];
+      // Check if user is authorized (Invoicer, Invoicee, or Marketplace Buyer) to view decrypted data
+      // PRIVACY FIX: Include nftTransferredTo for marketplace buyers who now own the invoice
+      const authorizedParties = [
+        ...(invoice.arciumAllowedParties || []),
+        invoice.invoicerWalletAddress,
+        invoice.invoiceeWalletAddress,
+        (invoice as any).nftTransferredTo, // Marketplace buyer (new owner after purchase)
+      ].filter(Boolean); // Remove null/undefined
       const canDecrypt = walletAddress && authorizedParties.includes(walletAddress);
 
       if (canDecrypt) {
@@ -480,7 +486,13 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
 
     // --- ARCIUM DECRYPTION (Duplicate logic for number lookup) ---
     if (invoice.isArciumEncrypted && invoice.arciumEncryptedData && invoice.arciumEncryptionKey) {
-      const authorizedParties = invoice.arciumAllowedParties || [invoice.invoicerWalletAddress, invoice.invoiceeWalletAddress];
+      // PRIVACY FIX: Include nftTransferredTo for marketplace buyers who now own the invoice
+      const authorizedParties = [
+        ...(invoice.arciumAllowedParties || []),
+        invoice.invoicerWalletAddress,
+        invoice.invoiceeWalletAddress,
+        (invoice as any).nftTransferredTo, // Marketplace buyer (new owner after purchase)
+      ].filter(Boolean); // Remove null/undefined
       const canDecrypt = walletAddress && authorizedParties.includes(walletAddress);
 
       if (canDecrypt) {
@@ -923,7 +935,7 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
     if (!validation.success) {
       try {
         logger.warn("Payment validation failed", "invoice", { error: validation.error.flatten() });
-      } catch (e) {console.error("Logger error", e); }
+      } catch (e) { console.error("Logger error", e); }
 
       return res.status(400).json({
         message: "Invalid payment data",
