@@ -170,64 +170,64 @@ export default function Stats() {
             {/* System Health */}
             <div className="card-flat p-8 rounded-xl shadow-sm">
                 <h2 className="text-2xl font-bold mb-6 text-foreground text-center">System Health</h2>
-                    <div className="grid md:grid-cols-4 gap-4">
-                        <div className="p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div className="text-sm text-muted-foreground mb-1">API Status</div>
-                            <div className={`text-xl font-mono ${healthData?.status === 'healthy' ? 'text-green-500' : healthData?.status === 'degraded' ? 'text-yellow-500' : 'text-red-500'}`}>
-                                {healthData?.status === 'healthy' ? 'Operational' : healthData?.status === 'degraded' ? 'Degraded' : 'Checking...'}
-                            </div>
-                        </div>
-                        <div className="p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div className="text-sm text-muted-foreground mb-1">Database</div>
-                            <div className={`text-xl font-mono ${healthData?.checks?.database?.status === 'ok' ? 'text-green-500' : 'text-red-500'}`}>
-                                {healthData?.checks?.database?.status === 'ok' ? `${healthData?.checks?.database?.latency || 0}ms` : 'Error'}
-                            </div>
-                        </div>
-                        <div className="p-4 rounded-xl bg-background/50 border border-border/50">
-                            <div className="text-sm text-muted-foreground mb-1">Arcium Privacy</div>
-                            <div className={`text-xl font-mono ${healthData?.checks?.environment?.info?.arciumEnabled ? 'text-green-500' : 'text-yellow-500'}`}>
-                                {healthData?.checks?.environment?.info?.arciumEnabled ? 'Active' : 'Standby'}
-                            </div>
-                        </div>
-                        <div className={`p-4 rounded-xl relative overflow-hidden transition-all duration-500 ${healthData?.checks?.glassCitadel?.status === 'ok'
-                                ? 'bg-gradient-to-br from-emerald-500/10 via-cyan-500/5 to-transparent border-2 border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]'
-                                : healthData?.checks?.glassCitadel?.status === 'degraded'
-                                    ? 'bg-gradient-to-br from-yellow-500/10 to-transparent border border-yellow-500/30'
-                                    : 'bg-background/50 border border-border/50'
-                            }`}>
-                            {/* Animated glow ring when active */}
-                            {healthData?.checks?.glassCitadel?.status === 'ok' && (
-                                <>
-                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-cyan-400/5 to-emerald-500/10 animate-pulse pointer-events-none" />
-                                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-transparent to-cyan-500/20 blur-xl opacity-50 animate-pulse pointer-events-none" />
-                                </>
-                            )}
-
-                            <div className="relative z-10 flex items-center gap-2 mb-1">
-                                <Shield className={`w-4 h-4 ${healthData?.checks?.glassCitadel?.status === 'ok'
-                                        ? 'text-emerald-400 animate-pulse'
-                                        : 'text-muted-foreground'
-                                    }`} />
-                                <span className="text-sm text-muted-foreground">Glass Citadel™</span>
-                            </div>
-
-                            <div className={`relative z-10 text-xl font-mono font-bold ${healthData?.checks?.glassCitadel?.status === 'ok'
-                                    ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-                                    : healthData?.checks?.glassCitadel?.status === 'degraded'
-                                        ? 'text-yellow-500'
-                                        : 'text-muted-foreground'
-                                }`}>
-                                {healthData?.checks?.glassCitadel?.status === 'ok' ? '● Active' : healthData?.checks?.glassCitadel?.status === 'degraded' ? '◐ Partial' : '○ Disabled'}
-                            </div>
-
-                            {healthData?.checks?.glassCitadel?.status === 'ok' && (
-                                <div className="relative z-10 text-[10px] text-emerald-400/70 mt-1 font-mono">
-                                    Audit Trail Ready
-                                </div>
-                            )}
+                <div className="grid md:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-xl bg-background/50 border border-border/50">
+                        <div className="text-sm text-muted-foreground mb-1">API Status</div>
+                        <div className={`text-xl font-mono ${healthData?.status === 'healthy' ? 'text-green-500' : healthData?.status === 'degraded' ? 'text-yellow-500' : 'text-red-500'}`}>
+                            {healthData?.status === 'healthy' ? 'Operational' : healthData?.status === 'degraded' ? 'Degraded' : 'Checking...'}
                         </div>
                     </div>
+                    <div className="p-4 rounded-xl bg-background/50 border border-border/50">
+                        <div className="text-sm text-muted-foreground mb-1">Database</div>
+                        <div className={`text-xl font-mono ${healthData?.checks?.database?.status === 'ok' ? 'text-green-500' : 'text-red-500'}`}>
+                            {healthData?.checks?.database?.status === 'ok' ? `${healthData?.checks?.database?.latency || 0}ms` : 'Error'}
+                        </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-background/50 border border-border/50">
+                        <div className="text-sm text-muted-foreground mb-1">Arcium Privacy</div>
+                        <div className={`text-xl font-mono ${healthData?.checks?.environment?.info?.arciumEnabled ? 'text-green-500' : 'text-yellow-500'}`}>
+                            {healthData?.checks?.environment?.info?.arciumEnabled ? 'Active' : 'Standby'}
+                        </div>
+                    </div>
+                    <div className={`p-4 rounded-xl relative overflow-hidden transition-all duration-500 ${healthData?.checks?.glassCitadel?.status === 'ok'
+                        ? 'bg-gradient-to-br from-emerald-500/10 via-cyan-500/5 to-transparent border-2 border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.15)]'
+                        : healthData?.checks?.glassCitadel?.status === 'degraded'
+                            ? 'bg-gradient-to-br from-yellow-500/10 to-transparent border border-yellow-500/30'
+                            : 'bg-background/50 border border-border/50'
+                        }`}>
+                        {/* Animated glow ring when active */}
+                        {healthData?.checks?.glassCitadel?.status === 'ok' && (
+                            <>
+                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-cyan-400/5 to-emerald-500/10 animate-pulse pointer-events-none" />
+                                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-transparent to-cyan-500/20 blur-xl opacity-50 animate-pulse pointer-events-none" />
+                            </>
+                        )}
+
+                        <div className="relative z-10 flex items-center gap-2 mb-1">
+                            <Shield className={`w-4 h-4 ${healthData?.checks?.glassCitadel?.status === 'ok'
+                                ? 'text-emerald-400 animate-pulse'
+                                : 'text-muted-foreground'
+                                }`} />
+                            <span className="text-sm text-muted-foreground">Glass Citadel™</span>
+                        </div>
+
+                        <div className={`relative z-10 text-xl font-mono font-bold ${healthData?.checks?.glassCitadel?.status === 'ok'
+                            ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                            : healthData?.checks?.glassCitadel?.status === 'degraded'
+                                ? 'text-yellow-500'
+                                : 'text-muted-foreground'
+                            }`}>
+                            {healthData?.checks?.glassCitadel?.status === 'ok' ? '● Active' : healthData?.checks?.glassCitadel?.status === 'degraded' ? '◐ Partial' : '○ Disabled'}
+                        </div>
+
+                        {healthData?.checks?.glassCitadel?.status === 'ok' && (
+                            <div className="relative z-10 text-[10px] text-emerald-400/70 mt-1 font-mono">
+                                Audit Trail Ready
+                            </div>
+                        )}
+                    </div>
                 </div>
+
             </div>
         </div>
     );
