@@ -77,18 +77,19 @@ export default function CommunityNFTDrop() {
     };
 
     return (
-        <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
-            {/* Background Gradients */}
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-background via-background/90 to-primary/5 -z-10" />
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -z-10" />
-            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-secondary/10 rounded-full blur-[80px] -z-10" />
+        <div className="space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Community NFT Drop</h1>
+                <p className="text-muted-foreground">INVOIX Exclusive - Genesis Edition</p>
+            </div>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="max-w-md w-full"
-            >
+            <div className="flex justify-center">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="max-w-md w-full"
+                >
                 <Card className="border-primary/20 bg-card/50 backdrop-blur-sm shadow-2xl relative overflow-hidden">
                     {/* Decorative shine */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50" />
@@ -201,6 +202,7 @@ export default function CommunityNFTDrop() {
                     </CardFooter>
                 </Card>
             </motion.div>
+            </div>
         </div>
     );
 }

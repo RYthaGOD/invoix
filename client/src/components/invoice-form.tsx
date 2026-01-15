@@ -100,14 +100,14 @@ export function InvoiceForm({
 
             {/* Template Selector (Optional) */}
             {templates.length > 0 && onTemplateSelect && (
-                <div className="glass-card p-6">
-                    <label className="block text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                <div className="card-flat p-6">
+                    <label className="block text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
                         <FileText className="w-4 h-4" />
                         Start from Template (Optional)
                     </label>
                     <select
                         onChange={(e) => onTemplateSelect(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                         <option value="">-- Select a template --</option>
                         {templates.map((template) => (
@@ -120,15 +120,15 @@ export function InvoiceForm({
             )}
 
             {/* Basic Information */}
-            <div className="glass-card p-6">
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-purple-400" />
+            <div className="card-flat p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-primary" />
                     Invoice Details
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2" id="tour-client-select">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">
                             Customer Wallet Address *
                         </label>
                         <input
@@ -136,11 +136,11 @@ export function InvoiceForm({
                                 required: "Customer wallet address is required",
                                 minLength: { value: 32, message: "Invalid Solana wallet address" }
                             })}
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                             placeholder="Customer's Solana wallet address"
                         />
                         {errors.invoiceeWalletAddress && (
-                            <p className="text-red-400 text-xs mt-1">{errors.invoiceeWalletAddress.message}</p>
+                            <p className="text-red-600 text-xs mt-1">{errors.invoiceeWalletAddress.message}</p>
                         )}
                     </div>
 
@@ -156,31 +156,31 @@ export function InvoiceForm({
                                 }
                             })}
                             type="email"
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                             placeholder="customer@example.com (for notifications)"
                         />
                         {errors.customerEmail && (
-                            <p className="text-red-400 text-xs mt-1">{errors.customerEmail.message}</p>
+                            <p className="text-red-600 text-xs mt-1">{errors.customerEmail.message}</p>
                         )}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">
                             Due Date *
                         </label>
                         <input
                             {...register("dueDate", { required: "Due date is required" })}
                             type="date"
                             min={new Date().toISOString().split('T')[0]}
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         {errors.dueDate && (
-                            <p className="text-red-400 text-xs mt-1">{errors.dueDate.message}</p>
+                            <p className="text-red-600 text-xs mt-1">{errors.dueDate.message}</p>
                         )}
                     </div>
 
                     <div id="tour-currency-select">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">
                             Currency *
                         </label>
                         <Controller
@@ -196,12 +196,12 @@ export function InvoiceForm({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">
                             Payment Terms
                         </label>
                         <select
                             {...register("paymentTerms")}
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         >
                             <option value="Due on Receipt">Due on Receipt</option>
                             <option value="Net 15">Net 15</option>
@@ -213,27 +213,27 @@ export function InvoiceForm({
                 </div>
 
                 <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Description
                     </label>
                     <input
                         {...register("description", { required: "Description is required" })}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         placeholder="Brief description of this invoice"
                     />
                     {errors.description && (
-                        <p className="text-red-400 text-xs mt-1">{errors.description.message}</p>
+                        <p className="text-red-600 text-xs mt-1">{errors.description.message}</p>
                     )}
                 </div>
 
                 <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Notes (Internal)
                     </label>
                     <textarea
                         {...register("notes")}
                         rows={3}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         placeholder="Internal notes (not visible to customer)"
                     />
                 </div>
@@ -251,49 +251,49 @@ export function InvoiceForm({
                 />
             </div>
 
-            <div className="glass-card p-6">
+            <div className="card-flat p-6">
                 {/* Totals Display */}
                 <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-4 max-w-md ml-auto">
-                        <div className="text-right text-gray-400">Subtotal:</div>
-                        <div className="text-right text-white font-medium">{currencySymbol}{parseFloat(subtotal).toFixed(2)}</div>
+                        <div className="text-right text-muted-foreground">Subtotal:</div>
+                        <div className="text-right text-foreground font-medium">{currencySymbol}{parseFloat(subtotal).toFixed(2)}</div>
 
-                        <div className="text-right text-gray-400">
+                        <div className="text-right text-muted-foreground">
                             <input
                                 {...register("taxRate")}
                                 type="number"
                                 step="0.01"
                                 min="0"
                                 max="100"
-                                className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded text-white text-sm text-right focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                className="w-20 px-2 py-1 bg-background border border-border rounded text-foreground text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary"
                                 placeholder="0"
                             />
                             % Tax:
                         </div>
-                        <div className="text-right text-white">{currencySymbol}{parseFloat(taxAmount).toFixed(2)}</div>
+                        <div className="text-right text-foreground">{currencySymbol}{parseFloat(taxAmount).toFixed(2)}</div>
 
-                        <div className="text-right text-gray-400">
+                        <div className="text-right text-muted-foreground">
                             Discount: {currencySymbol}
                             <input
                                 {...register("discountAmount")}
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded text-white text-sm text-right focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                className="w-20 px-2 py-1 bg-background border border-border rounded text-foreground text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary"
                                 placeholder="0"
                             />
                         </div>
-                        <div className="text-right text-white">-{currencySymbol}{parseFloat(discountVal).toFixed(2)}</div>
+                        <div className="text-right text-foreground">-{currencySymbol}{parseFloat(discountVal).toFixed(2)}</div>
 
-                        <div className="text-right text-gray-300 font-semibold text-lg pt-3 border-t border-white/10">
+                        <div className="text-right text-muted-foreground font-semibold text-lg pt-3 border-t border-border">
                             Total:
                         </div>
-                        <div className="text-right pt-3 border-t border-white/10">
-                            <div className="text-purple-400 font-bold text-xl">
+                        <div className="text-right pt-3 border-t border-border">
+                            <div className="text-primary font-bold text-xl">
                                 {currencySymbol}{parseFloat(total).toFixed(2)}
                             </div>
                             {currency === "SOL" && solPrice && (
-                                <div className="text-sm text-gray-400 mt-1">
+                                <div className="text-sm text-muted-foreground mt-1">
                                     ≈ ${(parseFloat(total) * solPrice).toFixed(2)} USD
                                 </div>
                             )}
@@ -303,9 +303,9 @@ export function InvoiceForm({
             </div>
 
             {/* Privacy & NFT Options */}
-            <div className="glass-card p-6" id="tour-mint-settings">
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <Lock className="w-5 h-5 text-purple-400" />
+            <div className="card-flat p-6" id="tour-mint-settings">
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-primary" />
                     Privacy & Features
                 </h2>
 
@@ -317,7 +317,7 @@ export function InvoiceForm({
                             <div className="text-white text-sm font-semibold">
                                 Service Fee Required
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 Creating an invoice requires a small service fee of <strong className="text-white">0.0001 SOL</strong> (~$0.02) to prevent spam.
                             </p>
                         </div>
@@ -328,15 +328,15 @@ export function InvoiceForm({
                             <input
                                 {...register("isPrivate")}
                                 type="checkbox"
-                                className="w-5 h-5 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
+                                className="w-5 h-5 rounded border-border bg-background text-primary focus:ring-primary focus:ring-offset-0"
                             />
                         </div>
                         <div className="flex-1">
-                            <div className="text-white font-medium group-hover:text-purple-300 transition-colors flex items-center gap-3">
+                            <div className="text-foreground font-medium group-hover:text-primary transition-colors flex items-center gap-3">
                                 Private Invoice
                                 <ShieldCheck className="w-4 h-4 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
-                            <div className="text-gray-400 text-sm">
+                            <div className="text-muted-foreground text-sm">
                                 Hide amounts and wallet addresses from public view.
                             </div>
                         </div>
@@ -347,14 +347,14 @@ export function InvoiceForm({
                             <input
                                 {...register("mintNFT")}
                                 type="checkbox"
-                                className="w-5 h-5 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
+                                className="w-5 h-5 rounded border-border bg-background text-primary focus:ring-primary focus:ring-offset-0"
                             />
                         </div>
                         <div className="flex-1">
-                            <div className="text-white font-medium group-hover:text-purple-300 transition-colors">
+                            <div className="text-foreground font-medium group-hover:text-primary transition-colors">
                                 Mint as NFT {connected ? "(Client-Side)" : ""} 🎨
                             </div>
-                            <div className="text-gray-400 text-sm">
+                            <div className="text-muted-foreground text-sm">
                                 Create a tradeable, verified invoice NFT.
                                 <span className="text-yellow-400/80 block mt-1 text-xs">
                                     ⚠️ Transaction fee (~0.002 SOL) payed by you.
@@ -376,7 +376,7 @@ export function InvoiceForm({
                                 <div className="text-white font-medium group-hover:text-cyan-300 transition-colors">
                                     Arcium MXE Encryption 🔐
                                 </div>
-                                <div className="text-gray-400 text-sm">
+                                <div className="text-muted-foreground text-sm">
                                     End-to-end encryption using Arcium Confidential Computing.
                                 </div>
                             </div>
@@ -395,7 +395,7 @@ export function InvoiceForm({
                                             <ShieldCheck className="w-3 h-3" />
                                             CONFIDENTIAL DATA MASKING ENABLED
                                         </div>
-                                        <p className="text-xs text-gray-400 leading-relaxed italic">
+                                        <p className="text-xs text-muted-foreground leading-relaxed italic">
                                             "Only you and the customer will be able to see the decrypted data. Unauthorized parties will only see masked identifiers."
                                         </p>
                                     </div>
@@ -427,7 +427,7 @@ export function InvoiceForm({
             {/* Status Overlay (for minting) */}
             {mintingStatus && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md">
-                    <div className="glass-card p-10 rounded-2xl flex flex-col items-center gap-6 max-w-md text-center border-primary/20 shadow-2xl shadow-primary/10">
+                    <div className="card-flat p-10 rounded-2xl flex flex-col items-center gap-6 max-w-md text-center border-primary/20 shadow-2xl shadow-primary/10">
                         {/* Use Premium Loader here, resized via CSS scaling or container if needed, but standard is fine */}
                         <div className="scale-75">
                             <Loader />

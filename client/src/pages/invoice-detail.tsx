@@ -98,13 +98,13 @@ interface Invoice {
 }
 
 const statusConfig = {
-  draft: { label: "Draft", color: "bg-gray-500/20 text-gray-300 border-gray-500/30", icon: Clock },
+  draft: { label: "Draft", color: "bg-gray-500/20 text-muted-foreground border-gray-500/30", icon: Clock },
   sent: { label: "Sent", color: "bg-blue-500/20 text-blue-300 border-blue-500/30", icon: AlertCircle },
   viewed: { label: "Viewed", color: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30", icon: Eye },
   partial: { label: "Partially Paid", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", icon: DollarSign },
   paid: { label: "Paid", color: "bg-green-500/20 text-green-300 border-green-500/30", icon: CheckCircle },
   overdue: { label: "Overdue", color: "bg-red-500/20 text-red-300 border-red-500/30", icon: XCircle },
-  cancelled: { label: "Cancelled", color: "bg-gray-500/20 text-gray-400 border-gray-500/30", icon: XCircle },
+  cancelled: { label: "Cancelled", color: "bg-gray-500/20 text-muted-foreground border-gray-500/30", icon: XCircle },
 };
 
 export default function InvoiceDetail() {
@@ -689,7 +689,7 @@ export default function InvoiceDetail() {
       <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(225 20% 8%)" }}>
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-          <p className="text-gray-400 mt-4">Loading invoice...</p>
+          <p className="text-muted-foreground mt-4">Loading invoice...</p>
         </div>
       </div>
     );
@@ -698,7 +698,7 @@ export default function InvoiceDetail() {
   if (error || !invoice) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(225 20% 8%)" }}>
-        <div className="glass-card border border-red-500/30 bg-red-500/10 p-8 text-center max-w-md">
+        <div className="card-flat border border-red-500/30 bg-red-500/10 p-8 text-center max-w-md">
           <p className="text-red-400 mb-4">{error || "Invoice not found"}</p>
           <button
             onClick={() => navigate("/invoices")}
@@ -715,23 +715,23 @@ export default function InvoiceDetail() {
   const isInvoicee = invoice.invoiceeWalletAddress === walletAddress;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex justify-between items-center">
         <button
           onClick={() => navigate("/invoices")}
-          className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+          className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Invoices
         </button>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => {
               const paymentLink = `${window.location.origin}/pay/${invoice.id}`;
               copyToClipboard(paymentLink, "paymentLink");
             }}
-            className="smoke-shadow px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all flex items-center gap-2"
+            className="shadow-sm px-4 py-2 bg-muted hover:bg-muted/50 text-muted-foreground rounded-lg transition-all flex items-center gap-2"
           >
             {copied === "paymentLink" ? (
               <>
@@ -745,7 +745,7 @@ export default function InvoiceDetail() {
               </>
             )}
           </button>
-          <button className="smoke-shadow px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all flex items-center gap-2">
+          <button className="shadow-sm px-4 py-2 bg-muted hover:bg-muted/50 text-muted-foreground rounded-lg transition-all flex items-center gap-2">
             <Download className="w-4 h-4" />
             Download
           </button>
@@ -753,7 +753,7 @@ export default function InvoiceDetail() {
             <button
               onClick={handleSendClick}
               disabled={sending}
-              className="smoke-shadow px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shadow-sm px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
               {sending ? "Sending..." : "Send Invoice"}
@@ -762,20 +762,20 @@ export default function InvoiceDetail() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-8">
         {/* Invoice Header */}
-        <div className="glass-card p-6">
+        <div className="card-flat p-6">
           <div className="flex justify-between items-start mb-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-white">{invoice.invoiceNumber}</h1>
+                <h1 className="text-3xl font-bold text-foreground">{invoice.invoiceNumber}</h1>
                 <div className="flex items-center gap-2 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] text-cyan-400 font-bold uppercase tracking-widest" title="Generated sequentially via atomic backend ledger">
                   <ShieldCheck className="w-3 h-3" />
                   Verified Atomic
                 </div>
               </div>
               {invoice.description && (
-                <p className={`text-gray-400 ${invoice.description.includes('ARCIUM_MASKED') ? 'italic font-mono text-xs opacity-60' : ''}`}>
+                <p className={`text-muted-foreground ${invoice.description.includes('ARCIUM_MASKED') ? 'italic font-mono text-xs opacity-60' : ''}`}>
                   {invoice.description.includes('ARCIUM_MASKED') ? (
                     <span className="flex items-center gap-2">
                       <Lock className="w-3 h-3" /> {invoice.description}
@@ -797,41 +797,41 @@ export default function InvoiceDetail() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <div className="text-gray-400 text-sm mb-1">Invoice Date</div>
-              <div className="text-white">{formatDate(invoice.invoiceDate)}</div>
+              <div className="text-muted-foreground text-sm mb-1">Invoice Date</div>
+              <div className="text-foreground">{formatDate(invoice.invoiceDate)}</div>
             </div>
             <div>
-              <div className="text-gray-400 text-sm mb-1">Due Date</div>
-              <div className="text-white">{formatDate(invoice.dueDate)}</div>
+              <div className="text-muted-foreground text-sm mb-1">Due Date</div>
+              <div className="text-foreground">{formatDate(invoice.dueDate)}</div>
             </div>
             <div>
-              <div className="text-gray-400 text-sm mb-1">Payment Terms</div>
-              <div className="text-white">{invoice.paymentTerms || "Net 30"}</div>
+              <div className="text-muted-foreground text-sm mb-1">Payment Terms</div>
+              <div className="text-foreground">{invoice.paymentTerms || "Net 30"}</div>
             </div>
           </div>
 
           {/* Parties */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-white/10">
             <div>
-              <div className="text-gray-400 text-sm mb-2">From (Invoicer)</div>
+              <div className="text-muted-foreground text-sm mb-2">From (Invoicer)</div>
               <div className="flex items-center gap-2">
-                <code className="text-white text-sm font-mono bg-white/5 px-3 py-1.5 rounded">
+                <code className="text-foreground text-sm font-mono bg-muted px-3 py-1.5 rounded">
                   {invoice.invoicerWalletAddress.slice(0, 8)}...{invoice.invoicerWalletAddress.slice(-6)}
                 </code>
                 <button
                   onClick={() => copyToClipboard(invoice.invoicerWalletAddress, "from")}
-                  className="p-1.5 hover:bg-white/10 rounded transition-colors"
+                  className="p-1.5 hover:bg-muted/50 rounded transition-colors"
                 >
                   {copied === "from" ? (
                     <Check className="w-4 h-4 text-green-400" />
                   ) : (
-                    <Copy className="w-4 h-4 text-gray-400" />
+                    <Copy className="w-4 h-4 text-muted-foreground" />
                   )}
                 </button>
               </div>
             </div>
             <div>
-              <div className="text-gray-400 text-sm mb-2">To (Customer)</div>
+              <div className="text-muted-foreground text-sm mb-2">To (Customer)</div>
               <div className="flex items-center gap-2">
                 {invoice.invoiceeWalletAddress.includes('ARCIUM_MASKED') ? (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/5 border border-cyan-500/10 rounded group cursor-help" title="Decryption failed or unauthorized access">
@@ -840,17 +840,17 @@ export default function InvoiceDetail() {
                   </div>
                 ) : (
                   <>
-                    <code className="text-white text-sm font-mono bg-white/5 px-3 py-1.5 rounded">
+                    <code className="text-foreground text-sm font-mono bg-muted px-3 py-1.5 rounded">
                       {invoice.invoiceeWalletAddress.slice(0, 8)}...{invoice.invoiceeWalletAddress.slice(-6)}
                     </code>
                     <button
                       onClick={() => copyToClipboard(invoice.invoiceeWalletAddress, "to")}
-                      className="p-1.5 hover:bg-white/10 rounded transition-colors"
+                      className="p-1.5 hover:bg-muted/50 rounded transition-colors"
                     >
                       {copied === "to" ? (
                         <Check className="w-4 h-4 text-green-400" />
                       ) : (
-                        <Copy className="w-4 h-4 text-gray-400" />
+                        <Copy className="w-4 h-4 text-muted-foreground" />
                       )}
                     </button>
                   </>
@@ -880,7 +880,7 @@ export default function InvoiceDetail() {
                 </div>
               )}
               {invoice.isPrivate && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-500/10 border border-gray-500/30 rounded-lg text-gray-300">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-500/10 border border-gray-500/30 rounded-lg text-muted-foreground">
                   <Lock className="w-4 h-4" />
                   <span className="text-sm">Private Invoice</span>
                 </div>
@@ -913,10 +913,10 @@ export default function InvoiceDetail() {
           {/* Minting Status Overlay */}
           {mintingStatus && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-              <div className="glass-card p-8 rounded-xl flex flex-col items-center gap-4 max-w-md text-center">
+              <div className="card-flat p-8 rounded-xl flex flex-col items-center gap-4 max-w-md text-center">
                 <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
-                <h3 className="text-xl font-bold text-white">Minting NFT...</h3>
-                <p className="text-gray-300">{mintingStatus}</p>
+                <h3 className="text-xl font-bold text-foreground">Minting NFT...</h3>
+                <p className="text-muted-foreground">{mintingStatus}</p>
                 <p className="text-xs text-gray-500 mt-2">Please examine the transaction in your wallet popup.</p>
               </div>
             </div>
@@ -924,14 +924,14 @@ export default function InvoiceDetail() {
 
           {/* Mint Error */}
           {mintError && (
-            <div className="glass-card border border-red-500/30 bg-red-500/10 p-4 rounded-lg flex justify-between items-center gap-4">
+            <div className="card-flat border border-red-500/30 bg-red-500/10 p-4 rounded-lg flex justify-between items-center gap-4">
               <div className="flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-red-500" />
                 <p className="text-red-400 text-sm">Mint Failed: {mintError}</p>
               </div>
               <button
                 onClick={() => setMintError(null)}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <XCircle className="w-4 h-4" />
               </button>
@@ -940,11 +940,11 @@ export default function InvoiceDetail() {
 
           {/* Mint Button for Invoicer */}
           {isInvoicer && !invoice.nftMint && (
-            <div className="glass-card p-6 border-l-4 border-purple-500">
+            <div className="card-flat p-6 border-l-4 border-purple-500">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg font-bold text-white">Mint Invoice NFT</h3>
-                  <p className="text-sm text-gray-400 max-w-lg mt-1">
+                  <h3 className="text-lg font-bold text-foreground">Mint Invoice NFT</h3>
+                  <p className="text-sm text-muted-foreground max-w-lg mt-1">
                     This invoices has not been minted yet. Minting creates a verifiable on-chain record and allows for factoring/trading.
                     You will pay the network fee (~0.002 SOL).
                   </p>
@@ -952,7 +952,7 @@ export default function InvoiceDetail() {
                 <button
                   onClick={handleMintNFT}
                   disabled={!!mintingStatus}
-                  className="smoke-shadow px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all"
+                  className="shadow-sm px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-foreground font-medium rounded-lg transition-all"
                 >
                   Mint NFT 🎨
                 </button>
@@ -963,25 +963,25 @@ export default function InvoiceDetail() {
 
         {/* Line Items */}
         {lineItems.length > 0 && (
-          <div className="glass-card p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Line Items</h2>
+          <div className="card-flat p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Line Items</h2>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    <th className="text-left py-2 text-gray-400 text-sm font-medium">Description</th>
-                    <th className="text-right py-2 text-gray-400 text-sm font-medium">Quantity</th>
-                    <th className="text-right py-2 text-gray-400 text-sm font-medium">Unit Price</th>
-                    <th className="text-right py-2 text-gray-400 text-sm font-medium">Total</th>
+                    <th className="text-left py-2 text-muted-foreground text-sm font-medium">Description</th>
+                    <th className="text-right py-2 text-muted-foreground text-sm font-medium">Quantity</th>
+                    <th className="text-right py-2 text-muted-foreground text-sm font-medium">Unit Price</th>
+                    <th className="text-right py-2 text-muted-foreground text-sm font-medium">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lineItems.map((item) => (
                     <tr key={item.id} className="border-b border-white/5">
-                      <td className="py-3 text-white">{item.description}</td>
-                      <td className="py-3 text-right text-gray-300">{item.quantity}</td>
-                      <td className="py-3 text-right text-gray-300">{formatCurrency(item.unitPrice)}</td>
-                      <td className="py-3 text-right text-white font-medium">{formatCurrency(item.lineTotal)}</td>
+                      <td className="py-3 text-foreground">{item.description}</td>
+                      <td className="py-3 text-right text-muted-foreground">{item.quantity}</td>
+                      <td className="py-3 text-right text-muted-foreground">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-3 text-right text-foreground font-medium">{formatCurrency(item.lineTotal)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -990,23 +990,23 @@ export default function InvoiceDetail() {
 
             {/* Totals */}
             <div className="mt-6 pt-6 border-t border-white/10 space-y-2 max-w-sm ml-auto">
-              <div className="flex justify-between text-gray-300">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal:</span>
                 <span>{formatCurrency(invoice.subtotal)}</span>
               </div>
               {parseFloat(invoice.taxAmount) > 0 && (
-                <div className="flex justify-between text-gray-300">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Tax:</span>
                   <span>{formatCurrency(invoice.taxAmount)}</span>
                 </div>
               )}
               {parseFloat(invoice.discountAmount) > 0 && (
-                <div className="flex justify-between text-gray-300">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Discount:</span>
                   <span>-{formatCurrency(invoice.discountAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-white font-bold text-lg pt-2 border-t border-white/10">
+              <div className="flex justify-between text-foreground font-bold text-lg pt-2 border-t border-white/10">
                 <span>Total:</span>
                 <span className="text-purple-400">{formatCurrency(invoice.totalAmount)}</span>
               </div>
@@ -1028,14 +1028,14 @@ export default function InvoiceDetail() {
 
         {/* Payment History */}
         {payments.length > 0 && (
-          <div className="glass-card p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Payment History</h2>
+          <div className="card-flat p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Payment History</h2>
             <div className="space-y-3">
               {payments.map((payment) => (
-                <div key={payment.id} className="flex justify-between items-center p-4 bg-white/5 rounded-lg">
+                <div key={payment.id} className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <div>
-                    <div className="text-white font-medium">{formatCurrency(payment.amount)}</div>
-                    <div className="text-gray-400 text-sm">{formatDate(payment.paidAt)}</div>
+                    <div className="text-foreground font-medium">{formatCurrency(payment.amount)}</div>
+                    <div className="text-muted-foreground text-sm">{formatDate(payment.paidAt)}</div>
                   </div>
                   <a
                     href={`https://solscan.io/tx/${payment.txSignature}`}
@@ -1065,8 +1065,8 @@ export default function InvoiceDetail() {
 
         {/* Receipt NFTs */}
         {invoice.status === "paid" && payments.some(p => p.receiptNftMint) && (
-          <div className="glass-card p-6 border-l-4 border-green-400">
-            <h2 className="text-lg font-semibold text-white mb-4">Payment Receipts</h2>
+          <div className="card-flat p-6 border-l-4 border-green-400">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Payment Receipts</h2>
             <div className="space-y-4">
               {payments.filter(p => p.receiptNftMint).map((payment) => (
                 <ReceiptNFTDisplay
@@ -1082,8 +1082,8 @@ export default function InvoiceDetail() {
 
         {/* Record Payment Form */}
         {isInvoicee && invoice.status !== "paid" && parseFloat(invoice.remainingAmount) > 0 && (
-          <div className="glass-card p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Record Payment</h2>
+          <div className="card-flat p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Record Payment</h2>
 
             {!showPaymentForm ? (
               <div className="space-y-4">
@@ -1092,7 +1092,7 @@ export default function InvoiceDetail() {
                   <button
                     onClick={handlePayWithWallet}
                     disabled={submittingPayment}
-                    className="smoke-shadow px-6 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3 transform hover:scale-[1.02]"
+                    className="shadow-sm px-6 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-foreground font-bold rounded-xl transition-all flex items-center justify-center gap-3 transform hover:scale-[1.02]"
                   >
                     {submittingPayment ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -1110,13 +1110,13 @@ export default function InvoiceDetail() {
                   {/* SOLANA PAY QR (Mobile) */}
                   <button
                     onClick={() => setShowSolanaPay(true)}
-                    className="smoke-shadow px-6 py-4 bg-gradient-to-r from-gray-800 to-gray-900 border border-white/10 hover:border-purple-500/50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3 transform hover:scale-[1.02]"
+                    className="shadow-sm px-6 py-4 bg-gradient-to-r from-gray-800 to-gray-900 border border-white/10 hover:border-purple-500/50 text-foreground font-bold rounded-xl transition-all flex items-center justify-center gap-3 transform hover:scale-[1.02]"
                   >
-                    <div className="bg-white/10 p-1.5 rounded-full">
+                    <div className="bg-muted/50 p-1.5 rounded-full">
                       <ScanLine className="w-5 h-5 text-purple-400" />
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-medium text-gray-400">Pay on Mobile</div>
+                      <div className="text-sm font-medium text-muted-foreground">Pay on Mobile</div>
                       <div className="text-lg">Scan QR Code</div>
                     </div>
                   </button>
@@ -1126,7 +1126,7 @@ export default function InvoiceDetail() {
                 <div className="flex justify-center">
                   <button
                     onClick={() => setShowPaymentForm(true)}
-                    className="text-sm text-gray-400 hover:text-white flex items-center gap-2 transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
+                    className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors px-4 py-2 rounded-lg hover:bg-muted"
                   >
                     <div className="w-4 h-4 border border-gray-500 rounded flex items-center justify-center">
                       <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
@@ -1138,7 +1138,7 @@ export default function InvoiceDetail() {
             ) : (
               <form onSubmit={handleRecordPayment} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Payment Amount ({invoice.currency})
                   </label>
                   <input
@@ -1149,13 +1149,13 @@ export default function InvoiceDetail() {
                     value={paymentAmount}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentAmount(e.target.value)}
                     required
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder={`Max: ${formatCurrency(invoice.remainingAmount)}`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Transaction Signature
                   </label>
                   <input
@@ -1165,7 +1165,7 @@ export default function InvoiceDetail() {
                     required
                     minLength={88}
                     maxLength={88}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-2 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="Solana transaction signature (88 characters)"
                   />
                 </div>
@@ -1174,7 +1174,7 @@ export default function InvoiceDetail() {
                   <button
                     type="button"
                     onClick={() => setShowPaymentForm(false)}
-                    className="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all"
+                    className="px-4 py-2 bg-muted hover:bg-muted/50 text-muted-foreground rounded-lg transition-all"
                     disabled={submittingPayment}
                   >
                     Cancel
@@ -1182,7 +1182,7 @@ export default function InvoiceDetail() {
                   <button
                     type="submit"
                     disabled={submittingPayment}
-                    className="smoke-shadow flex-1 px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all disabled:opacity-50"
+                    className="shadow-sm flex-1 px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-foreground font-medium rounded-lg transition-all disabled:opacity-50"
                   >
                     {submittingPayment ? "Recording..." : "Submit Payment"}
                   </button>
@@ -1194,19 +1194,19 @@ export default function InvoiceDetail() {
 
         {/* Notes */}
         {invoice.notes && isInvoicer && (
-          <div className="glass-card p-6">
-            <h2 className="text-lg font-semibold text-white mb-2">Internal Notes</h2>
-            <p className="text-gray-400">{invoice.notes}</p>
+          <div className="card-flat p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-2">Internal Notes</h2>
+            <p className="text-muted-foreground">{invoice.notes}</p>
           </div>
         )}
       </div>
 
       {/* Send Dialog */}
       <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
-        <DialogContent className="glass-card border-white/10 text-white sm:max-w-md">
+        <DialogContent className="card-flat border-white/10 text-foreground sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Send Invoice</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               Enter the customer's email address to send them this invoice.
             </DialogDescription>
           </DialogHeader>
@@ -1221,7 +1221,7 @@ export default function InvoiceDetail() {
                   type="email"
                   placeholder="customer@example.com"
                   required
-                  className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus-visible:ring-purple-500"
+                  className="pl-9 bg-muted border-white/10 text-foreground placeholder:text-gray-600 focus-visible:ring-purple-500"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
                 />
@@ -1232,14 +1232,14 @@ export default function InvoiceDetail() {
               <button
                 type="button"
                 onClick={() => setShowSendDialog(false)}
-                className="px-4 py-2 hover:bg-white/10 rounded-md text-gray-300 transition-colors"
+                className="px-4 py-2 hover:bg-muted/50 rounded-md text-muted-foreground transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={sending}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-foreground rounded-md transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {sending ? (
                   <>
@@ -1259,12 +1259,12 @@ export default function InvoiceDetail() {
       </Dialog>
 
       <Dialog open={showSolanaPay} onOpenChange={setShowSolanaPay}>
-        <DialogContent className="glass-card border-white/10 text-white sm:max-w-sm text-center">
+        <DialogContent className="card-flat border-white/10 text-foreground sm:max-w-sm text-center">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">
               {paymentDetected ? "Payment Received! 🎉" : "Scan to Pay"}
             </DialogTitle>
-            <DialogDescription className="text-gray-400 text-center">
+            <DialogDescription className="text-muted-foreground text-center">
               {paymentDetected ? (
                 <span className="text-green-400">Invoice has been paid successfully.</span>
               ) : (
@@ -1294,7 +1294,7 @@ export default function InvoiceDetail() {
 
           {/* Payment Polling Status */}
           {paymentPolling && !paymentDetected && (
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
               Waiting for payment...
             </div>
@@ -1303,7 +1303,7 @@ export default function InvoiceDetail() {
           <DialogFooter className="sm:justify-center">
             <button
               onClick={() => setShowSolanaPay(false)}
-              className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
+              className="w-full px-4 py-2 bg-muted/50 hover:bg-white/20 rounded-lg text-foreground transition-colors"
             >
               {paymentDetected ? "Done" : "Close"}
             </button>

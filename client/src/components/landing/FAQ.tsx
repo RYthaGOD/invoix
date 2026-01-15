@@ -10,43 +10,27 @@ interface FAQItem {
 const faqs: FAQItem[] = [
     {
         question: "What is Invoix?",
-        answer: "Invoix is a decentralized B2B invoicing protocol built on Solana. It allows businesses to create, send, and settle invoices using stablecoins (USDC, USDT, EURC) or native SOL, with settlement finality in under 400 milliseconds."
-    },
-    {
-        question: "How does the Glass Citadel privacy system work?",
-        answer: "Glass Citadel uses Arcium's confidential computing (MXE) to encrypt sensitive invoice data like line items and pricing. Only authorized wallet holders can decrypt their specific invoices. Public metadata (timestamps, status) remains visible for auditability, but financial details stay private."
-    },
-    {
-        question: "What are NFT Receipts?",
-        answer: "Every successful payment on Invoix automatically mints a compressed NFT (cNFT) receipt to the payer's wallet. This serves as an immutable, on-chain proof of payment that satisfies auditors and tax authorities. The receipts are stored on Solana and viewable on any NFT marketplace."
+        answer: "Invoix is a modern invoicing platform built on Solana. Create, send, and track invoices with instant cryptocurrency payments and blockchain security."
     },
     {
         question: "Is Invoix free to use?",
-        answer: "Yes! The Starter tier is completely free with unlimited invoices. Premium features like deep privacy (Arcium encryption), custom branding, and priority support are available with a one-time upgrade. There are no monthly subscriptions."
+        answer: "Yes! The Starter tier is completely free with unlimited invoices. Premium features like encryption, custom branding, and priority support require a one-time upgrade."
     },
     {
         question: "Which cryptocurrencies are supported?",
-        answer: "Invoix currently supports native SOL, USDC, USDT, EURC, and PYUSD. All payments settle directly to your wallet in the currency you choose, with no intermediaries holding your funds."
+        answer: "Invoix currently supports SOL, USDC, USDT, EURC, and PYUSD. All payments settle directly to your wallet with no intermediaries."
     },
     {
-        question: "How do gasless payments work?",
-        answer: "The Invoix protocol relays transactions on behalf of payers, covering the Solana network fees. This means your customers can pay invoices without needing SOL for gas, reducing friction for first-time crypto users."
-    },
-    {
-        question: "Is Invoix on Mainnet?",
-        answer: "Invoix is currently live on Solana Devnet for public beta testing. Mainnet launch is planned after completing security audits and community feedback integration. Do not use real funds on the current deployment."
+        question: "What are NFT Receipts?",
+        answer: "Every successful payment automatically mints an NFT receipt as immutable proof of payment. Perfect for audits, compliance, and accounting."
     },
     {
         question: "How is my data secured?",
-        answer: "All sensitive data is encrypted using Arcium's x25519 and RescueCipher algorithms before transmission. Database admins cannot view your invoice details. Authentication uses Sign In With Solana (SIWS) with replay-attack protection and strict rate limiting."
+        answer: "All sensitive data is encrypted using Arcium's confidential computing. Only authorized parties can decrypt invoice details. Authentication uses blockchain signatures for maximum security."
     },
     {
-        question: "What are recurring subscriptions?",
-        answer: "Invoix supports automated recurring billing for subscription-based services. Create subscription plans with defined billing cycles (weekly, monthly, or yearly), and the system automatically generates and tracks invoices for each period. All subscriptions are tracked on-chain for full transparency."
-    },
-    {
-        question: "How does passkey authentication work?",
-        answer: "Invoix supports LazorKit smart wallets with passkey authentication. This allows you to log in using biometrics or security keys without needing traditional wallet extensions. Your authentication is verified on-chain, providing the same security as traditional wallet signatures."
+        question: "Is Invoix on Mainnet?",
+        answer: "Invoix is currently live on Solana Devnet for public testing. Mainnet launch is planned after completing security audits. Do not use real funds on the current deployment."
     }
 ];
 
@@ -56,13 +40,13 @@ function FAQAccordionItem({ item, isOpen, onToggle }: { item: FAQItem; isOpen: b
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="border-b border-white/5 last:border-none"
+            className="border-b border-border last:border-none"
         >
             <button
                 onClick={onToggle}
                 className="w-full flex items-center justify-between py-6 text-left group"
             >
-                <span className="text-lg font-semibold text-white group-hover:text-primary transition-colors pr-8">
+                <span className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors pr-8">
                     {item.question}
                 </span>
                 <motion.div
@@ -79,10 +63,10 @@ function FAQAccordionItem({ item, isOpen, onToggle }: { item: FAQItem; isOpen: b
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                     >
-                        <p className="pb-6 text-muted-foreground leading-relaxed pr-12">
+                        <p className="text-muted-foreground pb-6 leading-relaxed">
                             {item.answer}
                         </p>
                     </motion.div>
@@ -96,37 +80,41 @@ export function FAQ() {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
     return (
-        <section id="faq" className="py-32 container mx-auto px-6 relative">
-            {/* Background Glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+        <section id="faq" className="section-padding bg-background">
+            <div className="container-custom">
+                <div className="max-w-4xl mx-auto">
+                    {/* Section Header */}
+                    <motion.div
+                        className="text-center mb-16"
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                    >
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
+                            <span className="text-sm font-medium">FAQ</span>
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+                            Frequently asked questions
+                        </h2>
+                        <p className="text-lg text-muted-foreground">
+                            Have a different question? Contact our{" "}
+                            <a href="mailto:support@invoix.io" className="text-primary hover:underline">
+                                support team
+                            </a>
+                        </p>
+                    </motion.div>
 
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="text-center mb-16 relative z-10"
-            >
-                <span className="text-primary font-mono text-xs font-bold tracking-[0.2em] uppercase mb-4 block">
-                    FAQ
-                </span>
-                <h2 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl tracking-tight mb-6">
-                    Common <span className="gradient-text">Questions</span>
-                </h2>
-                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Everything you need to know about Invoix and decentralized B2B payments.
-                </p>
-            </motion.div>
-
-            <div className="max-w-3xl mx-auto relative z-10">
-                <div className="glass-card rounded-[2rem] border border-white/10 p-8 md:p-12">
-                    {faqs.map((faq, index) => (
-                        <FAQAccordionItem
-                            key={index}
-                            item={faq}
-                            isOpen={openIndex === index}
-                            onToggle={() => setOpenIndex(openIndex === index ? null : index)}
-                        />
-                    ))}
+                    {/* FAQ Accordion */}
+                    <div className="card-flat">
+                        {faqs.map((faq, index) => (
+                            <FAQAccordionItem
+                                key={index}
+                                item={faq}
+                                isOpen={openIndex === index}
+                                onToggle={() => setOpenIndex(openIndex === index ? null : index)}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

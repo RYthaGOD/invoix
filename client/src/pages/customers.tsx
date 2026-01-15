@@ -93,14 +93,14 @@ export default function Customers() {
     });
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-white tracking-tight">Customers</h1>
+                <h1 className="text-3xl font-bold text-foreground tracking-tight">Customers</h1>
                 <button
                     id="tour-add-customer"
                     onClick={() => setShowForm(true)}
-                    className="smoke-shadow px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all flex items-center gap-2"
+                    className="smoke-shadow px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-foreground font-medium rounded-lg transition-all flex items-center gap-2"
                 >
                     <Plus className="w-4 h-4" />
                     Add Customer
@@ -111,13 +111,13 @@ export default function Customers() {
                 {/* Search */}
                 <div className="mb-6">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                             placeholder="Search customers by name, email, or wallet..."
-                            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full pl-10 pr-4 py-3 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                     </div>
                 </div>
@@ -126,15 +126,15 @@ export default function Customers() {
                 {loading ? (
                     <div className="text-center py-12">
                         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-                        <p className="text-gray-400 mt-4">Loading customers...</p>
+                        <p className="text-muted-foreground mt-4">Loading customers...</p>
                     </div>
                 ) : filteredCustomers.length === 0 ? (
-                    <div className="glass-card p-12 text-center">
+                    <div className="card-flat p-12 text-center">
                         <User className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                        <h3 className="text-xl font-semibold text-foreground mb-2">
                             {searchQuery ? "No customers found" : "No customers yet"}
                         </h3>
-                        <p className="text-gray-400 mb-6">
+                        <p className="text-muted-foreground mb-6">
                             {searchQuery
                                 ? "Try adjusting your search query"
                                 : "Add your first customer to get started"}
@@ -142,7 +142,7 @@ export default function Customers() {
                         {!searchQuery && (
                             <button
                                 onClick={() => setShowForm(true)}
-                                className="smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all"
+                                className="smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-foreground font-medium rounded-lg transition-all"
                             >
                                 Add Customer
                             </button>
@@ -151,14 +151,14 @@ export default function Customers() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {filteredCustomers.map((customer) => (
-                            <div key={customer.id} className="glass-card p-6 hover:border-purple-500/30 transition-all">
+                            <div key={customer.id} className="card-flat p-6 hover:border-purple-500/30 transition-all">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
                                             <User className="w-6 h-6 text-purple-400" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-semibold text-white">
+                                            <h3 className="text-lg font-semibold text-foreground">
                                                 {customer.customerName || "Unnamed Customer"}
                                             </h3>
                                         </div>
@@ -168,33 +168,33 @@ export default function Customers() {
                                             onClick={() => handleEdit(customer)}
                                             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                                         >
-                                            <Edit className="w-4 h-4 text-gray-400 hover:text-white" />
+                                            <Edit className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(customer.id)}
                                             className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
                                         >
-                                            <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
+                                            <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-400" />
                                         </button>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     {customer.customerEmail && (
-                                        <div className="flex items-center gap-2 text-sm text-gray-300">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <Mail className="w-4 h-4 text-gray-500" />
                                             {customer.customerEmail}
                                         </div>
                                     )}
                                     {customer.customerPhone && (
-                                        <div className="flex items-center gap-2 text-sm text-gray-300">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <Phone className="w-4 h-4 text-gray-500" />
                                             {customer.customerPhone}
                                         </div>
                                     )}
-                                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <Building className="w-4 h-4 text-gray-500" />
-                                        <code className="text-xs bg-white/5 px-2 py-1 rounded">
+                                        <code className="text-xs bg-muted px-2 py-1 rounded">
                                             {customer.customerWalletAddress.slice(0, 8)}...{customer.customerWalletAddress.slice(-6)}
                                         </code>
                                     </div>
@@ -202,7 +202,7 @@ export default function Customers() {
 
                                 {customer.customerNotes && (
                                     <div className="mt-4 pt-4 border-t border-white/10">
-                                        <p className="text-sm text-gray-400 line-clamp-2">{customer.customerNotes}</p>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">{customer.customerNotes}</p>
                                     </div>
                                 )}
 
@@ -296,8 +296,8 @@ function CustomerForm({
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="glass-card max-w-2xl w-full p-6">
-                <h2 className="text-2xl font-bold text-white mb-6">
+            <div className="card-flat max-w-2xl w-full p-6">
+                <h2 className="text-2xl font-bold text-foreground mb-6">
                     {customer ? "Edit Customer" : "Add Customer"}
                 </h2>
 
@@ -309,7 +309,7 @@ function CustomerForm({
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">
                             Wallet Address *
                         </label>
                         <input
@@ -318,30 +318,30 @@ function CustomerForm({
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, walletAddress: e.target.value })}
                             required
                             disabled={!!customer}
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+                            className="w-full px-4 py-2 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
                             placeholder="Customer's Solana wallet address"
                         />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                            <label className="block text-sm font-medium text-muted-foreground mb-2">Name</label>
                             <input
                                 type="text"
                                 value={formData.name}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-4 py-2 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 placeholder="Customer name"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Company</label>
+                            <label className="block text-sm font-medium text-muted-foreground mb-2">Company</label>
                             <input
                                 type="text"
                                 value={formData.company}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, company: e.target.value })}
-                                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-4 py-2 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 placeholder="Company name"
                             />
                         </div>
@@ -349,35 +349,35 @@ function CustomerForm({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                            <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
                             <input
                                 type="email"
                                 value={formData.email}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
-                                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-4 py-2 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 placeholder="email@example.com"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+                            <label className="block text-sm font-medium text-muted-foreground mb-2">Phone</label>
                             <input
                                 type="tel"
                                 value={formData.phone}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, phone: e.target.value })}
-                                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-4 py-2 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 placeholder="+1 (555) 000-0000"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+                        <label className="block text-sm font-medium text-muted-foreground mb-2">Notes</label>
                         <textarea
                             value={formData.notes}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, notes: e.target.value })}
                             rows={3}
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 bg-muted border border-white/10 rounded-lg text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             placeholder="Internal notes about this customer"
                         />
                     </div>
@@ -387,14 +387,14 @@ function CustomerForm({
                             type="button"
                             onClick={onClose}
                             disabled={saving}
-                            className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-all"
+                            className="flex-1 px-6 py-3 bg-muted hover:bg-white/10 text-muted-foreground rounded-lg transition-all"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex-1 smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all disabled:opacity-50"
+                            className="flex-1 smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-foreground font-medium rounded-lg transition-all disabled:opacity-50"
                         >
                             {saving ? "Saving..." : customer ? "Update Customer" : "Add Customer"}
                         </button>

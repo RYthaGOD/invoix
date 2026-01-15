@@ -28,9 +28,9 @@ export function LineItemEditor({ register, control, errors, watch, currency = "U
     const currencySymbol = getCurrencySymbol(currency);
 
     return (
-        <div className="glass-card p-6">
+        <div className="card-flat p-6">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                     <DollarSign className="w-5 h-5 text-purple-400" />
                     Line Items
                 </h2>
@@ -47,16 +47,16 @@ export function LineItemEditor({ register, control, errors, watch, currency = "U
             {/* Column Headers */}
             <div className="grid grid-cols-12 gap-3 items-center mb-2 px-1">
                 <div className="col-span-12 md:col-span-5">
-                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Description</label>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Description</label>
                 </div>
                 <div className="col-span-6 md:col-span-2">
-                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Quantity</label>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quantity</label>
                 </div>
                 <div className="col-span-6 md:col-span-2">
-                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Unit Price</label>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Unit Price</label>
                 </div>
                 <div className="col-span-10 md:col-span-2 text-right">
-                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</label>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Amount</label>
                 </div>
                 <div className="col-span-2 md:col-span-1">
                     {/* Actions column - no label */}
@@ -69,7 +69,7 @@ export function LineItemEditor({ register, control, errors, watch, currency = "U
                         <div className="col-span-12 md:col-span-5">
                             <input
                                 {...register(`lineItems.${index}.description` as const, { required: "Description required" })}
-                                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                 placeholder="Item description"
                             />
                             {errors.lineItems?.[index]?.description && (
@@ -82,7 +82,7 @@ export function LineItemEditor({ register, control, errors, watch, currency = "U
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                 placeholder="Qty"
                             />
                         </div>
@@ -92,16 +92,16 @@ export function LineItemEditor({ register, control, errors, watch, currency = "U
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                 placeholder="Price"
                             />
                         </div>
                         <div className="col-span-10 md:col-span-2 text-right pt-2">
-                            <div className="text-white font-mono">
+                            <div className="text-foreground font-mono">
                                 {currencySymbol}{((parseFloat(lineItems[index]?.quantity || "0") * parseFloat(lineItems[index]?.unitPrice || "0"))).toFixed(2)}
                             </div>
                             {currency === "SOL" && solPrice && (
-                                <div className="text-xs text-gray-400">
+                                <div className="text-xs text-muted-foreground">
                                     ≈ ${((parseFloat(lineItems[index]?.quantity || "0") * parseFloat(lineItems[index]?.unitPrice || "0")) * solPrice).toFixed(2)} USD
                                 </div>
                             )}

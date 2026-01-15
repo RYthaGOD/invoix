@@ -50,10 +50,7 @@ function Router() {
       <AnalyticsTracker />
       <Switch>
         <Route path="/" component={InvoiceLanding} />
-        <Route path="/community-nft" component={CommunityNFTDrop} />
-        <Route path="/stats" component={Stats} />
         <Route path="/pay/:invoiceId" component={PayInvoice} />
-        <Route path="/developers" component={DeveloperWaitlistPage} />
         <Route path="/docs" component={DocsPage} />
         <Route path="/tokenomics" component={Tokenomics} />
 
@@ -90,6 +87,27 @@ function Router() {
           {() => (
             <DashboardLayout>
               <Templates />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/stats">
+          {() => (
+            <DashboardLayout>
+              <Stats />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/community-nft">
+          {() => (
+            <DashboardLayout>
+              <CommunityNFTDrop />
+            </DashboardLayout>
+          )}
+        </Route>
+        <Route path="/developers">
+          {() => (
+            <DashboardLayout>
+              <DeveloperWaitlistPage />
             </DashboardLayout>
           )}
         </Route>
@@ -138,7 +156,13 @@ function Router() {
           )}
         </Route>
         <Route path="/coming-soon" component={ComingSoon} />
-        <Route path="/dashboard/blacklist" component={ComingSoon} />
+        <Route path="/dashboard/blacklist">
+          {() => (
+            <DashboardLayout>
+              <ComingSoon />
+            </DashboardLayout>
+          )}
+        </Route>
 
         {/* Marketplace Routes - Feature Flagged */}
         {import.meta.env.VITE_ENABLE_MARKETPLACE === "true" && (

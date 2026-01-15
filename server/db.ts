@@ -10,7 +10,11 @@ import * as schemaSqlite from "@shared/invoice-schema-sqlite";
 
 // Use SQLite for local development (no DATABASE_URL needed)
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+const isFrontendOnly = process.env.FRONTEND_ONLY === 'true';
 const useSQLite = isDevelopment && !process.env.DATABASE_URL;
+
+// Export frontend-only flag for other modules
+export const IS_FRONTEND_ONLY = isFrontendOnly;
 
 // Export the schema so other files can use the correct one (SQLite vs Postgres)
 export const schema = useSQLite ? schemaSqlite : schemaPg;
@@ -25,7 +29,13 @@ export let db: AppDatabase;
 export let pool: pg.Pool | undefined;
 
 // INITIALIZATION LOGIC
-if (useSQLite) {
+if (isFrontendOnly) {
+  // Frontend-only mode: Skip database initialization entirely
+  console.log('🎨 FRONTEND_ONLY mode enabled - Database disabled for UI development');
+  console.log('⚠️  API routes requiring database will not work');
+  // db and pool remain undefined - this is intentional
+
+} else if (useSQLite) {
   // SQLite setup for local development
   const fs = await import("fs");
   const path = await import("path");
@@ -86,6 +96,11 @@ if (useSQLite) {
 // ------------
 
 export async function runMigrations() {
+  if (isFrontendOnly) {
+    console.log('⏭️  Skipping migrations (FRONTEND_ONLY mode)');
+    return;
+  }
+
   try {
     console.log('⏳ Running database migrations...');
     const fs = await import("fs");
@@ -119,6 +134,7 @@ export async function runMigrations() {
 
 // Connection resiliency logic
 export async function checkDatabaseConnection(retries = 30, delay = 2000): Promise<{ connected: boolean; error?: string }> {
+  if (isFrontendOnly) return { connected: true }; // Skip DB check in frontend-only mode
   if (useSQLite) return { connected: true };
   if (!pool) return { connected: false, error: "Pool not initialized" };
 

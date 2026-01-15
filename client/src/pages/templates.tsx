@@ -83,9 +83,9 @@ export default function Templates() {
     if (!walletAddress) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-                <div className="glass-card p-8 text-center">
-                    <h2 className="text-2xl font-bold text-white mb-4">Connect Your Wallet</h2>
-                    <p className="text-gray-300">Please connect your wallet to manage templates</p>
+                <div className="card-flat p-8 text-center">
+                    <h2 className="text-2xl font-bold text-foreground mb-4">Connect Your Wallet</h2>
+                    <p className="text-muted-foreground">Please connect your wallet to manage templates</p>
                 </div>
             </div>
         );
@@ -96,15 +96,15 @@ export default function Templates() {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Invoice Templates</h1>
-                    <p className="text-gray-300">Create and manage reusable invoice templates</p>
+                    <h1 className="text-3xl font-bold text-foreground mb-2">Invoice Templates</h1>
+                    <p className="text-muted-foreground">Create and manage reusable invoice templates</p>
                 </div>
                 <button
                     onClick={() => {
                         setEditingTemplate(null);
                         setShowForm(true);
                     }}
-                    className="smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2"
+                    className="smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-foreground rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2"
                 >
                     <Plus className="w-5 h-5" />
                     New Template
@@ -113,18 +113,18 @@ export default function Templates() {
 
             {/* Templates Grid */}
             {loading ? (
-                <div className="glass-card p-12 text-center">
+                <div className="card-flat p-12 text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
-                    <p className="text-gray-300 mt-4">Loading templates...</p>
+                    <p className="text-muted-foreground mt-4">Loading templates...</p>
                 </div>
             ) : templates.length === 0 ? (
-                <div className="glass-card p-12 text-center">
+                <div className="card-flat p-12 text-center">
                     <FileText className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No Templates Yet</h3>
-                    <p className="text-gray-300 mb-6">Create your first template to streamline invoice creation</p>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No Templates Yet</h3>
+                    <p className="text-muted-foreground mb-6">Create your first template to streamline invoice creation</p>
                     <button
                         onClick={() => setShowForm(true)}
-                        className="smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+                        className="smoke-shadow px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-foreground rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
                     >
                         Create Template
                     </button>
@@ -135,16 +135,16 @@ export default function Templates() {
                         const lineItems = template.defaultLineItems ? JSON.parse(template.defaultLineItems) : [];
 
                         return (
-                            <div key={template.id} className="glass-card p-6 hover:shadow-xl transition-all">
+                            <div key={template.id} className="card-flat p-6 hover:shadow-xl transition-all">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex-1">
-                                        <h3 className="text-lg font-semibold text-white mb-1">{template.name}</h3>
+                                        <h3 className="text-lg font-semibold text-foreground mb-1">{template.name}</h3>
                                         {template.description && (
-                                            <p className="text-sm text-gray-400">{template.description}</p>
+                                            <p className="text-sm text-muted-foreground">{template.description}</p>
                                         )}
                                     </div>
                                     {!template.isActive && (
-                                        <span className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded">
+                                        <span className="px-2 py-1 bg-gray-700 text-muted-foreground text-xs rounded">
                                             Inactive
                                         </span>
                                     )}
@@ -152,20 +152,20 @@ export default function Templates() {
 
                                 <div className="space-y-2 mb-4">
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-gray-400">Currency:</span>
-                                        <span className="text-white font-medium">{template.defaultCurrency}</span>
+                                        <span className="text-muted-foreground">Currency:</span>
+                                        <span className="text-foreground font-medium">{template.defaultCurrency}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-gray-400">Payment Terms:</span>
-                                        <span className="text-white font-medium">{template.defaultPaymentTerms}</span>
+                                        <span className="text-muted-foreground">Payment Terms:</span>
+                                        <span className="text-foreground font-medium">{template.defaultPaymentTerms}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-gray-400">Due Days:</span>
-                                        <span className="text-white font-medium">{template.defaultDueDays} days</span>
+                                        <span className="text-muted-foreground">Due Days:</span>
+                                        <span className="text-foreground font-medium">{template.defaultDueDays} days</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-gray-400">Line Items:</span>
-                                        <span className="text-white font-medium">{lineItems.length}</span>
+                                        <span className="text-muted-foreground">Line Items:</span>
+                                        <span className="text-foreground font-medium">{lineItems.length}</span>
                                     </div>
                                 </div>
 

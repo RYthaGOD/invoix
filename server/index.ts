@@ -208,6 +208,7 @@ app.use((req, res, next) => {
     pool = dbModule.pool;
     runMigrations = dbModule.runMigrations;
     checkDatabaseConnection = dbModule.checkDatabaseConnection;
+    const IS_FRONTEND_ONLY = dbModule.IS_FRONTEND_ONLY;
 
     const storageModule = await import("./invoice-storage");
     invoiceStorage = storageModule.invoiceStorage;
@@ -246,21 +247,21 @@ app.use((req, res, next) => {
       name: "invoix_sid",
     }));
 
-    // 8. Start server
+    // 8. Server already started above - just start cleanup jobs
     startupPhase = "server_start";
-    server.listen(port, () => {
-      log(`🚀 Server running on port ${port}`);
-      log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-      log(`   Health: http://localhost:${port}/api/health`);
-      startupPhase = "running";
+    log(`🚀 Server running on port ${port}`);
+    log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+    log(`   Health: http://localhost:${port}/api/health`);
+    startupPhase = "running";
 
-      // Start automated cleanup jobs
+    // Start automated cleanup jobs (skip in frontend-only mode)
+    if (!IS_FRONTEND_ONLY) {
       import('./subscription-cleanup').then(({ startCleanupJobs }) => {
         startCleanupJobs();
       }).catch((error) => {
         logger.error('Failed to start cleanup jobs', 'system', { error: String(error) });
       });
-    });
+    }
 
     // 4. Register Routes
     startupPhase = "route_registration";
@@ -275,35 +276,39 @@ app.use((req, res, next) => {
     }
 
     // 6. DB Verification
-    startupPhase = "database_sync";
-    logger.info("Connecting to Database...", "boot");
-    const dbResult = await checkDatabaseConnection(10, 2000); // 20s total retry
-    if (!dbResult.connected) {
-      throw new Error(`DB Connection Timeout: ${dbResult.error}`);
-    }
+    if (!IS_FRONTEND_ONLY) {
+      startupPhase = "database_sync";
+      logger.info("Connecting to Database...", "boot");
+      const dbResult = await checkDatabaseConnection(10, 2000); // 20s total retry
+      if (!dbResult.connected) {
+        throw new Error(`DB Connection Timeout: ${dbResult.error}`);
+      }
 
-    // 7. Migrations
-    startupPhase = "migrations";
-    await runMigrations();
+      // 7. Migrations
+      startupPhase = "migrations";
+      await runMigrations();
 
-    // 8. Service Initialization
-    startupPhase = "services_init";
-    if (process.env.PAYER_PRIVATE_KEY) {
-      const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
-      await initializeNFTService(payerKeypair).catch(e => logger.warn("NFT Init failed", "nft", { error: e }));
-    }
-    if (process.env.ENABLE_ARCIUM_ENCRYPTION === "true") {
-      await initializeArciumService().catch(e => logger.warn("Arcium Init failed", "arcium", { error: e.message }));
-    }
+      // 8. Service Initialization
+      startupPhase = "services_init";
+      if (process.env.PAYER_PRIVATE_KEY) {
+        const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+        await initializeNFTService(payerKeypair).catch(e => logger.warn("NFT Init failed", "nft", { error: e }));
+      }
+      if (process.env.ENABLE_ARCIUM_ENCRYPTION === "true") {
+        await initializeArciumService().catch(e => logger.warn("Arcium Init failed", "arcium", { error: e.message }));
+      }
 
-    // 9. Start QR Payment Processor (monitors Treasury for QR payments)
-    if (process.env.PAYER_PRIVATE_KEY) {
-      const { startQRPaymentProcessor } = await import("./qr-payment-processor");
-      startQRPaymentProcessor();
+      // 9. Start QR Payment Processor (monitors Treasury for QR payments)
+      if (process.env.PAYER_PRIVATE_KEY) {
+        const { startQRPaymentProcessor } = await import("./qr-payment-processor");
+        startQRPaymentProcessor();
 
-      // 10. Start Marketplace Cron (Expired Listings)
-      const { startMarketplaceCron } = await import("./marketplace-cron");
-      startMarketplaceCron();
+        // 10. Start Marketplace Cron (Expired Listings)
+        const { startMarketplaceCron } = await import("./marketplace-cron");
+        startMarketplaceCron();
+      }
+    } else {
+      logger.info("⏭️  Skipping database and services initialization (FRONTEND_ONLY mode)", "boot");
     }
 
     // Finalize
@@ -313,41 +318,43 @@ app.use((req, res, next) => {
 
     // 9. Realtime Systems (WS)
     const wss = new WebSocketServer({ server, path: "/ws" });
-    wss.on("connection", (ws: WebSocket) => {
-      invoiceStorage.getGlobalStats().then((stats: any) => {
-        if (ws.readyState === 1) ws.send(JSON.stringify({ type: "global_stats_update", data: stats }));
-      }).catch(() => { });
-    });
 
-    setInterval(async () => {
-      if (wss.clients.size > 0 && isServiceReady) {
-        try {
-          const stats = await invoiceStorage.getGlobalStats();
-          const msg = JSON.stringify({ type: "global_stats_update", data: stats });
-          wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
-        } catch (e) { }
-      }
-    }, 5000);
+    if (!IS_FRONTEND_ONLY) {
+      wss.on("connection", (ws: WebSocket) => {
+        invoiceStorage.getGlobalStats().then((stats: any) => {
+          if (ws.readyState === 1) ws.send(JSON.stringify({ type: "global_stats_update", data: stats }));
+        }).catch(() => { });
+      });
 
-
-    // 10. Self-Healing / Retry Monitor (background)
-    setInterval(async () => {
-      // Retry NFT Service if needed
-      if (process.env.PAYER_PRIVATE_KEY) {
-        try {
-          const { getInvoiceNFTService } = await import("./nft-service");
-          const nftService = getInvoiceNFTService();
-          if (!nftService.isReady() || (process.env.ENABLE_NFT_MINTING === 'true' && !nftService.hasCollection())) {
-            logger.info("Attempting to self-heal NFT Service...", "system");
-            const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
-            await nftService.initialize(payerKeypair);
-          }
-        } catch (e) {
-          // Silent failure on retry to avoid log spam, or debug log
-          logger.debug("Self-heal attempt failed", "system", { error: e });
+      setInterval(async () => {
+        if (wss.clients.size > 0 && isServiceReady) {
+          try {
+            const stats = await invoiceStorage.getGlobalStats();
+            const msg = JSON.stringify({ type: "global_stats_update", data: stats });
+            wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
+          } catch (e) { }
         }
-      }
-    }, 60000); // Check every minute
+      }, 5000);
+
+      // 10. Self-Healing / Retry Monitor (background)
+      setInterval(async () => {
+        // Retry NFT Service if needed
+        if (process.env.PAYER_PRIVATE_KEY) {
+          try {
+            const { getInvoiceNFTService } = await import("./nft-service");
+            const nftService = getInvoiceNFTService();
+            if (!nftService.isReady() || (process.env.ENABLE_NFT_MINTING === 'true' && !nftService.hasCollection())) {
+              logger.info("Attempting to self-heal NFT Service...", "system");
+              const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
+              await nftService.initialize(payerKeypair);
+            }
+          } catch (e) {
+            // Silent failure on retry to avoid log spam, or debug log
+            logger.debug("Self-heal attempt failed", "system", { error: e });
+          }
+        }
+      }, 60000); // Check every minute
+    }
 
   } catch (error: any) {
     logger.error("Startup Failure", "boot", { error: error.message || error, stack: error.stack });

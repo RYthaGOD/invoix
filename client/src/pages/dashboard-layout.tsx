@@ -11,7 +11,7 @@ import {
   Lock,
   Activity,
   ChevronDown,
-  Server
+  Server,
 } from "lucide-react";
 import { TourGuide } from "@/components/tour-guide";
 import {
@@ -62,8 +62,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   });
 
   const style = {
-    "--sidebar-width": "16rem",
-    "--sidebar-width-icon": "3rem",
+    "--sidebar-width": "18rem",
+    "--sidebar-width-icon": "4rem",
   };
 
   // Generate breadcrumbs from path
@@ -71,36 +71,70 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider style={style as CSSProperties}>
-      <div className="flex h-screen w-full bg-background transition-colors duration-300" id="tour-welcome">
+      {/* Devnet Warning Banner - Compact */}
+      <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-400 text-amber-900 py-1.5 px-4 text-center text-xs md:text-sm font-semibold">
+        <span className="inline-flex items-center gap-1.5 md:gap-2">
+          <span className="text-sm md:text-base">⚠️</span>
+          <span className="hidden sm:inline">
+            DEVNET ONLY — This is a testnet deployment. Do not use real funds.
+          </span>
+          <span className="sm:hidden">DEVNET ONLY</span>
+          <span className="text-sm md:text-base">⚠️</span>
+        </span>
+      </div>
+
+      <div
+        className="flex h-screen w-full bg-background transition-colors duration-300 pt-9"
+        id="tour-welcome"
+      >
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Header - Glass Effect */}
-          <header className="flex items-center justify-between p-4 border-b border-border/50 sticky top-0 z-10 glass">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
+          {/* Header - Glass Effect (Homepage Style) - Compact & Responsive */}
+          <header className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-3 border-b border-border/50 sticky top-0 z-50 bg-white/80 backdrop-blur-xl shadow-sm">
+            <div className="flex items-center gap-3 md:gap-6">
+              <SidebarTrigger
+                data-testid="button-sidebar-toggle"
+                className="hover:bg-muted rounded-md p-1.5 md:p-2 transition-colors"
+              />
 
               {/* Dynamic Breadcrumbs */}
               <Breadcrumb className="hidden md:flex">
                 <BreadcrumbList>
                   <BreadcrumbItem>
                     <BreadcrumbLink asChild>
-                      <Link href="/invoices" className="hover:text-primary transition-colors">Home</Link>
+                      <Link
+                        href="/invoices"
+                        className="hover:text-primary transition-colors font-medium"
+                      >
+                        Dashboard
+                      </Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
-                  <BreadcrumbSeparator />
+                  {pathSegments.length > 0 && <BreadcrumbSeparator />}
                   {pathSegments.map((segment, index) => {
-                    const path = `/${pathSegments.slice(0, index + 1).join("/")}`;
+                    const path = `/${pathSegments
+                      .slice(0, index + 1)
+                      .join("/")}`;
                     const isLast = index === pathSegments.length - 1;
-                    const title = segment.charAt(0).toUpperCase() + segment.slice(1);
+                    const title =
+                      segment.charAt(0).toUpperCase() +
+                      segment.slice(1).replace(/-/g, " ");
 
                     return (
                       <Fragment key={path}>
                         <BreadcrumbItem>
                           {isLast ? (
-                            <BreadcrumbPage className="font-semibold text-primary">{title}</BreadcrumbPage>
+                            <BreadcrumbPage className="font-semibold text-primary">
+                              {title}
+                            </BreadcrumbPage>
                           ) : (
                             <BreadcrumbLink asChild>
-                              <Link href={path} className="hover:text-primary transition-colors">{title}</Link>
+                              <Link
+                                href={path}
+                                className="hover:text-primary transition-colors"
+                              >
+                                {title}
+                              </Link>
                             </BreadcrumbLink>
                           )}
                         </BreadcrumbItem>
@@ -112,96 +146,126 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </Breadcrumb>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* System Status Dropdown - Responsive */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button id="tour-system-status" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-all group">
-                    <Activity className="w-3.5 h-3.5 animate-pulse" />
-                    <span>System Secure</span>
-                    <ChevronDown className="w-3 h-3 text-emerald-500/50 group-hover:text-emerald-500 transition-colors" />
+                  <button
+                    id="tour-system-status"
+                    className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs md:text-sm font-medium hover:bg-emerald-100 transition-all group"
+                  >
+                    <Activity className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                    <span className="hidden md:inline">System Secure</span>
+                    <ChevronDown className="w-3 h-3 md:w-3.5 md:h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 glass-strong border-white/10 mt-2">
-                  <DropdownMenuLabel className="flex items-center gap-2 text-white/90">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    Hardened Protection
+                <DropdownMenuContent
+                  align="end"
+                  className="w-72 card-flat border mt-2"
+                >
+                  <DropdownMenuLabel className="flex items-center gap-2 text-foreground pb-3">
+                    <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                    <span className="font-semibold">Security Status</span>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-white/5" />
+                  <DropdownMenuSeparator className="bg-border" />
 
-                  <div className="p-2 space-y-1">
-                    <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <Lock className="w-3.5 h-3.5 text-cyan-400" />
-                        <span className="text-xs text-gray-300">{systemStatus?.services?.arcium?.label || "Arcium MXE"}</span>
+                  <div className="p-2 space-y-2">
+                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-md bg-cyan-50 flex items-center justify-center">
+                          <Lock className="w-4 h-4 text-cyan-600" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          {systemStatus?.services?.arcium?.label ||
+                            "Arcium MXE"}
+                        </span>
                       </div>
-                      <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-[10px] h-5">
+                      <Badge className="bg-cyan-50 text-cyan-700 border-cyan-200 text-xs font-semibold">
                         {systemStatus?.services?.arcium?.status || "ACTIVE"}
                       </Badge>
                     </div>
 
-                    <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-3.5 h-3.5 text-indigo-400" />
-                        <span className="text-xs text-gray-300">{systemStatus?.services?.x402?.label || "x402 Anti-Spam"}</span>
+                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-md bg-indigo-50 flex items-center justify-center">
+                          <Zap className="w-4 h-4 text-indigo-600" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          {systemStatus?.services?.x402?.label ||
+                            "x402 Anti-Spam"}
+                        </span>
                       </div>
-                      <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-500/30 text-[10px] h-5">
-                        {systemStatus?.services?.x402?.skipFee ? "DEBUG" : (systemStatus?.services?.x402?.status || "ACTIVE")}
+                      <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs font-semibold">
+                        {systemStatus?.services?.x402?.skipFee
+                          ? "DEBUG"
+                          : systemStatus?.services?.x402?.status || "ACTIVE"}
                       </Badge>
                     </div>
 
-                    <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-xs text-gray-300">{systemStatus?.services?.replay?.label || "Anti-Replay Guard"}</span>
+                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center">
+                          <Activity className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          {systemStatus?.services?.replay?.label ||
+                            "Anti-Replay Guard"}
+                        </span>
                       </div>
-                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] h-5">
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold">
                         {systemStatus?.services?.replay?.status || "SECURE"}
                       </Badge>
                     </div>
 
-                    <div className="flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <Server className="w-3.5 h-3.5 text-blue-400" />
-                        <span className="text-xs text-gray-300">{systemStatus?.services?.atomic?.label || "Atomic Sequential"}</span>
+                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center">
+                          <Server className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          {systemStatus?.services?.atomic?.label ||
+                            "Atomic Sequential"}
+                        </span>
                       </div>
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px] h-5">
+                      <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs font-semibold">
                         {systemStatus?.services?.atomic?.status || "ENFORCED"}
                       </Badge>
                     </div>
                   </div>
 
-                  <DropdownMenuSeparator className="bg-white/5" />
-                  <div className="p-3">
-                    <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                      NETWORK STATUS: {systemStatus?.network?.status || "OPTIMIZED"}
+                  <DropdownMenuSeparator className="bg-border" />
+                  <div className="p-3 bg-muted/30 rounded-b-lg">
+                    <div className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Network: {systemStatus?.network?.status || "OPTIMIZED"}
                     </div>
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
 
               <TourGuide />
-              <ThemeToggle />
               <div id="tour-wallet-connect">
                 <WalletButton />
               </div>
             </div>
           </header>
 
-          {/* Main Content with Transition */}
-          <main className="flex-1 overflow-auto p-8 relative">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={location}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="w-full h-full"
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
+          {/* Main Content with Transition - Responsive Padding */}
+          <main className="flex-1 overflow-auto bg-background">
+            <div className="container-custom py-4 md:py-6 lg:py-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full"
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </main>
         </div>
       </div>

@@ -327,19 +327,19 @@ export default function InvoiceCreate() {
   };
 
   return (
-    <div className="min-h-screen pb-20 pt-8 px-4 md:px-8 space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="max-w-4xl mx-auto space-y-8">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">
               Create New Invoice
             </h1>
-            <p className="text-gray-400 mt-1">
+            <p className="text-muted-foreground mt-1">
               Issue a new invoice on the Solana blockchain
               {solPrice && (
-                <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                   1 SOL ≈ ${solPrice.toFixed(2)}
                 </span>
               )}
@@ -349,7 +349,7 @@ export default function InvoiceCreate() {
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400">
+          <div className="card-flat bg-red-50 border-red-200 p-4 text-red-700">
             {error}
           </div>
         )}
