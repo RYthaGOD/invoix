@@ -32,10 +32,9 @@ export async function verifySmartWalletSignature(
         // Lazy load SDK to avoid startup errors if not installed/configured
         let LazorkitClient;
         try {
-            // @ts-ignore
             const module = await import("@lazorkit/wallet");
             LazorkitClient = module.LazorkitClient;
-        } catch (e) {
+        } catch {
             logger.warn("[Signature Verify] @lazorkit/wallet SDK not found. Skipping SDK verification.", "auth");
         }
 
@@ -91,7 +90,7 @@ export async function verifySmartWalletSignature(
             if (nacl.sign.detached.verify(messageBytes, signature, walletPubkey.toBytes())) {
                 return { isValid: true, isNewWallet: false };
             }
-        } catch (e) {
+        } catch {
             logger.debug('[Signature Verify] Direct PDA verify failed (expected for smart wallets)', 'auth');
         }
 
@@ -117,7 +116,7 @@ export async function verifySmartWalletSignature(
 
         return { isValid: false, isNewWallet };
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error('[Signature Verify] Verification error', "auth", { error });
         return { isValid: false, isNewWallet: false };
     }
@@ -151,7 +150,7 @@ export async function verifySmartWalletOwnership(
         logger.info('[Ownership Verify] Account verified as LazorKit smart wallet', "auth");
         return true;
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error('[Ownership Verify] Verification error', "auth", { error });
         return false;
     }

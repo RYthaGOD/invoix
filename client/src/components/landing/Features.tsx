@@ -124,12 +124,12 @@ export function Features() {
                         </div>
                         <div>
                             <h3 className="text-xl font-bold font-heading mb-2 flex items-center gap-2">
-                                Glass Citadel™ Privacy
+                                Strict Mode Privacy
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">AUDITED</span>
                             </h3>
                             <p className="text-muted-foreground text-sm leading-relaxed">
-                                Invoice details encrypted with Arcium. Non-custodial auth via SIWS and Passkeys.
-                                Deeply audited for enterprise-grade confidentiality and security.
+                                Sponsored Smart Wallets ensure strict on-chain existence.
+                                Invoice data is encrypted with Arcium. Non-custodial auth via SIWS and Passkeys.
                             </p>
                         </div>
                     </div>

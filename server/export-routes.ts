@@ -1,6 +1,5 @@
 import { Router, Request } from "express";
 import { invoiceStorage } from "./invoice-storage";
-// @ts-ignore
 import { Parser } from "json2csv";
 import type { Invoice } from "./invoice-storage";
 
@@ -74,7 +73,7 @@ router.get("/:type", async (req, res) => {
         res.header('Content-Disposition', `attachment; filename="${filenamePrefix}-${new Date().toISOString().split('T')[0]}.csv"`);
         res.send(csv);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Export failed:", error);
         res.status(500).send("Export failed");
     }

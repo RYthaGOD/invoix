@@ -127,7 +127,7 @@ export function notFoundHandler(req: Request, res: Response, next: NextFunction)
 
 /**
  * Type-safe error message extraction
- * Use in catch blocks: catch (error: unknown) { const msg = getErrorMessage(error); }
+ * Use in catch blocks: catch (error: any) { const msg = getErrorMessage(error); }
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {

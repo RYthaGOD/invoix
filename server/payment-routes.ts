@@ -39,7 +39,7 @@ router.get("/config/fee-payer", async (req, res) => {
             feeAmount: GAS_FEE_USDC,
             treasuryAddress: TREASURY_WALLET_ADDRESS
         });
-    } catch (error) {
+    } catch (error: any) {
         const err = error as any;
         logger.error("Error getting fee payer config", "payment", { error: err.message || err });
         res.status(500).json({ success: false, message: "Internal server error" });
@@ -82,7 +82,7 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             // Attempt Versioned first (modern standard)
             transaction = VersionedTransaction.deserialize(txBuffer);
             isVersioned = true;
-        } catch (e) {
+        } catch {
             try {
                 // Fallback to Legacy
                 transaction = Transaction.from(txBuffer);
@@ -399,7 +399,6 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
 
         // 5. Sign and Send
         try {
-            let signature: string;
             let rawTransaction: Buffer | Uint8Array;
 
             if (isVersioned) {
@@ -412,7 +411,7 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                 rawTransaction = lTx.serialize({ requireAllSignatures: false });
             }
 
-            signature = await connection.sendRawTransaction(rawTransaction, {
+            const signature = await connection.sendRawTransaction(rawTransaction, {
                 skipPreflight: false,
                 preflightCommitment: "confirmed"
             });

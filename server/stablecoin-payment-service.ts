@@ -186,7 +186,7 @@ export async function verifyStablecoinPayment(
             const whole = s.slice(0, -decimals);
             const frac = s.slice(-decimals);
             // Remove trailing zeros
-            let cleanFrac = frac.replace(/0+$/, "");
+            const cleanFrac = frac.replace(/0+$/, "");
             return cleanFrac ? `${whole}.${cleanFrac}` : whole;
         };
 
@@ -251,7 +251,7 @@ export async function verifyStablecoinPayment(
             timestamp: tx.blockTime ? new Date(tx.blockTime * 1000) : new Date(),
         };
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error verifying payment", "payment", { error });
         return {
             verified: false,
@@ -361,7 +361,7 @@ function parseAllTokenTransfers(tx: VersionedTransactionResponse, expectedMint: 
 
         return transfers.map(t => ({ ...t, source }));
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error parsing transfers", "payment", { error });
         return [];
     }
@@ -389,7 +389,7 @@ export async function hasTokenAccount(
 
         const accountInfo = await connection.getAccountInfo(tokenAccountAddress);
         return accountInfo !== null;
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error checking token account", "payment", { error });
         return false;
     }
@@ -417,7 +417,7 @@ export async function getTokenBalance(
 
         const tokenAccount = await getAccount(connection, tokenAccountAddress);
         return Number(tokenAccount.amount) / Math.pow(10, stablecoinConfig.decimals);
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error getting token balance", "payment", { error });
         return 0;
     }

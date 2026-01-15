@@ -29,7 +29,7 @@ export function startCleanupJobs() {
                 .returning();
 
             logger.info(`Cleaned ${deleted.length} stale pending subscriptions`);
-        } catch (error) {
+        } catch (error: any) {
             logger.error('Subscription cleanup failed', 'cleanup', { error: String(error) });
         }
     });
@@ -47,7 +47,7 @@ export function startCleanupJobs() {
                 .returning();
 
             logger.info(`Cleaned ${deleted.length} old confirmed signatures`);
-        } catch (error) {
+        } catch (error: any) {
             logger.error('Signature cleanup failed', 'cleanup', { error: String(error) });
         }
     });

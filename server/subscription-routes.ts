@@ -12,7 +12,7 @@ import { requireWalletOwnership, strictRateLimit } from "./security";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { getArciumProgram, getSolanaConnection } from "./solana-sdk";
-import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 const { BN } = anchor;
 import crypto from "crypto";
@@ -109,7 +109,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 success: true,
                 plan: newPlan,
             });
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error creating subscription plan:", String(error));
             res.status(500).json({ error: "Failed to create subscription plan" });
         }
@@ -133,7 +133,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 plans,
                 count: plans.length,
             });
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error listing subscription plans:", String(error));
             res.status(500).json({ error: "Failed to list subscription plans" });
         }
@@ -163,7 +163,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 success: true,
                 plan,
             });
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error getting subscription plan:", String(error));
             res.status(500).json({ error: "Failed to get subscription plan" });
         }
@@ -205,7 +205,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // Calculate period dates based on interval
             const now = new Date();
-            let periodEnd = new Date(now);
+            const periodEnd = new Date(now);
 
             switch (plan.interval) {
                 case "weekly":
@@ -247,7 +247,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // Construct Instruction
             // createSubscription(subscriptionId, amount, frequency, assetId)
-            const mockAssetId = require("crypto").randomBytes(32);
+            const mockAssetId = crypto.randomBytes(32);
 
             const ix = await program.methods
                 .createSubscription(
@@ -292,7 +292,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 subscriptionPda: subscriptionPda.toBase58()
             });
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error preparing subscription:", String(error));
             res.status(500).json({ error: "Failed to preparing subscription" });
         }
@@ -371,7 +371,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                     blockhash: latestBlockhash.blockhash,
                     lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
                 });
-            } catch (error) {
+            } catch (error: any) {
                 logger.error("Transaction confirmation failed", "subscription", {
                     error: String(error),
                     signature,
@@ -399,7 +399,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             try {
                 invoiceAccount = await program.account.invoiceAccount.fetch(new PublicKey(invoicePda));
-            } catch (error) {
+            } catch (error: any) {
                 logger.warn("Failed to fetch on-chain invoice account", "subscription", {
                     subscriptionId: id,
                     invoicePda,
@@ -476,7 +476,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 invoicePda
             });
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error confirming invoice mint", "subscription", {
                 error: String(error),
                 subscriptionId: req.params.id,
@@ -508,7 +508,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 subscriptions: userSubscriptions,
                 count: userSubscriptions.length,
             });
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error listing subscriptions:", String(error));
             res.status(500).json({ error: "Failed to list subscriptions" });
         }
@@ -544,7 +544,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 subscription,
                 plan,
             });
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error getting subscription:", String(error));
             res.status(500).json({ error: "Failed to get subscription" });
         }
@@ -641,7 +641,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 subscriptionPda: subscriptionPda.toBase58()
             });
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error preparing cancellation:", String(error));
             res.status(500).json({ error: "Failed to prepare cancellation" });
         }
@@ -725,7 +725,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                     blockhash: latestBlockhash.blockhash,
                     lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
                 });
-            } catch (error) {
+            } catch (error: any) {
                 logger.error("Transaction confirmation failed", "subscription", {
                     error: String(error),
                     signature,
@@ -753,7 +753,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             try {
                 subAccount = await program.account.subscriptionAccount.fetch(new PublicKey(subscriptionPda));
-            } catch (error) {
+            } catch (error: any) {
                 logger.warn("Failed to fetch on-chain subscription account", "subscription", {
                     subscriptionId: id,
                     subscriptionPda,
@@ -834,7 +834,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 subscription: result[0]
             });
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error confirming cancellation", "subscription", {
                 error: String(error),
                 subscriptionId: req.params.id,
@@ -900,7 +900,7 @@ export function registerSubscriptionRoutes(app: Express): void {
             );
 
             // Generate NEW Invoice ID & PDA
-            const invoiceId = require("crypto").randomBytes(16);
+            const invoiceId = crypto.randomBytes(16);
             const [invoicePda] = PublicKey.findProgramAddressSync(
                 [Buffer.from("invoice"), merchantPubkey.toBuffer(), invoiceId],
                 program.programId
@@ -910,8 +910,8 @@ export function registerSubscriptionRoutes(app: Express): void {
             // mintInvoiceFromSubscription(invoiceId, contentHash, assetId)
             // we need mock asset ID for cNFT? Or is it generated on chain?
             // The instruction takes `asset_id` as argument.
-            const mockAssetId = require("crypto").randomBytes(32);
-            const mockContentHash = require("crypto").randomBytes(32);
+            const mockAssetId = crypto.randomBytes(32);
+            const mockContentHash = crypto.randomBytes(32);
 
             const ix = await program.methods
                 .mintInvoiceFromSubscription(
@@ -935,7 +935,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 invoiceId: invoiceId.toString('hex')
             });
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error preparing invoice mint:", String(error));
             res.status(500).json({ error: "Failed to preparing invoice mint" });
         }
@@ -992,7 +992,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // Calculate next period (Logic moved here from old mint endpoint)
             const now = new Date();
-            let nextPeriodEnd = new Date(subscription.currentPeriodEnd);
+            const nextPeriodEnd = new Date(subscription.currentPeriodEnd);
 
             switch (plan.interval) {
                 case "weekly":
@@ -1025,7 +1025,7 @@ export function registerSubscriptionRoutes(app: Express): void {
                 },
             });
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error confirming invoice mint:", String(error));
             res.status(500).json({ error: "Failed to confirm invoice mint" });
         }

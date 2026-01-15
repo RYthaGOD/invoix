@@ -98,7 +98,7 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
                 last24h: recentPayments.length,
             },
         };
-    } catch (error) {
+    } catch (error: any) {
         // Return partial metrics on error
         return {
             uptime: process.uptime(),

@@ -13,11 +13,11 @@
 
 ## 🌟 Key Features
 
-### 🔑 **Smart Wallet Authentication (LazorKit)**
-- **Biometric Login**: Seamless sign-in using FaceID/TouchID via Passkeys.
-- **Gasless Transactions**: Enterprise users enjoy sponsored transactions via the LazorKit Paymaster.
-- **Smart Accounts**: Programmable wallets enabling multi-signature approvals and recovery.
-- **Default Enabled**: All users have access to secure, non-custodial smart wallets out of the box.
+### 🔑 **Strict Mode Smart Wallets (LazorKit)**
+- **Sponsored Initialization**: Every user receives a treasury-sponsored on-chain smart wallet immediately upon connection.
+- **Strict Mode Compliance**: Eliminates "cold start" errors by ensuring wallet state exists on-chain before any interaction.
+- **Gasless Operations**: Enterprise users enjoy fully sponsored transactions via the LazorKit Paymaster.
+- **Biometric Access**: Seamless sign-in using FaceID/TouchID via Passkeys.
 
 ### 🔐 **Tier-0 Confidentiality (Arcium v0.5.2)**
 - **End-to-End Encryption**: Sensitive invoice data (amounts, line items, parties) is encrypted using `x25519` and `RescueCipher` before leaving the client.
@@ -137,9 +137,10 @@ npm run test
 
 | Metric | Value |
 |--------|-------|
-| Test Suites | 31+ Passed |
-| Build Status | ✅ Verified |
+| Test Suites | 7 (134+ tests) |
+| Build Status | ✅ Passing |
 | TypeScript Errors | 0 |
+| ESLint Errors | 0 |
 | API Endpoints | 50+ |
 | Supported Currencies | USDC, EURC, SOL |
 

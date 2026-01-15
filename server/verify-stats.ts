@@ -17,7 +17,7 @@ async function verifyStats() {
         }
 
         process.exit(0);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error verifying stats:", error);
         fs.writeFileSync('stats-output.json', JSON.stringify({ error: String(error) }));
         process.exit(1);

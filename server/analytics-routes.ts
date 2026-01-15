@@ -42,7 +42,7 @@ router.post("/event", globalRateLimit, async (req, res) => {
         });
 
         res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Analytics error:", error);
         // Fail silently to client to not block UI
         res.status(200).json({ success: false });
@@ -68,7 +68,7 @@ router.get("/stats/public", globalRateLimit, async (req, res) => {
             pageViews: Number(viewsResult?.count || 0),
             uniqueWallets: Number(walletsResult?.count || 0)
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Public analytics error:", error);
         res.status(500).json({ error: "Failed to fetch stats" });
     }
@@ -94,7 +94,7 @@ router.get("/stats", requireAdmin, async (req, res) => {
             pageViews: Number(viewsResult?.count || 0),
             uniqueWallets: Number(walletsResult?.count || 0)
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Analytics stats error:", error);
         res.status(500).json({ error: "Failed to fetch stats" });
     }

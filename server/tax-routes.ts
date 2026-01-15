@@ -23,7 +23,7 @@ export function registerTaxRoutes(app: any) {
                 success: true,
                 years: [currentYear, currentYear - 1]
             });
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error fetching tax years", "tax", { error });
             res.status(500).json({ error: "Failed to fetch tax years" });
         }
@@ -43,7 +43,7 @@ export function registerTaxRoutes(app: any) {
 
             const data = await getAnnualTaxSummary(wallet, year);
             res.json({ success: true, data });
-        } catch (error) {
+        } catch (error: any) {
             logger.error(`Error fetching tax summary for ${req.params.year}`, "tax", { error });
             res.status(500).json({ error: "Failed to fetch tax summary" });
         }
@@ -75,7 +75,7 @@ export function registerTaxRoutes(app: any) {
                     percentOfThreshold: Math.min(100, Math.round((totalReceived / THRESHOLD) * 100))
                 }
             });
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error fetching threshold status", "tax", { error });
             res.status(500).json({ error: "Failed to fetch status" });
         }
@@ -115,7 +115,7 @@ export function registerTaxRoutes(app: any) {
             res.setHeader('Content-Disposition', `attachment; filename="invoix-tax-${year}.csv"`);
             res.send(csv);
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error generating CSV export", "tax", { error });
             res.status(500).json({ error: "Failed to generate export" });
         }

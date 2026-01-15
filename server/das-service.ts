@@ -59,8 +59,7 @@ export const dasService = {
         return withRetry(async () => {
             const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
-            try {
-                const response = await axios.post(rpcUrl, {
+            const response = await axios.post(rpcUrl, {
                     jsonrpc: "2.0",
                     id: "get-asset",
                     method: "getAsset",
@@ -74,10 +73,7 @@ export const dasService = {
                 }
 
                 return response.data.result;
-            } catch (error: any) {
-                // Don't log here, let wrapper log retry warnings. catch only to rethrow if needed
-                throw error;
-            }
+
         }, `getAsset:${assetId}`).catch(err => {
             logger.error("Failed to fetch asset", "das", { assetId, error: err.message });
             throw err;

@@ -216,7 +216,7 @@ export default function InvoiceList() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 id="tour-welcome" className="text-3xl font-bold text-white tracking-tight">Invoices</h1>
+        <h1 id="tour-welcome" className="text-3xl font-bold gradient-text tracking-tight">Invoices</h1>
         <div className="flex gap-3">
           {/* Bulk Action Bar - Only shows when items are selected */}
           {selectedIds.size > 0 && (
@@ -287,13 +287,13 @@ export default function InvoiceList() {
           <button
             id="tour-create-invoice"
             onClick={() => navigate("/invoices/create")}
-            className="smoke-shadow px-6 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all flex items-center gap-2"
+            className="btn-primary smoke-shadow px-6 py-2.5 text-white font-medium rounded-lg transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Create Invoice
           </button>
-        </div>
-      </div>
+        </div >
+      </div >
 
       <div>
         {/* Stats Cards */}
@@ -497,6 +497,6 @@ export default function InvoiceList() {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

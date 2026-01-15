@@ -37,12 +37,12 @@ async function check() {
     try {
         const ipv4 = await dns.promises.resolve4(hostname).catch(e => `Failed: ${e.message}`);
         console.log(`IPv4:`, ipv4);
-    } catch (e) { console.log('IPv4 Error:', e); }
+    } catch (e) {console.log('IPv4 Error:', e); }
 
     try {
         const ipv6 = await dns.promises.resolve6(hostname).catch(e => `Failed: ${e.message}`);
         console.log(`IPv6:`, ipv6);
-    } catch (e) { console.log('IPv6 Error:', e); }
+    } catch (e) {console.log('IPv6 Error:', e); }
 
     logger.debug("TCP Connectivity Test", "network");
     const tryConnect = (host: string, family: string) => {
@@ -73,7 +73,7 @@ async function check() {
         targetIp = ips[0];
         console.log(`Targeting resolved IPv4: ${targetIp}`);
         await tryConnect(targetIp, 'IPv4');
-    } catch (e) {
+    } catch {
         console.log("Skipping IPv4 connect test due to DNS failure");
     }
 

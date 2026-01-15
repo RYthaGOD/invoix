@@ -109,7 +109,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             const existingPayments = await query.limit(1);
 
             let paymentRecord = existingPayments[0];
-            let paymentAlreadyExists = !!paymentRecord;
+            const paymentAlreadyExists = !!paymentRecord;
 
             // FIX: Re-fetch Invoice INSIDE transaction with lock to prevent Race Conditions on Partial Payments
             let invQuery = tx.select().from(invoices).where(eq(invoices.id, invoiceId));
@@ -384,7 +384,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             logger.warn(`Skipped Receipt NFT mint for invoice ${invoiceId} - NFT Service not ready after retries`, "nft");
         }
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error(`Error confirming/minting for ${signature}`, "payment", { error });
     }
 }

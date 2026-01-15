@@ -1035,8 +1035,7 @@ class InvoiceStorage implements IInvoiceStorage {
           uniqueUserCount = Number(result[0]?.count || 0);
         } else {
           // SQLite or other format
-          // @ts-ignore
-          uniqueUserCount = Number(result.rows?.[0]?.count || 0);
+          uniqueUserCount = Number((result as any).rows?.[0]?.count || 0);
         }
 
         // Fallback if raw query fails/returns weird format: Use simple sum
@@ -1055,7 +1054,7 @@ class InvoiceStorage implements IInvoiceStorage {
         totalVolume,
         volumes
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error computing global stats:", error);
       // Return zeros on error to prevent crash
       return { totalInvoices: 0, totalUsers: 0, totalPaidVolume: "0", encryptedInvoices: 0, totalVolume: "0", volumes: [] };

@@ -27,7 +27,7 @@ function getMasterKey(): Buffer {
         throw new Error(`INVOICE_ENCRYPTION_KEY must be exactly ${KEY_LENGTH} bytes, got ${keyBuffer.length} bytes`);
       }
       return keyBuffer;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to parse INVOICE_ENCRYPTION_KEY:", error instanceof Error ? error.message : "Unknown error");
       throw new Error("Invalid INVOICE_ENCRYPTION_KEY format. Must be base64-encoded 32 bytes. Generate with: openssl rand -base64 32");
     }
@@ -44,7 +44,7 @@ function getMasterKey(): Buffer {
         r: SCRYPT_R,
         p: SCRYPT_P,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to derive key from passphrase:", error instanceof Error ? error.message : "Unknown error");
       throw new Error("Failed to derive encryption key from INVOICE_ENCRYPTION_PASSPHRASE");
     }
@@ -67,7 +67,7 @@ function getMasterKey(): Buffer {
         return keyBuffer;
       }
       throw new Error(`Key length mismatch: expected ${KEY_LENGTH} bytes, got ${keyBuffer.length} bytes`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to parse ENCRYPTION_MASTER_KEY:", error instanceof Error ? error.message : "Unknown error");
       throw new Error("Invalid ENCRYPTION_MASTER_KEY format");
     }
@@ -117,7 +117,7 @@ export function encrypt(plaintext: string): EncryptedData {
       iv: iv.toString("hex"),
       authTag: authTag.toString("hex"),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Encryption error:", error instanceof Error ? error.message : "Unknown error");
     throw new Error("Failed to encrypt data");
   }
@@ -145,7 +145,7 @@ export function decrypt(ciphertext: string, iv: string, authTag: string): string
     masterKey.fill(0);
 
     return plaintext;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Decryption error:", error instanceof Error ? error.message : "Unknown error");
     throw new Error("Failed to decrypt data - invalid key or corrupted data");
   }
@@ -167,7 +167,7 @@ export function generateFingerprint(data: string): string {
 
     // Return first 16 bytes (32 hex chars) for compact storage
     return hash.substring(0, 32);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Fingerprint generation error:", error instanceof Error ? error.message : "Unknown error");
     throw new Error("Failed to generate fingerprint");
   }
@@ -180,7 +180,7 @@ export function verifyFingerprint(data: string, fingerprint: string): boolean {
   try {
     const newFingerprint = generateFingerprint(data);
     return newFingerprint === fingerprint;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Fingerprint verification error:", error instanceof Error ? error.message : "Unknown error");
     return false;
   }

@@ -11,13 +11,12 @@ import {
     insertWebhookSchema,
     updateWebhookSchema,
     ALL_WEBHOOK_EVENTS,
-    type Webhook
 } from "@shared/webhooks-schema";
 import { eq, and, desc } from "drizzle-orm";
 import { requireWalletOwnership, strictRateLimit } from "./security";
-import { generateWebhookSecret, hashWebhookSecret, emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
+import { generateWebhookSecret, emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
 import { logger } from "./logger";
-import { z } from "zod";
+
 
 const router = Router();
 
@@ -53,7 +52,7 @@ router.get("/", requireWalletOwnership, async (req: Request, res: Response) => {
 
         return res.json({ webhooks: userWebhooks });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error listing webhooks", "api", { error });
         return res.status(500).json({ error: "Failed to list webhooks" });
     }
@@ -126,7 +125,7 @@ router.get("/:id", requireWalletOwnership, async (req: Request, res: Response) =
             recentDeliveries,
         });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error getting webhook", "api", { error });
         return res.status(500).json({ error: "Failed to get webhook" });
     }
@@ -207,7 +206,7 @@ router.post("/", requireWalletOwnership, strictRateLimit, async (req: Request, r
             message: "Save this secret securely - it will not be shown again!",
         });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error creating webhook", "api", { error });
         return res.status(500).json({ error: "Failed to create webhook" });
     }
@@ -281,7 +280,7 @@ router.patch("/:id", requireWalletOwnership, async (req: Request, res: Response)
             },
         });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error updating webhook", "api", { error });
         return res.status(500).json({ error: "Failed to update webhook" });
     }
@@ -320,7 +319,7 @@ router.delete("/:id", requireWalletOwnership, async (req: Request, res: Response
 
         return res.json({ success: true, deleted: id });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error deleting webhook", "api", { error });
         return res.status(500).json({ error: "Failed to delete webhook" });
     }
@@ -373,7 +372,7 @@ router.post("/:id/rotate-secret", requireWalletOwnership, strictRateLimit, async
             message: "Save this secret securely - it will not be shown again!",
         });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error rotating webhook secret", "api", { error });
         return res.status(500).json({ error: "Failed to rotate secret" });
     }
@@ -425,7 +424,7 @@ router.post("/:id/test", requireWalletOwnership, strictRateLimit, async (req: Re
             message: "Test event queued for delivery",
         });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error sending test webhook", "api", { error });
         return res.status(500).json({ error: "Failed to send test webhook" });
     }

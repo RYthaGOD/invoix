@@ -13,7 +13,7 @@ router.get("/sol", globalRateLimit, async (req, res) => {
             price: price,
             timestamp: new Date().toISOString()
         });
-    } catch (error) {
+    } catch (error: any) {
         res.status(500).json({ error: "Failed to fetch price" });
     }
 });

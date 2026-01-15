@@ -2,7 +2,7 @@
 import 'dotenv/config';
 
 // Initialize Sentry FIRST for complete error capture
-import { initSentry, sentryRequestHandler, setupSentryErrorHandler, captureError } from './sentry';
+import { initSentry, sentryRequestHandler, captureError } from './sentry';
 initSentry();
 
 import dns from 'node:dns';
@@ -11,7 +11,7 @@ if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
 
-import express, { type Request, Response, NextFunction } from "express";
+import express from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
@@ -20,7 +20,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import fs from "fs";
 import { WebSocketServer, WebSocket } from "ws";
-import { createServer, type Server } from "http";
+import { createServer } from "http";
 
 import {
   securityHeaders,
@@ -123,7 +123,7 @@ app.get("/api/metrics", async (req, res) => {
   try {
     const metrics = await getSystemMetrics();
     res.json(metrics);
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Failed to fetch metrics", "metrics", { error });
     res.status(500).json({ error: "Failed to fetch metrics" });
   }
@@ -136,8 +136,7 @@ app.use(sentryRequestHandler());
 app.use("/api", globalRateLimit);
 
 // Module-level variables to be accessible by shutdown function
-let server: any;
-let isShuttingDown = false;
+const isShuttingDown = false;
 
 // -------------------------------------------------------------------------
 // REFACTOR: INVINCIBLE STARTUP PATTERN
@@ -149,7 +148,7 @@ let lastStartupError: string | null = null;
 let startupPhase = "bootstrapping";
 
 // Create the server IMMEDIATELY to satisfy platform health checks
-server = createServer(app);
+const server = createServer(app);
 const port = parseInt(process.env.PORT || "5000", 10);
 
 // Server will listen on port after initialization completes (see startup sequence ~line 251)
@@ -181,7 +180,7 @@ export const startupPromise = (async () => {
       try {
         const urlObj = new URL(process.env.DATABASE_URL);
         logger.info(`DB Host: ${urlObj.hostname}`, "dns");
-      } catch (e) {
+      } catch {
         logger.warn("Invalid DATABASE_URL format", "dns");
       }
     }
@@ -250,7 +249,7 @@ export const startupPromise = (async () => {
       app.use((req, res, next) => {
         const testUser = req.headers['x-test-auth'];
         if (testUser) {
-          (req.session as any).walletAddress = testUser;
+          req.session.walletAddress = Array.isArray(testUser) ? testUser[0] : testUser;
         }
         next();
       });
@@ -360,8 +359,8 @@ export const startupPromise = (async () => {
           const stats = await invoiceStorage.getGlobalStats();
           const msg = JSON.stringify({ type: "global_stats_update", data: stats });
           wss.clients.forEach(c => { if (c.readyState === 1) c.send(msg); });
-        } catch (e) {
-          logger.debug('WS stats broadcast failed', 'websocket', { error: e });
+        } catch (err) {
+          logger.debug('WS stats broadcast failed', 'websocket', { error: err });
         }
       }
     }, 5000);
@@ -379,17 +378,18 @@ export const startupPromise = (async () => {
             const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY!);
             await nftService.initialize(payerKeypair);
           }
-        } catch (e) {
+        } catch (err) {
           // Silent failure on retry to avoid log spam, or debug log
-          logger.debug("Self-heal attempt failed", "system", { error: e });
+          logger.debug("Self-heal attempt failed", "system", { error: err });
         }
       }
     }, 60000); // Check every minute
 
   } catch (error: any) {
-    logger.error("Startup Failure", "boot", { error: error.message || error, stack: error.stack });
-    captureError(error, { phase: startupPhase });
-    lastStartupError = error.message;
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error("Startup Failure", "boot", { error: err.message, stack: err.stack });
+    captureError(err, { phase: startupPhase });
+    lastStartupError = err.message;
     startupPhase = "failed";
     // We do NOT exit, to keep the port open for logs and status visibility
   }

@@ -117,7 +117,7 @@ export async function runMigrations() {
     console.log(`Using migrations folder: ${migrationsFolder}`);
     await migrate(db, { migrationsFolder });
     console.log('✅ Migrations completed successfully');
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Migration failed:', error);
     throw error;
   }
@@ -135,14 +135,14 @@ export async function checkDatabaseConnection(retries = 30, delay = 2000): Promi
   const { promises: dnsPromises } = dns;
 
   // Parse current URL to get hostname (Robustly)
-  let currentUrl = process.env.DATABASE_URL || "";
+  const currentUrl = process.env.DATABASE_URL || "";
   let urlObj: URL | null = null;
   let hostname = "";
 
   try {
     urlObj = new URL(currentUrl);
     hostname = urlObj.hostname;
-  } catch (e) {
+  } catch {
     // Fallback: simple extraction for validation
     const match = currentUrl.match(/@([^:/]+)(?::(\d+))?/);
     if (match) hostname = match[1];

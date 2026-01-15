@@ -77,7 +77,7 @@ export class InvoiceEncryption {
             encrypted += cipher.final('base64');
 
             // Get authentication tag
-            // @ts-ignore - getAuthTag exists in Node.js crypto but TypeScript types are outdated
+            // @ts-expect-error - getAuthTag exists in Node.js crypto
             const authTag = cipher.getAuthTag();
 
             return {
@@ -86,7 +86,7 @@ export class InvoiceEncryption {
                 authTag: authTag.toString('base64'),
                 salt: salt.toString('base64'),
             };
-        } catch (error) {
+        } catch (error: any) {
             console.error('Encryption error:', error);
             throw new Error('Failed to encrypt invoice data');
         }
@@ -117,7 +117,7 @@ export class InvoiceEncryption {
 
             // Create decipher
             const decipher = createDecipheriv(this.algorithm, key, iv);
-            // @ts-ignore - setAuthTag exists in Node.js crypto but TypeScript types are outdated
+            // @ts-expect-error - setAuthTag exists in Node.js crypto
             decipher.setAuthTag(authTag);
 
             // Decrypt data
@@ -126,7 +126,7 @@ export class InvoiceEncryption {
 
             // Parse JSON
             return JSON.parse(decrypted);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Decryption error:', error);
             throw new Error('Failed to decrypt invoice data - invalid keys or corrupted data');
         }

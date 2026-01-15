@@ -38,7 +38,7 @@ export async function verifyWalletSignature(
     );
 
     return isValid;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error verifying wallet signature:", error);
     return false;
   }
@@ -77,18 +77,17 @@ export async function getArciumProgram(): Promise<any> {
   try {
     const idlFile = fs.readFileSync(idlPath, "utf-8");
     idl = JSON.parse(idlFile);
-  } catch (error) {
+  } catch (error: any) {
     // Try local path if running from root
     try {
       const localIdlPath = path.resolve(process.cwd(), "arcium_idl.json");
       const idlFile = fs.readFileSync(localIdlPath, "utf-8");
       idl = JSON.parse(idlFile);
-    } catch (e) {
-      logger.error("Failed to load arcium_idl.json", "solana", { error: e });
+    } catch (e) {logger.error("Failed to load arcium_idl.json", "solana", { error: e });
       throw new Error("IDL not found");
     }
   }
 
-  // @ts-ignore - Provider type mismatch between packages sometimes occurs
+  // @ts-expect-error - Provider type mismatch between anchor packages
   return new Program(idl, provider);
 }

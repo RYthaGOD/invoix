@@ -310,7 +310,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.post("/api/marketplace/list", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
             const { invoiceId, askingPrice, description, expiresInDays, isBlind = false } = req.body as ListingRequest;
 
             if (!invoiceId || !askingPrice) {
@@ -475,7 +475,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.post("/api/marketplace/purchase", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
             const { listingId } = req.body;
 
             if (!listingId) return res.status(400).json({ success: false, error: "listingId required" });
@@ -509,7 +509,7 @@ export function registerMarketplaceRoutes(app: Express): void {
             if (!stablecoin) throw new Error("Unsupported currency " + listing.currency);
 
             const transaction = await marketplaceService.createBuyInvoiceTransaction(
-                walletAddress,
+                walletAddress!,
                 listing.seller,
                 listing.nftMint,
                 stablecoin.mint
@@ -533,7 +533,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.post("/api/marketplace/confirm-purchase", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
             const { listingId, signature } = req.body;
 
             if (!listingId || !signature) return res.status(400).json({ error: "Missing listingId or signature" });
@@ -593,7 +593,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.delete("/api/marketplace/listings/:id", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
             const { id } = req.params;
             const { returnTransaction } = req.query; // New flag
 
@@ -663,7 +663,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.get("/api/marketplace/my-listings", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
 
             const listings = await db.select({
                 listing: schema.invoiceMarketplace,
@@ -671,7 +671,7 @@ export function registerMarketplaceRoutes(app: Express): void {
             })
                 .from(schema.invoiceMarketplace)
                 .innerJoin(schema.invoices, eq(schema.invoiceMarketplace.invoiceId, schema.invoices.id))
-                .where(eq(schema.invoiceMarketplace.seller, walletAddress))
+                .where(eq(schema.invoiceMarketplace.seller, walletAddress!))
                 .orderBy(desc(schema.invoiceMarketplace.listedAt));
 
             res.json({
@@ -703,7 +703,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.get("/api/marketplace/my-investments", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
 
             const investments = await db.select({
                 listing: schema.invoiceMarketplace,
@@ -711,7 +711,7 @@ export function registerMarketplaceRoutes(app: Express): void {
             })
                 .from(schema.invoiceMarketplace)
                 .innerJoin(schema.invoices, eq(schema.invoiceMarketplace.invoiceId, schema.invoices.id))
-                .where(eq(schema.invoiceMarketplace.soldTo, walletAddress))
+                .where(eq(schema.invoiceMarketplace.soldTo, walletAddress!))
                 .orderBy(desc(schema.invoiceMarketplace.soldAt));
 
             res.json({
@@ -792,7 +792,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.post("/api/marketplace/listings/:id/request-access", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
             const { id } = req.params;
             const { message } = req.body;
 
@@ -801,7 +801,7 @@ export function registerMarketplaceRoutes(app: Express): void {
                 .from(schema.marketplaceAccessRequests)
                 .where(and(
                     eq(schema.marketplaceAccessRequests.listingId, id),
-                    eq(schema.marketplaceAccessRequests.buyerWallet, walletAddress)
+                    eq(schema.marketplaceAccessRequests.buyerWallet, walletAddress!)
                 ))
                 .limit(1);
 
@@ -813,7 +813,7 @@ export function registerMarketplaceRoutes(app: Express): void {
             await db.insert(schema.marketplaceAccessRequests)
                 .values({
                     listingId: id,
-                    buyerWallet: walletAddress,
+                    buyerWallet: walletAddress!,
                     requestMessage: message || "Interested in viewing details.",
                     status: 'pending'
                 });
@@ -831,7 +831,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.get("/api/marketplace/access-requests/pending", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
 
             const requests = await db.select({
                 requestId: schema.marketplaceAccessRequests.id,
@@ -846,7 +846,7 @@ export function registerMarketplaceRoutes(app: Express): void {
                 .innerJoin(schema.invoiceMarketplace, eq(schema.marketplaceAccessRequests.listingId, schema.invoiceMarketplace.id))
                 .innerJoin(schema.invoices, eq(schema.invoiceMarketplace.invoiceId, schema.invoices.id))
                 .where(and(
-                    eq(schema.invoiceMarketplace.seller, walletAddress),
+                    eq(schema.invoiceMarketplace.seller, walletAddress!),
                     eq(schema.marketplaceAccessRequests.status, 'pending')
                 ))
                 .orderBy(desc(schema.marketplaceAccessRequests.createdAt));
@@ -864,7 +864,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.get("/api/marketplace/listings/:id/access-requests", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
             const { id } = req.params;
 
             // Verify seller ownership
@@ -895,7 +895,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.post("/api/marketplace/access-requests/:requestId/approve", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
             const { requestId } = req.params;
 
             // Verify ownership via join
@@ -928,7 +928,7 @@ export function registerMarketplaceRoutes(app: Express): void {
      */
     app.post("/api/marketplace/access-requests/:requestId/reject", requireAuth, async (req: Request, res: Response) => {
         try {
-            const walletAddress = (req.session as any).walletAddress;
+            const walletAddress = req.session.walletAddress;
             const { requestId } = req.params;
 
             // Verify ownership via join

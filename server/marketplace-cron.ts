@@ -53,7 +53,7 @@ export async function checkExpiredListings() {
             }
         }
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error checking expired listings", "cron", { error });
     }
 }

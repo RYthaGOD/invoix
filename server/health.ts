@@ -71,7 +71,7 @@ export async function healthCheck(req: Request, res: Response): Promise<void> {
     await db.execute(sql`SELECT 1`);
     result.checks.database.latency = Date.now() - dbStart;
     result.checks.database.status = "ok";
-  } catch (error) {
+  } catch (error: any) {
     result.checks.database.status = "error";
     result.checks.database.error = error instanceof Error ? error.message : "Unknown error";
     result.status = "unhealthy";
@@ -113,7 +113,7 @@ export async function healthCheck(req: Request, res: Response): Promise<void> {
       merkleTree: isReady ? nftService.getMerkleTree() : null,
       collectionMint: nftService.getCollectionMint(),
     };
-  } catch (error) {
+  } catch (error: any) {
     result.checks.glassCitadel = {
       status: "disabled",
       nftMintingEnabled: process.env.ENABLE_NFT_MINTING === 'true',
@@ -152,7 +152,7 @@ export async function readiness(req: Request, res: Response): Promise<void> {
     // Quick database check
     await db.execute(sql`SELECT 1`);
     res.status(200).json({ status: "ready" });
-  } catch (error) {
+  } catch (error: any) {
     res.status(503).json({
       status: "not ready",
       error: error instanceof Error ? error.message : "Unknown error"

@@ -105,7 +105,7 @@ export class ArciumService {
 
       this.initialized = true;
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Failed to initialize Arcium SDK-Only Service:", error);
       this.initialized = false;
       return false;
@@ -172,9 +172,14 @@ export class ArciumService {
         success: true,
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Arcium Encryption Failed:", error);
-      throw error;
+      return {
+        encryptedData: "",
+        encryptionKey: "",
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown encryption error",
+      };
     }
   }
 
@@ -227,7 +232,7 @@ export class ArciumService {
       const plaintext = Buffer.from(decryptedBytes).toString("utf-8");
 
       return JSON.parse(plaintext);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Arcium Decryption Failed:", error);
       return null;
     }
@@ -272,7 +277,7 @@ export function loadKeypairFromPrivateKey(privateKey: string): Keypair {
       const secretKey = bs58.decode(privateKey);
       return Keypair.fromSecretKey(secretKey);
     }
-  } catch (error) {
+  } catch (error: any) {
     throw new Error("Invalid private key format");
   }
 }

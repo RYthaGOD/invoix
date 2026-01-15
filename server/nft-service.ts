@@ -16,12 +16,6 @@ import {
   mintToCollectionV1, // For verified collection minting
   transfer as transferV1,
   burn as burnV1,
-  updateMetadata,
-  // Type imports
-  // CreateTreeInstructionAccounts, // Removed
-  MintV1InstructionAccounts,
-  TransferInstructionAccounts,
-  BurnInstructionAccounts,
   findLeafAssetIdPda,
 } from "@metaplex-foundation/mpl-bubblegum";
 import {
@@ -31,7 +25,6 @@ import {
   fetchDigitalAsset,
 } from "@metaplex-foundation/mpl-token-metadata";
 import {
-  createGenericFile,
   generateSigner,
   percentAmount,
   publicKey as toPublicKey,
@@ -41,10 +34,8 @@ import {
   Signer,
   keypairIdentity,
   transactionBuilder,
-  signerIdentity,
-  PublicKey as UmiPublicKey,
 } from "@metaplex-foundation/umi";
-import { fromWeb3JsPublicKey, fromWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
+import { fromWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { PublicKey, Keypair, Connection, SystemProgram, LAMPORTS_PER_SOL, ComputeBudgetProgram } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -340,7 +331,7 @@ export class InvoiceNFTService {
       logger.info("Invoice NFT service initialized", "nft");
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to initialize NFT service", "nft", { error });
       this.initialized = false;
       return false;
@@ -511,7 +502,7 @@ export class InvoiceNFTService {
       logger.warn("IMPORTANT: Add MERKLE_TREE_ADDRESS to .env to persist this tree!", "nft", { address: this.merkleTree });
 
       return this.merkleTree;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create merkle tree", "nft", { error });
       throw error;
     }
@@ -640,7 +631,7 @@ export class InvoiceNFTService {
       // Current Identity (Server) is already configured in Umi. 
       // buildAndSign will sign with the Server keypair because it is the Tree Authority
       // It will NOT sign with userSigner because it's a dummy.
-      let tx = await txWithPayer.buildAndSign(this.umi);
+      const tx = await txWithPayer.buildAndSign(this.umi);
 
       // Serialize the transaction
       // This includes the Server's signature, but lacks the User's signature (Payer).
@@ -651,7 +642,7 @@ export class InvoiceNFTService {
 
       logger.info(`Created Mint Transaction for User ${userPublicKey}`, "nft");
       return base64Transaction;
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create mint transaction", "nft", { error });
       throw error;
     }
@@ -784,7 +775,7 @@ export class InvoiceNFTService {
         mint: assetId,
         signature: signature,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to mint payment receipt NFT", "nft", { error });
       throw error;
     }
@@ -853,7 +844,7 @@ export class InvoiceNFTService {
         mint: mint.publicKey.toString(),
         signature,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error(`Failed to mint business identity NFT`, "nft", { error });
       throw error;
     }
@@ -880,7 +871,7 @@ export class InvoiceNFTService {
 
     try {
       // Check 1: Is user authenticated and involved?
-      let isAuthorized = false; // Placeholder for future authorization logic
+      const isAuthorized = false; // Placeholder for future authorization logic
 
       // 1. Generate Metadata
       const metadata = this.generateBusinessIdentityMetadata(
@@ -978,7 +969,7 @@ export class InvoiceNFTService {
         mint: mintSigner.publicKey.toString(),
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create business identity transaction", "nft", { error });
       throw error;
     }
@@ -1010,7 +1001,7 @@ export class InvoiceNFTService {
         merkleTree,
         leafDelegate: leafOwner,
         newLeafOwner: newOwner,
-        // @ts-ignore
+        // @ts-expect-error - leafIndex type mismatch between DB (number) and Umi (expected bigint)
         leafIndex: invoice.nftLeafIndex,
         collectionMint: this.collectionMint ? toPublicKey(this.collectionMint) : undefined,
       });
@@ -1034,7 +1025,7 @@ export class InvoiceNFTService {
 
       return Buffer.from(this.umi.transactions.serialize(tx)).toString("base64");
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create escrow transfer transaction", "nft", { error });
       throw error;
     }
@@ -1124,7 +1115,7 @@ export class InvoiceNFTService {
         merkleTree,
         leafDelegate: escrow,
         newLeafOwner: buyer,
-        // @ts-ignore
+        // @ts-expect-error - leafIndex type mismatch between DB (number) and Umi (expected bigint)
         leafIndex: invoice.nftLeafIndex,
         collectionMint: this.collectionMint ? toPublicKey(this.collectionMint) : undefined,
       });
@@ -1154,7 +1145,7 @@ export class InvoiceNFTService {
 
       return Buffer.from(this.umi.transactions.serialize(tx)).toString("base64");
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create purchase transaction", "nft", { error });
       throw error;
     }
@@ -1183,7 +1174,7 @@ export class InvoiceNFTService {
         merkleTree: toPublicKey(invoice.nftMerkleTree),
         leafDelegate: escrow,
         newLeafOwner: seller,
-        // @ts-ignore
+        // @ts-expect-error - leafIndex type mismatch between DB (number) and Umi (expected bigint)
         leafIndex: invoice.nftLeafIndex,
         collectionMint: this.collectionMint ? toPublicKey(this.collectionMint) : undefined,
       });
@@ -1202,7 +1193,7 @@ export class InvoiceNFTService {
 
       return Buffer.from(this.umi.transactions.serialize(tx)).toString("base64");
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create cancel listing transaction", "nft", { error });
       throw error;
     }
@@ -1227,7 +1218,7 @@ export class InvoiceNFTService {
         merkleTree: toPublicKey(merkleTree),
         leafOwner: toPublicKey(fromAddress),
         newLeafOwner: toPublicKey(toAddress),
-        // @ts-ignore - Type definition mismatch for transfer argument
+        // @ts-expect-error - leafIndex type mismatch between number and Umi bigint
         leafIndex,
       });
 
@@ -1238,7 +1229,7 @@ export class InvoiceNFTService {
       return {
         signature: result.signature.toString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to transfer invoice NFT", "nft", { error });
       throw error;
     }
@@ -1261,7 +1252,7 @@ export class InvoiceNFTService {
       const burnIx = burnV1(this.umi, {
         merkleTree: toPublicKey(merkleTree),
         leafOwner: toPublicKey(ownerAddress),
-        // @ts-ignore - Type definition mismatch for burn argument
+        // @ts-expect-error - leafIndex type mismatch between number and Umi bigint
         leafIndex,
       });
 
@@ -1272,7 +1263,7 @@ export class InvoiceNFTService {
       return {
         signature: result.signature.toString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to burn invoice NFT", "nft", { error });
       throw error;
     }
@@ -1602,7 +1593,7 @@ export class InvoiceNFTService {
       } as any);
       return result.uri;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to upload metadata", "nft", { error });
       // Fallback to a valid dummy or handle error
       throw error;
@@ -1752,7 +1743,7 @@ export class InvoiceNFTService {
         };
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to mint special NFT", "nft", { error });
       throw error;
     }
@@ -1854,7 +1845,7 @@ export class InvoiceNFTService {
         signature: signature
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to mint specific NFT", "nft", { error });
       throw error;
     }
@@ -2006,7 +1997,7 @@ export class InvoiceNFTService {
         nftVariant: selectedNFT
       };
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to create claim transaction", "nft", { error });
       throw error;
     }
@@ -2096,7 +2087,7 @@ export class InvoiceNFTService {
       logger.debug(`Raw logs: ${logs.slice(0, 10).join("\n")}`, "nft");
       return 0;
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error extracting leaf index", "nft", { error });
       // Return 0 as fallback instead of throwing - the NFT was likely minted
       logger.warn("Returning leaf index 0 as fallback", "nft");

@@ -61,7 +61,7 @@ export class MetadataStorageService {
         this.preferredProvider = "api";
         logger.info("Metadata storage initialized (api)", "storage");
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to initialize metadata storage", "storage", { error });
       this.preferredProvider = "api";
     }
@@ -164,7 +164,7 @@ export class MetadataStorageService {
           txId: tx.id,
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Failed to upload to arweave", "storage", { error });
     }
 

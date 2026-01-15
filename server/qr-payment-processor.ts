@@ -117,7 +117,7 @@ async function processQRPayments() {
                 logger.error(`Error checking invoice ${invoice.id}`, "qr", { error: err });
             }
         }
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Processing error", "qr", { error });
     }
 }
@@ -320,7 +320,7 @@ async function distributePayment(
 
         logger.info(`Invoice ${invoice.id} updated: ${newStatus}`, "qr", { invoiceId: invoice.id, status: newStatus });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error(`Distribution error for ${invoice.id}`, "qr", { error });
     }
 }

@@ -135,7 +135,7 @@ export function decryptWebhookSecret(encryptedSecret: string): string {
         let decrypted = decipher.update(encrypted, "hex", "utf8");
         decrypted += decipher.final("utf8");
         return decrypted;
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Failed to decrypt webhook secret", "webhook", { error });
         throw new Error("Failed to decrypt webhook secret");
     }
@@ -198,7 +198,7 @@ export async function emitWebhookEvent(
             logger.error("Error processing webhook deliveries", "webhook", { error: err })
         );
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error(`Failed to emit webhook event: ${eventType}`, "webhook", { error });
     }
 }
@@ -352,7 +352,7 @@ async function attemptDelivery(
             );
         }
 
-    } catch (error) {
+    } catch (error: any) {
         const responseTimeMs = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 

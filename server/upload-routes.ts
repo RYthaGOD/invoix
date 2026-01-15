@@ -19,7 +19,7 @@ export function registerUploadRoutes(app: Express): void {
 
             // 1. Decode Base64
             // Expect format "data:image/png;base64,iVBORw0KGgo..."
-            const matches = fileData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            const matches = fileData.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
 
             if (!matches || matches.length !== 3) {
                 return res.status(400).json({ success: false, message: "Invalid Base64 format" });

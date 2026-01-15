@@ -53,7 +53,7 @@ export function Hero() {
                         >
                             Create professional invoices. Get paid in USDC, SOL, or EURC with sub-second finality.
                             Every payment automatically mints an NFT receipt for immutable, auditable records.
-                            <span className="block mt-2 text-emerald-400/80 font-medium italic">Production-hardened, security-audited, and powered by Arcium confidential computing.</span>
+                            <span className="block mt-2 text-emerald-400/80 font-medium italic">Sponsored Smart Accounts, Gasless Transactions, and Military-Grade Privacy.</span>
                         </motion.p>
 
                         <motion.div

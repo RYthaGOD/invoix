@@ -51,7 +51,7 @@ export class EmailService {
                 this.resend = new Resend(this.config.apiKey);
                 this.isReady = true;
                 logger.info("Email Service Initialized (Resend API Active)", "email");
-            } catch (error) {
+            } catch (error: any) {
                 logger.error("Failed to initialize Resend", "email", { error });
             }
         } else {
@@ -116,7 +116,7 @@ export class EmailService {
             } else {
                 return await this.mockSendReceipt(data);
             }
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Failed to send receipt email", "email", { error });
             return false;
         }
@@ -167,7 +167,7 @@ export class EmailService {
             log(`[Email] Sent successfully to ${data.to} (ID: ${resendData?.id})`);
             return true;
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error sending via Resend", "email", { error });
             return false;
         }
@@ -211,7 +211,7 @@ export class EmailService {
             log(`[Email] Receipt sent successfully to ${data.to}`);
             return true;
 
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Error sending receipt via Resend", "email", { error });
             return false;
         }
@@ -285,7 +285,7 @@ export class EmailService {
                 });
                 return { success: true, id: "mock-id" };
             }
-        } catch (error) {
+        } catch (error: any) {
             logger.error("Generic send error", "email", { error });
             return { success: false };
         }

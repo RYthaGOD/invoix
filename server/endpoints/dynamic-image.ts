@@ -34,7 +34,7 @@ export function registerDynamicImageRoutes(app: Express) {
             }
 
             // Fetch Business Profile for Logo/Color
-            let business = await db.query.businessProfiles.findFirst({
+            const business = await db.query.businessProfiles.findFirst({
                 where: eq(businessProfiles.ownerWalletAddress, invoice.invoicerWalletAddress)
             });
 

@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 
 // Extend Request to include apiUser
 declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace Express {
         interface Request {
             apiUser?: typeof waitlistUsers.$inferSelect;
@@ -44,7 +45,7 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
         // Mock Session behavior for backward compatibility with route logic
         // Most routes check req.session.walletAddress
         if (!req.session) {
-            // @ts-ignore
+            // @ts-expect-error - Mocking session object for API key auth
             req.session = {};
         }
 
@@ -52,7 +53,7 @@ export async function validateApiKey(req: Request, res: Response, next: NextFunc
         if (!req.session.walletAddress) {
             req.session.walletAddress = user.walletAddress;
             // Mark as API session
-            // @ts-ignore
+            // @ts-expect-error - Adding custom property to session
             req.session.isApiRequest = true;
         }
 

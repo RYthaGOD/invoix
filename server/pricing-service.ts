@@ -50,7 +50,7 @@ export async function getSolPrice(): Promise<number> {
         console.warn("[Pricing] Invalid response format from Pyth", JSON.stringify(data).slice(0, 100));
         return 0;
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("[Pricing] Failed to fetch SOL price:", error);
         // Return stale cache if available, else 0
         return priceCache ? priceCache.price : 0;

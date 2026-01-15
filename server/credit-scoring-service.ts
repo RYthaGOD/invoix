@@ -903,7 +903,7 @@ export class CreditScoringService {
         setImmediate(async () => {
             try {
                 await this.calculateCreditScore(walletAddress);
-            } catch (error) {
+            } catch (error: any) {
                 logger.error("Background credit score recalculation failed", "credit", { walletAddress, error });
             }
         });

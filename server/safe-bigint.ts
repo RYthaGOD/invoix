@@ -143,7 +143,7 @@ export function validateTokenAmount(amount: string | number, decimals: number = 
             isValid: true,
             sanitized: lamports.toString(),
         };
-    } catch (error) {
+    } catch (error: any) {
         return {
             isValid: false,
             sanitized: "0",

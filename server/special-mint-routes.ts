@@ -57,7 +57,7 @@ async function getSolPrice(): Promise<number> {
         solPriceCache = { price, timestamp: Date.now() };
 
         return price;
-    } catch (error) {
+    } catch (error: any) {
         // Use cached value, then env fallback, then conservative $100 default
         const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "100");
         logger.error("Error fetching SOL price, using fallback", "special-mint", { error, fallback: solPriceCache?.price || fallbackPrice });
@@ -91,7 +91,7 @@ async function getCustomTokenBalance(
         }
 
         return totalBalance;
-    } catch (error) {
+    } catch (error: any) {
         logger.error("Error getting custom token balance", "special-mint", { error });
         return 0;
     }

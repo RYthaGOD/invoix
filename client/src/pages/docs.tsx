@@ -84,11 +84,11 @@ const docsContent = {
                     </div>
                     <div className="glass-card p-6 border-white/5 bg-white/5">
                         <h4 className="font-bold mb-2 flex items-center gap-2">
-                            <Globe className="w-4 h-4 text-blue-400" />
-                            Gasless UX
+                            <ShieldCheck className="w-4 h-4 text-blue-400" />
+                            Strict Mode Smart Wallets
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                            Businesses sign transactions without holding SOL for gas. Our relayer abstracts blockchain complexity while maintaining full decentralization.
+                            Every user gets a <strong>sovereign, on-chain smart wallet</strong> immediately upon connection. We sponsor the initialization to ensure <strong className="text-white">Strict Mode</strong> compliance, guaranteeing your account exists on-chain before you ever sign a transaction.
                         </p>
                     </div>
                     <div className="glass-card p-6 border-white/5 bg-white/5">

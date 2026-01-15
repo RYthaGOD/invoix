@@ -15,26 +15,22 @@ import {
   insertInvoiceWithItemsSchema,
   insertLineItemSchema,
   insertPaymentSchema,
-  insertBusinessProfileSchema,
-  insertCustomerProfileSchema,
-  type Invoice
 } from "@shared/invoice-schema";
-import { fromZodError } from "zod-validation-error";
+
 import { requireWalletOwnership, strictRateLimit } from "./security";
 import { validateApiKey } from "./middleware/api-auth";
-import { getArciumService, loadKeypairFromPrivateKey } from "./arcium-service";
+import { getArciumService } from "./arcium-service";
 import { getArciumOnChainService } from "./arcium-onchain-service";
 import { getInvoiceNFTService } from "./nft-service";
 import { getEmailService } from "./email-service"; // Import Email Service
 import { emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
 import { db, schema } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
-import { getStablecoinConfig } from "@shared/stablecoin-config";
+
 import { Connection, clusterApiUrl } from "@solana/web3.js";
 import {
   TREASURY_WALLET_ADDRESS,
-  INVOICE_SERVICE_FEE_SOL,
   TOKEN_MINTS,
   DEFAULT_TOKEN_MINT,
   PLATFORM_FEE_RATE
@@ -927,7 +923,7 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
     if (!validation.success) {
       try {
         logger.warn("Payment validation failed", "invoice", { error: validation.error.flatten() });
-      } catch (e) { console.error("Logger error", e); }
+      } catch (e) {console.error("Logger error", e); }
 
       return res.status(400).json({
         message: "Invalid payment data",

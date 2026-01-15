@@ -52,7 +52,6 @@ export async function initializeSmartWallet(
         let LazorkitClient;
         let asPasskeyPublicKey;
         try {
-            // @ts-ignore
             const module = await import("@lazorkit/wallet");
             LazorkitClient = module.LazorkitClient;
             asPasskeyPublicKey = module.asPasskeyPublicKey;

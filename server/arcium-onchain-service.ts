@@ -85,7 +85,7 @@ export class ArciumOnChainService {
                 const privateKey = JSON.parse(privateKeyStr);
                 this.serverKeypair = Keypair.fromSecretKey(new Uint8Array(privateKey));
                 logger.info("Arcium on-chain service: Server keypair loaded", "arcium-onchain");
-            } catch (e) {
+            } catch {
                 logger.warn("Failed to load server keypair for Arcium", "arcium-onchain");
             }
         }
