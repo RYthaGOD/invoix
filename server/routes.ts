@@ -152,6 +152,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   // ADMIN: Glass Citadel Diagnostic Endpoint
   // ================================================
+
+  // TEMPORARY: Unauthenticated GET for debugging (shows last init error)
+  app.get("/api/admin/glass-citadel/status", async (req, res) => {
+    try {
+      const { getInvoiceNFTService, initializeNFTService } = await import("./nft-service");
+      const { loadKeypairFromPrivateKey } = await import("./arcium-service");
+
+      const nftService = getInvoiceNFTService();
+
+      const currentState = {
+        isReady: nftService.isReady(),
+        hasCollection: nftService.hasCollection(),
+        merkleTree: nftService.isReady() ? nftService.getMerkleTree() : null,
+        collectionMint: nftService.getCollectionMint(),
+      };
+
+      // Attempt initialization if not ready
+      let initResult = null;
+      let initError = null;
+
+      if (!nftService.hasCollection() && process.env.PAYER_PRIVATE_KEY) {
+        try {
+          const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+          initResult = await initializeNFTService(payerKeypair);
+        } catch (err: any) {
+          initError = err.message || String(err);
+        }
+      }
+
+      res.json({
+        status: currentState,
+        reinitAttempt: { success: initResult, error: initError },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        error: error.message || String(error),
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
   app.post("/api/admin/glass-citadel/reinit", async (req, res) => {
     try {
       // Admin auth check
