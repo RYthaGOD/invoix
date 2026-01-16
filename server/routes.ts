@@ -259,6 +259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get current state
       const beforeState = {
+        version: "debug-v1", // VERIFICATION TAG
         isReady: nftService.isReady(),
         hasCollection: nftService.hasCollection(),
         merkleTree: nftService.getMerkleTree(),
