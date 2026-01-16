@@ -418,8 +418,21 @@ export class InvoiceNFTService {
    * All minted NFTs will reference this collection
    */
   private async createCollectionNFT(): Promise<void> {
-    // try/catch removed to allow error propagation to doInitialize
     const apiUrl = process.env.API_URL || "https://api.solanainvoice.com";
+
+    // Pre-flight balance check (Collection NFT costs ~0.02 SOL)
+    const balance = await this.umi.rpc.getBalance(this.umi.identity.publicKey);
+    const balanceSOL = Number(balance.basisPoints) / 1e9;
+    logger.info(`Collection NFT creation starting. Wallet balance: ${balanceSOL.toFixed(4)} SOL`, "nft");
+
+    if (balance.basisPoints < BigInt(25000000)) { // 0.025 SOL minimum
+      logger.error("Insufficient funds to create Collection NFT", "nft", {
+        balance: balanceSOL,
+        required: 0.025,
+        wallet: this.umi.identity.publicKey.toString()
+      });
+      throw new Error(`Insufficient funds for Collection NFT: ${balanceSOL.toFixed(4)} SOL (need ~0.025 SOL)`);
+    }
 
     // Collection metadata
     const collectionMetadata = {
@@ -439,11 +452,12 @@ export class InvoiceNFTService {
     };
 
     // Upload collection metadata
-    // Retry metadata upload as well
+    logger.info("Uploading Collection NFT metadata...", "nft");
     const storageService = getMetadataStorageService();
     const metadataResult = await this.executeWithRetry(() =>
       storageService.uploadMetadata(collectionMetadata, "invoix-genesis-collection", { isPrivate: false } as any)
     );
+    logger.info(`Metadata uploaded: ${metadataResult.uri}`, "nft");
 
     // Create Collection NFT
     const collectionSigner = generateSigner(this.umi);
@@ -466,17 +480,24 @@ export class InvoiceNFTService {
     } as any);
 
     // Use retry logic for the transaction
+    logger.info("Sending Collection NFT creation transaction...", "nft");
     await this.executeWithRetry(() => createCollectionIx.sendAndConfirm(this.umi));
 
     this.collectionMint = collectionSigner.publicKey.toString();
     logger.info(`Created Collection NFT: ${this.collectionMint}`, "nft");
 
-    // Persist to DB
+    // Persist to DB (use upsert to handle existing invalid entries)
     const { systemSettings } = await import("@shared/invoice-schema");
     await db.insert(systemSettings).values({
       key: "genesis_collection_mint",
       value: this.collectionMint,
-      description: "INVOIX Genesis Collection NFT Address",
+      description: `INVOIX Genesis Collection NFT Address (${process.env.SOLANA_NETWORK || 'devnet'})`,
+    }).onConflictDoUpdate({
+      target: systemSettings.key,
+      set: {
+        value: this.collectionMint,
+        description: `INVOIX Genesis Collection NFT Address (${process.env.SOLANA_NETWORK || 'devnet'})`,
+      }
     });
     logger.info("Persisted Collection NFT to DB", "nft");
   }
