@@ -140,8 +140,11 @@ export class InvoiceNFTService {
    * FIX R2-5: Uses mutex to prevent concurrent initialization
    */
   async initialize(payerKeypair?: Keypair): Promise<boolean> {
-    // Return existing result if already initialized
-    if (this.initialized) return true;
+    // CRITICAL FIX: Only short-circuit if FULLY initialized (both tree AND collection)
+    // This allows retry when collection creation failed but tree succeeded
+    if (this.initialized && this.merkleTree && this.collectionMint) {
+      return true;
+    }
 
     // Return existing promise if initialization is in progress
     if (this.initPromise) return this.initPromise;
