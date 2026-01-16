@@ -218,6 +218,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // TEMPORARY: Clear stale collection from DB
+  app.post("/api/admin/glass-citadel/clear-collection", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { systemSettings } = await import("@shared/invoice-schema");
+      const { eq } = await import("drizzle-orm");
+
+      // Delete the stale collection entry
+      await db.delete(systemSettings).where(eq(systemSettings.key, "genesis_collection_mint"));
+
+      res.json({
+        success: true,
+        message: "Cleared genesis_collection_mint from DB. Self-healing will create a new one within 60 seconds.",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message || String(error),
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
   app.post("/api/admin/glass-citadel/reinit", async (req, res) => {
     try {
       // Admin auth check
