@@ -261,8 +261,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const beforeState = {
         isReady: nftService.isReady(),
         hasCollection: nftService.hasCollection(),
-        merkleTree: nftService.isReady() ? nftService.getMerkleTree() : null,
+        merkleTree: nftService.getMerkleTree(),
         collectionMint: nftService.getCollectionMint(),
+        lastError: nftService.getLastInitializationError() // Expose hidden error
       };
 
       // Attempt reinitialization

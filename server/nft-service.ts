@@ -124,6 +124,7 @@ export class InvoiceNFTService {
   private initialized: boolean = false;
   // FIX R2-5: Mutex to prevent concurrent initialization race conditions
   private initPromise: Promise<boolean> | null = null;
+  public lastInitializationError: string | null = null; // Public for diagnostics
 
   constructor(
     rpcEndpoint?: string,
@@ -132,6 +133,14 @@ export class InvoiceNFTService {
     const endpoint = rpcEndpoint || process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
     this.umi = createUmi(endpoint).use(mplTokenMetadata());
     this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  /**
+   * Returns the last error message encountered during initialization.
+   * @returns {string | null} The error message or null if no error occurred.
+   */
+  public getLastInitializationError(): string | null {
+    return this.lastInitializationError;
   }
 
   /**
@@ -335,6 +344,7 @@ export class InvoiceNFTService {
 
       return true;
     } catch (error: any) {
+      this.lastInitializationError = error.message || String(error);
       logger.error("Failed to initialize NFT service", "nft", { error });
       this.initialized = false;
       // CRITICAL FIX: Clear the mutex so self-healing can retry
