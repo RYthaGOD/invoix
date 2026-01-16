@@ -1,4 +1,10 @@
+
 import type { Express } from "express";
+import { validateApiKey } from "./middleware/api-auth";
+import { getArciumService, loadKeypairFromPrivateKey } from "./arcium-service";
+import { getArciumOnChainService } from "./arcium-onchain-service";
+import { getInvoiceNFTService, initializeNFTService } from "./nft-service";
+import { getEmailService } from "./email-service"; // Import Email Service
 import { createServer, type Server } from "http";
 import { registerAuthRoutes } from "./auth-routes";
 import { registerInvoiceRoutes } from "./invoice-routes";
@@ -252,19 +258,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ success: false, message: "Unauthorized" });
       }
 
-      const { getInvoiceNFTService, initializeNFTService } = await import("./nft-service");
-      const { loadKeypairFromPrivateKey } = await import("./arcium-service");
-
+      // Current in-memory state
+      // Use existing static import
       const nftService = getInvoiceNFTService();
 
-      // Get current state
       const beforeState = {
-        version: "debug-v1", // VERIFICATION TAG
+        version: "debug-v2", // BUMP VERSION
         isReady: nftService.isReady(),
         hasCollection: nftService.hasCollection(),
         merkleTree: nftService.getMerkleTree(),
         collectionMint: nftService.getCollectionMint(),
-        lastError: nftService.getLastInitializationError() // Expose hidden error
+        lastError: nftService.getLastInitializationError ? nftService.getLastInitializationError() : "Method not available"
       };
 
       // Attempt reinitialization
