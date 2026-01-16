@@ -149,6 +149,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerTaxRoutes } = await import("./tax-routes");
   registerTaxRoutes(app);
 
+  // ================================================
+  // ADMIN: Glass Citadel Diagnostic Endpoint
+  // ================================================
+  app.post("/api/admin/glass-citadel/reinit", async (req, res) => {
+    try {
+      // Admin auth check
+      const authHeader = req.headers.authorization;
+      const expectedKey = process.env.ADMIN_SECRET_KEY;
+
+      if (!expectedKey || !authHeader || authHeader !== `Bearer ${expectedKey}`) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+      }
+
+      const { getInvoiceNFTService, initializeNFTService } = await import("./nft-service");
+      const { loadKeypairFromPrivateKey } = await import("./arcium-service");
+
+      const nftService = getInvoiceNFTService();
+
+      // Get current state
+      const beforeState = {
+        isReady: nftService.isReady(),
+        hasCollection: nftService.hasCollection(),
+        merkleTree: nftService.isReady() ? nftService.getMerkleTree() : null,
+        collectionMint: nftService.getCollectionMint(),
+      };
+
+      // Attempt reinitialization
+      let initResult = false;
+      let initError: string | null = null;
+
+      if (process.env.PAYER_PRIVATE_KEY) {
+        try {
+          const payerKeypair = loadKeypairFromPrivateKey(process.env.PAYER_PRIVATE_KEY);
+          initResult = await initializeNFTService(payerKeypair);
+        } catch (err: any) {
+          initError = err.message || String(err);
+        }
+      } else {
+        initError = "PAYER_PRIVATE_KEY not configured";
+      }
+
+      // Get after state
+      const afterState = {
+        isReady: nftService.isReady(),
+        hasCollection: nftService.hasCollection(),
+        merkleTree: nftService.isReady() ? nftService.getMerkleTree() : null,
+        collectionMint: nftService.getCollectionMint(),
+      };
+
+      res.json({
+        success: initResult,
+        error: initError,
+        before: beforeState,
+        after: afterState,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message || String(error),
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
   const server = createServer(app);
   return server;
 }
