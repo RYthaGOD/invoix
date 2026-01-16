@@ -334,6 +334,8 @@ export class InvoiceNFTService {
     } catch (error: any) {
       logger.error("Failed to initialize NFT service", "nft", { error });
       this.initialized = false;
+      // CRITICAL FIX: Clear the mutex so self-healing can retry
+      this.initPromise = null;
       return false;
     }
   }
