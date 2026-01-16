@@ -158,9 +158,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { getInvoiceNFTService, initializeNFTService } = await import("./nft-service");
       const { loadKeypairFromPrivateKey } = await import("./arcium-service");
+      const { db } = await import("./db");
+      const { systemSettings } = await import("@shared/invoice-schema");
+      const { eq } = await import("drizzle-orm");
 
       const nftService = getInvoiceNFTService();
 
+      // Get current in-memory state
       const currentState = {
         isReady: nftService.isReady(),
         hasCollection: nftService.hasCollection(),
@@ -168,7 +172,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         collectionMint: nftService.getCollectionMint(),
       };
 
-      // Attempt initialization if not ready
+      // Get DB values
+      const dbTreeResult = await db.select().from(systemSettings).where(eq(systemSettings.key, "merkle_tree_address")).limit(1);
+      const dbCollectionResult = await db.select().from(systemSettings).where(eq(systemSettings.key, "genesis_collection_mint")).limit(1);
+
+      const dbState = {
+        merkleTreeInDb: dbTreeResult[0]?.value || null,
+        collectionMintInDb: dbCollectionResult[0]?.value || null,
+      };
+
+      // Attempt re-initialization if collection is missing
       let initResult = null;
       let initError = null;
 
@@ -181,14 +194,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Get after state
+      const afterState = {
+        isReady: nftService.isReady(),
+        hasCollection: nftService.hasCollection(),
+        merkleTree: nftService.isReady() ? nftService.getMerkleTree() : null,
+        collectionMint: nftService.getCollectionMint(),
+      };
+
       res.json({
-        status: currentState,
+        before: currentState,
+        db: dbState,
         reinitAttempt: { success: initResult, error: initError },
+        after: afterState,
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
       res.status(500).json({
         error: error.message || String(error),
+        stack: error.stack,
         timestamp: new Date().toISOString(),
       });
     }
