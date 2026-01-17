@@ -145,12 +145,12 @@ export function PaymentModal({ open, onClose, projectId, tier, ownerWalletAddres
                 After sending SOL, copy the transaction signature from your wallet and paste it here.
                 You can also find it on{" "}
                 <a
-                  href="https://solscan.io"
+                  href="https://orb.solana.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center gap-1"
                 >
-                  Solscan
+                  Orb Explorer
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </p>

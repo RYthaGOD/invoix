@@ -693,7 +693,7 @@ export default function MarketplaceListing() {
                                             {listing.nftMint}
                                         </code>
                                         <a
-                                            href={`https://solscan.io/token/${listing.nftMint}`}
+                                            href={`https://orb.solana.com/token/${listing.nftMint}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-purple-400 hover:text-purple-300"
