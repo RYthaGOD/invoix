@@ -535,7 +535,7 @@ export function registerMarketplaceRoutes(app: Express): void {
             if (!listingId || !signature) return res.status(400).json({ error: "Missing listingId or signature" });
 
             // 1. Verify on-chain (or just trust and verify later, but verification is safer)
-            const nftService = await getReadyNftService(); // ensure connection
+            // const nftService = await getReadyNftService(); // ensure connection
             // We can use generic connection to confirm
             const { getSolanaConnection } = await import("./solana-sdk");
             const connection = getSolanaConnection();
@@ -602,7 +602,7 @@ export function registerMarketplaceRoutes(app: Express): void {
             if (listing.seller !== walletAddress) return res.status(403).json({ success: false, error: "Unauthorized" });
             if (listing.status !== 'active') return res.status(400).json({ success: false, error: "Not active" });
 
-            const [invoice] = await db.select().from(schema.invoices).where(eq(schema.invoices.id, listing.invoiceId)).limit(1);
+            // const [invoice] = await db.select().from(schema.invoices).where(eq(schema.invoices.id, listing.invoiceId)).limit(1);
 
             // Return Transaction for cancellation (NFT return from PDA)
             // Use Marketplace Service (Non-Custodial)

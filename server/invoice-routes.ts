@@ -74,6 +74,10 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
   app.post("/api/invoices", validateApiKey, requireWalletOwnership, strictRateLimit, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     // 1. Authenticated User (from middleware)
     const authenticatedWallet = req.authenticatedWallet!;
+    logger.info("Invoice creation request received", "invoice", {
+      wallet: authenticatedWallet,
+      body: { ...req.body, lineItems: req.body.lineItems?.length }, // Log safe summary
+    });
 
     // 2. Authorization & Defaults
     // If tokenMintAddress is missing, map from currency or use default

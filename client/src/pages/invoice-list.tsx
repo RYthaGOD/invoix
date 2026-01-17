@@ -22,8 +22,17 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Download
+  Download,
+  Store
 } from "lucide-react";
+import { SellInvoiceDialog } from "@/components/marketplace/SellInvoiceDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface Invoice {
   id: string;
@@ -62,6 +71,8 @@ export default function InvoiceList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showSellDialog, setShowSellDialog] = useState(false);
+  const [invoiceToSell, setInvoiceToSell] = useState<Invoice | null>(null);
 
   // Reset selection on filter change
   useEffect(() => {
@@ -249,7 +260,30 @@ export default function InvoiceList() {
                 <AlertCircle className="w-3.5 h-3.5" />
                 Send Reminders
               </button>
+
               <button
+                onClick={() => {
+                  if (selectedIds.size !== 1) return;
+                  const id = Array.from(selectedIds)[0];
+                  const invoice = invoices.find(inv => inv.id === id);
+                  if (invoice) {
+                    setInvoiceToSell(invoice);
+                    setShowSellDialog(true);
+                  }
+                }}
+                disabled={selectedIds.size !== 1}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border flex items-center gap-2 ${selectedIds.size === 1
+                  ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border-purple-500/30"
+                  : "bg-gray-500/10 text-gray-500 border-gray-500/20 cursor-not-allowed"
+                  }`}
+                title={selectedIds.size === 1 ? "List on Marketplace" : "Select exactly 1 invoice to sell"}
+              >
+                <Store className="w-3.5 h-3.5" />
+                Sell Invoice
+              </button>
+
+              <button
+
                 onClick={() => setSelectedIds(new Set())}
                 className="text-xs text-gray-400 hover:text-white transition-colors underline"
               >
@@ -497,6 +531,38 @@ export default function InvoiceList() {
           </div>
         )}
       </div>
-    </div >
+      <Dialog open={showSellDialog} onOpenChange={setShowSellDialog}>
+        <DialogContent className="glass-card border-purple-500/30 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Store className="w-5 h-5 text-purple-400" />
+              List Invoice for Sale
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Sell your unpaid invoice to get immediate cash flow.
+            </DialogDescription>
+          </DialogHeader>
+
+          {invoiceToSell && (
+            <SellInvoiceDialog
+              open={showSellDialog}
+              onOpenChange={setShowSellDialog}
+              invoice={{
+                id: invoiceToSell.id,
+                invoiceNumber: invoiceToSell.invoiceNumber,
+                totalAmount: invoiceToSell.totalAmount,
+                currency: invoiceToSell.currency,
+                dueDate: invoiceToSell.dueDate,
+                nftMint: invoiceToSell.nftMint
+              }}
+              onSuccess={() => {
+                loadInvoices();
+                setSelectedIds(new Set());
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

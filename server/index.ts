@@ -17,6 +17,7 @@ import createMemoryStore from "memorystore";
 import connectPgSimple from "connect-pg-simple";
 import compression from "compression";
 import { setupVite, serveStatic, log } from "./vite";
+import { errorHandler } from "./error-handler";
 import path from "path";
 import fs from "fs";
 import { WebSocketServer, WebSocket } from "ws";
@@ -296,6 +297,11 @@ export const startupPromise = (async () => {
         res.status(404).json({ success: false, message: "API endpoint not found" });
       }
     });
+
+    // 5. Global Error Handler (Must be after routes and before static files?) 
+    // Actually, standard practice is error handler LAST. 
+    // But sending JSON for API errors is priority.
+    app.use(errorHandler);
 
     // 5. Static Assets
     if (app.get("env") === "development") {

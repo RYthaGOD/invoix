@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Plus, Trash2, FileText, User, ArrowLeft, Loader2, Lock, ShieldCheck, Info, HelpCircle } from "lucide-react";
+import { FileText, User, Loader2, Lock, ShieldCheck, Info, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader } from "@/components/ui/loader"; // Import premium loader
 import { CurrencySelector } from "@/components/currency-selector";
 import { LineItemEditor } from "@/components/line-item-editor";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { safeAdd, safeMultiply, safeSubtract } from "@shared/math";
-import { useAuth } from "@/hooks/use-auth";
 import { getCurrencySymbol } from "@/lib/currency-utils";
 
 export interface LineItem {

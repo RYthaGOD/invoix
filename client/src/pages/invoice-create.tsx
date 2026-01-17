@@ -232,8 +232,18 @@ export default function InvoiceCreate() {
       });
 
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "Failed to create invoice");
+        let errMessage = "Failed to create invoice";
+        try {
+          const errData = await res.json();
+          errMessage = errData.message || errMessage;
+        } catch (parseError) {
+          // If JSON parse fails, read text
+          const text = await res.text();
+          console.error("API returned non-JSON error:", text);
+          // Only show a snippet in the UI to avoid flooding it with HTML
+          errMessage = `Server returned an error (${res.status}): ${text.slice(0, 100)}...`;
+        }
+        throw new Error(errMessage);
       }
 
       const { invoice, message } = await res.json();
@@ -300,7 +310,7 @@ export default function InvoiceCreate() {
             const transaction = VersionedTransaction.deserialize(txBuffer);
 
             // C. Sign
-            // @ts-ignore - Checked above
+            // @ts-expect-error - Checked above
             const signedTx = await wallet.signTransaction(transaction);
 
             // D. Send

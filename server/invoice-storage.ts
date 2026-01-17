@@ -24,8 +24,6 @@ const {
   customerProfiles,
   paymentReceiptNFTs,
   businessIdentityNFTs,
-  systemSettings,
-  authNonces,
   x402Micropayments,
 } = schema;
 

@@ -1011,7 +1011,7 @@ export class InvoiceNFTService {
 
     try {
       // Check 1: Is user authenticated and involved?
-      const isAuthorized = false; // Placeholder for future authorization logic
+      // const isAuthorized = false; // Placeholder for future authorization logic
 
       // 1. Generate Metadata
       const metadata = this.generateBusinessIdentityMetadata(
@@ -1194,7 +1194,7 @@ export class InvoiceNFTService {
 
     try {
       const buyer = toPublicKey(buyerPublicKey);
-      const seller = toPublicKey(sellerPublicKey);
+      // const seller = toPublicKey(sellerPublicKey); // Unused, using Web3 PublicKey below
       const escrow = this.umi.identity.publicKey;
 
       // Treasury Address for 1% Fee
@@ -1758,7 +1758,7 @@ export class InvoiceNFTService {
 
     try {
       // Import collection config
-      const { selectRandomNFT, NFT_COLLECTION } = await import("@shared/nft-collection");
+      const { selectRandomNFT } = await import("@shared/nft-collection");
 
       // Select random NFT based on rarity weights
       const counts = mintedCounts || { common: 0, uncommon: 0, rare: 0, epic: 0 };
