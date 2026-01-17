@@ -22,7 +22,7 @@ export function PaymentStatus({ status, txSignature, error }: PaymentStatusProps
                 {txSignature && (
                     <div className="mt-4">
                         <a
-                            href={`https://orb.helius.dev/tx/${txSignature}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
+                            href={`https://orb.helius.dev/tx/${txSignature}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'devnet'}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-purple-400 hover:text-purple-300 text-xs flex items-center justify-center gap-1"
@@ -52,7 +52,7 @@ export function PaymentStatus({ status, txSignature, error }: PaymentStatusProps
                     </button>
                     {txSignature && (
                         <a
-                            href={`https://orb.helius.dev/tx/${txSignature}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
+                            href={`https://orb.helius.dev/tx/${txSignature}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'devnet'}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors flex items-center gap-2"

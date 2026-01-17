@@ -693,7 +693,7 @@ export default function MarketplaceListing() {
                                             {listing.nftMint}
                                         </code>
                                         <a
-                                            href={`https://orb.helius.dev/token/${listing.nftMint}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
+                                            href={`https://orb.helius.dev/token/${listing.nftMint}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'devnet'}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-purple-400 hover:text-purple-300"
