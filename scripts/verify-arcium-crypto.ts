@@ -61,9 +61,9 @@ async function runTest() {
     // 4. Decrypt (Using Service Logic)
     console.log("   Attempting Decryption with Service Fix...");
     const service = new ArciumService();
-    // @ts-ignore
+    // @ts-expect-error - Bypassing initialization for test
     service.initialized = true; // Bypass checks
-    // @ts-ignore
+    // @ts-expect-error - Bypassing initialization for test
     service.serverX25519Public = new Uint8Array(32); // Pass isAvailable() check
 
     try {

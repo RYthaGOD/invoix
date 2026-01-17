@@ -78,7 +78,6 @@ async function verifynftTransactions() {
         // 1. Verify Business Identity Mint Transaction
         console.log("\n1️⃣  Testing Business Identity Mint Transaction...");
         const bizResult = await nftService.createBusinessIdentityMintTransaction(
-            // @ts-ignore - Close enough mock
             mockBusinessProfile,
             MOCK_WALLET,
             MOCK_TREASURY,
@@ -98,7 +97,6 @@ async function verifynftTransactions() {
         // 2. Verify Invoice Mint Transaction
         console.log("\n2️⃣  Testing Invoice Mint Transaction...");
         const invResult = await nftService.createMintInvoiceTransaction(
-            // @ts-ignore
             mockInvoice,
             MOCK_WALLET
         );

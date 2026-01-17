@@ -6,6 +6,7 @@ import bs58 from "bs58";
 import { logger } from "./logger";
 import { dasService } from "./das-service";
 import { getInvoiceNFTService } from "./nft-service";
+import { getSolanaConnection, getBlockhash } from "./solana-sdk";
 
 /**
  * Marketplace Service
@@ -106,8 +107,7 @@ export class MarketplaceService {
     private program: any;
 
     constructor() {
-        const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
-        this.connection = new Connection(rpcUrl, "confirmed");
+        this.connection = getSolanaConnection();
 
         // Server Wallet (Payer for rent/fees if needed, but usually client pays)
         // We use a dummy wallet for read-only provider initialization
@@ -205,7 +205,7 @@ export class MarketplaceService {
             // 5. Build Transaction
             const tx = new Transaction().add(ix);
             tx.feePayer = seller;
-            const latestBlockhash = await this.connection.getLatestBlockhash();
+            const latestBlockhash = await getBlockhash(this.connection);
             tx.recentBlockhash = latestBlockhash.blockhash;
 
             return tx.serialize({ requireAllSignatures: false }).toString("base64");
@@ -293,7 +293,7 @@ export class MarketplaceService {
 
             const tx = new Transaction().add(ix);
             tx.feePayer = buyer;
-            const latestBlockhash = await this.connection.getLatestBlockhash();
+            const latestBlockhash = await getBlockhash(this.connection);
             tx.recentBlockhash = latestBlockhash.blockhash;
 
             return tx.serialize({ requireAllSignatures: false }).toString("base64");
@@ -368,7 +368,7 @@ export class MarketplaceService {
             tx.feePayer = seller;
 
             // We need a blockhash. Since we are on server, we can fetch it.
-            const latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+            const latestBlockhash = await getBlockhash(this.connection);
             tx.recentBlockhash = latestBlockhash.blockhash;
 
             // Serialize for client signature

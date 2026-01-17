@@ -10,7 +10,7 @@
  * uses their private key to derive the shared secret and decrypt.
  */
 
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import { RescueCipher, x25519 } from "@arcium-hq/client";
 import { createHash, randomBytes } from "crypto";

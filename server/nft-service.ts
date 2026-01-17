@@ -696,6 +696,99 @@ export class InvoiceNFTService {
   }
 
   /**
+   * Mint Invoice NFT (Server Sponsored / Gasless)
+   * Mint directly to the user's wallet using server funds.
+   */
+  async mintInvoiceNFT(invoice: SelectInvoice): Promise<{ signature: string; assetId: string; leafIndex: number; merkleTree: string }> {
+    if (!this.isReady()) {
+      throw new Error("NFT service not initialized");
+    }
+
+    try {
+      // Generate metadata
+      const metadata = this.generateInvoiceMetadata(invoice);
+      const metadataUri = await this.uploadMetadata(metadata, `invoice-${invoice.id}`);
+
+      const leafOwner = toPublicKey(invoice.invoicerWalletAddress);
+      const merkleTreePubkey = toPublicKey(this.merkleTree!);
+
+      // Build Mint Instruction (Server is Payer & Authority)
+      let builder;
+      const useCollectionVerification = false; // Temporarily disabled
+
+      if (useCollectionVerification && this.collectionMint) {
+        builder = mintToCollectionV1(this.umi, {
+          leafOwner,
+          merkleTree: merkleTreePubkey,
+          collectionMint: toPublicKey(this.collectionMint),
+          collectionAuthority: this.umi.identity, // Explicit: Server is collection authority
+          metadata: {
+            name: metadata.name,
+            symbol: metadata.symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 0,
+            collection: none(),
+            creators: [
+              {
+                address: toPublicKey(invoice.invoicerWalletAddress),
+                verified: false,
+                share: 100,
+              },
+            ],
+          },
+        });
+      } else {
+        // Non-collection minting
+        logger.info(`Minting Invoice NFT (Sponsored) without collection verification`, "nft");
+        builder = mintV1(this.umi, {
+          leafOwner,
+          merkleTree: merkleTreePubkey,
+          metadata: {
+            name: metadata.name,
+            symbol: metadata.symbol,
+            uri: metadataUri,
+            sellerFeeBasisPoints: 0,
+            collection: none(),
+            creators: [
+              {
+                address: toPublicKey(invoice.invoicerWalletAddress),
+                verified: false,
+                share: 100,
+              },
+            ],
+          },
+        });
+      }
+
+      // Add Priority Fees
+      const computeLimitIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000 })
+      );
+      const priorityFeeIx = fromWeb3JsInstruction(
+        ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50000 })
+      );
+
+      builder = builder.prepend({ instruction: priorityFeeIx, bytesCreatedOnChain: 0, signers: [] })
+        .prepend({ instruction: computeLimitIx, bytesCreatedOnChain: 0, signers: [] });
+
+      // Send Transaction (Server Pays)
+      const result = await this.executeWithRetry(() => builder.sendAndConfirm(this.umi));
+      const signature = bs58.encode(result.signature);
+
+      logger.info(`Minted Invoice NFT (Sponsored) for ${invoice.invoicerWalletAddress}`, "nft", { signature });
+
+      const leafIndex = await this.extractLeafIndexFromTransaction(signature);
+      const assetId = await this.deriveAssetId(leafIndex);
+
+      return { signature, assetId, leafIndex, merkleTree: this.merkleTree! };
+
+    } catch (error: any) {
+      logger.error("Failed to mint invoice NFT (sponsored)", "nft", { error });
+      throw error;
+    }
+  }
+
+  /**
    * Mint Payment Receipt NFT
    * Creates NFT proof of payment for tax/audit purposes
    */

@@ -4,14 +4,14 @@ import { payments, paymentReceiptNFTs, invoices, specialNFTMints, invoiceMarketp
 import { eq, sql, and } from "drizzle-orm";
 import { getInvoiceNFTService } from "./nft-service";
 import { invoiceStorage } from "./invoice-storage";
-import { Connection } from "@solana/web3.js";
+import { getSolanaConnection, getBlockhash } from "./solana-sdk";
 import crypto from "crypto";
 import { verifyStablecoinPayment } from "./stablecoin-payment-service";
 import { logger } from "./logger";
 import { emitWebhookEvent, WEBHOOK_EVENTS } from "./webhook-service";
 import Decimal from "decimal.js";
 
-const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+const connection = getSolanaConnection();
 
 /**
  * Handles post-payment logic:
@@ -31,7 +31,7 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
         logger.info(`Confirming payment ${signature} for invoice ${invoiceId}...`, "payment");
 
         // 1. Confirm Transaction with explicit timeout (30 seconds max)
-        const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+        const latestBlockhash = await getBlockhash(connection);
 
         // Use Promise.race for timeout control
         const confirmationPromise = connection.confirmTransaction({

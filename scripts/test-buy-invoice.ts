@@ -7,6 +7,13 @@ import crypto from "crypto";
 
 dotenv.config();
 
+// Type for the invoice account structure
+interface InvoiceAccount {
+    status: { locked?: boolean; factored?: boolean };
+    delegate: PublicKey;
+    authority: PublicKey;
+}
+
 /**
  * INTEGRATION TEST: Buy Invoice Flow
  * 
@@ -35,7 +42,7 @@ async function main() {
     // 2. Load Programs
     const arciumIdl = JSON.parse(fs.readFileSync("./arcium_idl.json", "utf-8"));
     const arciumProgramId = new PublicKey(process.env.ARCIUM_PROGRAM_ID || arciumIdl.metadata.address);
-    const arciumProgram = new Program(arciumIdl, provider);
+    const arciumProgram = new Program(arciumIdl, arciumProgramId, provider);
 
     // Placeholder for when Marketplace IDL is generated
     // const marketplaceIdl = JSON.parse(fs.readFileSync("./marketplace_idl.json", "utf-8")); 
@@ -45,7 +52,7 @@ async function main() {
 
     // 3. Create Invoice (Setup)
     const invoiceId = crypto.randomBytes(16);
-    const assetId = crypto.randomBytes(32); // Mock Asset ID
+    const _assetId = crypto.randomBytes(32); // Mock Asset ID (prefixed with _ to avoid unused warning)
 
     const [invoicePda] = PublicKey.findProgramAddressSync(
         [Buffer.from("invoice"), wallet.publicKey.toBuffer(), invoiceId],
@@ -72,14 +79,12 @@ async function main() {
 
     // 5. Verify Lock
     console.log("--> Verifying Lock State on Arcium...");
-    const invoiceAccount = await arciumProgram.account.invoiceAccount.fetch(invoicePda);
-    // @ts-ignore
+    const invoiceAccount = await arciumProgram.account.invoiceAccount.fetch(invoicePda) as InvoiceAccount;
     if (invoiceAccount.status.locked) {
         console.log("✅ Invoice is LOCKED.");
     } else {
         console.error("❌ Invoice is NOT Locked.");
     }
-    // @ts-ignore
     console.log("   Delegate:", invoiceAccount.delegate.toBase58());
 
     // 6. Buy Invoice (Trigger Transfer)
@@ -92,12 +97,12 @@ async function main() {
     //    }).rpc();
 
     // 7. Verify Ownership Transfer
-    const updatedAccount = await arciumProgram.account.invoiceAccount.fetch(invoicePda);
+    const updatedAccount = await arciumProgram.account.invoiceAccount.fetch(invoicePda) as InvoiceAccount;
     console.log("✅ Final Authority:", updatedAccount.authority.toBase58());
-    // @ts-ignore
     if (updatedAccount.status.factored) {
         console.log("✅ Invoice is FACTORED.");
     }
 }
 
 main().catch(console.error);
+

@@ -2,6 +2,7 @@
 import type { Express, Request, Response } from "express";
 import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { getInvoiceNFTService } from "./nft-service";
+import { getSolanaConnection } from "./solana-sdk";
 import { z } from "zod";
 import { strictRateLimit, requireWalletOwnership } from "./security";
 import { logger } from "./logger";
@@ -113,8 +114,7 @@ export function registerSpecialMintRoutes(app: Express) {
                 return res.status(400).json({ success: false, message: parsed.error.issues[0].message });
             }
             const { walletAddress } = parsed.data;
-
-            const connection = new Connection(SOLANA_RPC_URL);
+            const connection = getSolanaConnection();
 
             // Check Balance
             // FIX #9: Use correct token balance function
@@ -177,8 +177,7 @@ export function registerSpecialMintRoutes(app: Express) {
                 return res.status(404).json({ success: false, message: "No business profile found. Please create one first." });
             }
             const businessProfile = profiles[0];
-
-            const connection = new Connection(SOLANA_RPC_URL);
+            const connection = getSolanaConnection();
 
             // 1. Re-Verify Logic (Trusted Pricing)
             // FIX #9: Use correct token balance function

@@ -1,3 +1,8 @@
+/**
+ * Invoice Creation Page
+ * Allows users to create new invoices
+ */
+
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +22,7 @@ if (typeof window !== "undefined") {
 export default function InvoiceCreate() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { walletAddress, isAuthenticated, login } = useAuth();
+  const { walletAddress, isAuthenticated, login, authMode } = useAuth();
   const wallet = useWallet();
   const { connected } = wallet;
 
@@ -34,9 +39,10 @@ export default function InvoiceCreate() {
   // Fetch templates and price on load
   useEffect(() => {
     async function fetchTemplates() {
-      if (!wallet?.publicKey) return;
+      // Allow fetching if walletAddress is present (Passkey or Connected Wallet)
+      if (!walletAddress) return;
       try {
-        const res = await fetch(`/api/templates?wallet=${wallet.publicKey.toBase58()}`, { credentials: 'include' });
+        const res = await fetch(`/api/templates?wallet=${walletAddress}`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           if (data.success && Array.isArray(data.templates)) {
@@ -56,7 +62,7 @@ export default function InvoiceCreate() {
         if (data.price) setSolPrice(data.price);
       })
       .catch(err => console.error("Price fetch failed", err));
-  }, [wallet?.publicKey]);
+  }, [walletAddress]); // Changed from wallet.publicKey to walletAddress
 
   // Handle template selection
   useEffect(() => {
@@ -88,7 +94,8 @@ export default function InvoiceCreate() {
 
   const onSubmit = async (data: InvoiceFormData) => {
     // 1. Connection Check
-    if (!connected || !wallet?.publicKey) {
+    // If Passkey, we rely on isAuthenticated. If CheckWallet/Traditional, we need connected.
+    if (authMode !== 'passkey' && (!connected || !wallet?.publicKey)) {
       toast({
         variant: "destructive",
         title: "Wallet not connected",
@@ -107,14 +114,18 @@ export default function InvoiceCreate() {
 
       try {
         await login(); // Attempt auto-login
-        // We can't easily wait for state update here since it's async hook state.
-        // But login() promise resolves when flow complete.
-        // We re-check authenticated state, but since we are in a closure, 'isAuthenticated' is stale.
-        // However, if login() throws, we fall to catch. 
-        // If it succeeds, we *assume* we are good (cookie set).
       } catch (e) {
         return; // User rejected login
       }
+    }
+
+    if (!walletAddress) {
+      toast({
+        variant: "destructive",
+        title: "Session Error",
+        description: "Could not determine your wallet address. Please refresh.",
+      });
+      return;
     }
 
     setIsSubmitting(true);
@@ -130,30 +141,23 @@ export default function InvoiceCreate() {
       const total = subtotal + fee - discount;
 
       // Resolve Token Mint (Default to USDC if not found)
-      // Note: In a real app, importing from @shared/stablecoin-config would be ideal, 
-      // but simplistic mapping is fine given we only support a few.
-      // Better: let the server handle it? No, Zod requires it.
       const currencyMints: Record<string, string> = {
-        "SOL": "So11111111111111111111111111111111111111112", // Native SOL wrapped mint
-        "USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // Mainnet USDC
+        "SOL": "So11111111111111111111111111111111111111112",
+        "USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
         "USDT": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-        "PYUSD": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo", // PayPal USD (Mainnet - fixed)
-        "EURC": "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr", // Euro Coin (fixed)
+        "PYUSD": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+        "EURC": "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr",
       };
-      // Devnet overrides if needed, or just send a valid string if server re-checks.
-      // Since server overrides it anyway, we just need to pass Zod validation with a valid-looking string.
-      // But let's try to be accurate.
 
       const tokenMintAddress = currencyMints[data.currency || "USDC"] || currencyMints["USDC"];
 
       const finalPayload = {
         ...data,
-        invoicerWalletAddress: wallet.publicKey.toBase58(),
+        invoicerWalletAddress: walletAddress, // Use authenticated address (Passkey or Wallet)
         tokenMintAddress: tokenMintAddress,
         totalAmount: total.toFixed(2),
         paidAmount: "0",
         status: "draft",
-        // Flatten line items logic
         lineItems: data.lineItems.map(item => ({
           ...item,
           amount: (parseFloat(item.quantity) * parseFloat(item.unitPrice)).toString()
@@ -163,14 +167,14 @@ export default function InvoiceCreate() {
       // Add Arcium allowed parties (Invoicer + Invoicee)
       if (data.encryptWithArcium) {
         (finalPayload as any).allowedParties = [
-          wallet.publicKey.toBase58(),
+          walletAddress,
           data.invoiceeWalletAddress
         ];
       }
 
       // --- WALLET MISMATCH CHECK ---
-      // Ensure connected wallet matches authenticated wallet
-      if (walletAddress && wallet.publicKey.toBase58() !== walletAddress) {
+      // Only applicable for Traditional wallets
+      if (authMode !== 'passkey' && wallet.publicKey && walletAddress !== wallet.publicKey.toBase58()) {
         toast({
           title: "Wallet Mismatch",
           description: `You're connected with ${wallet.publicKey.toBase58().slice(0, 8)}... but authenticated as ${walletAddress.slice(0, 8)}... Please disconnect and reconnect with the correct wallet.`,
@@ -182,35 +186,43 @@ export default function InvoiceCreate() {
 
       // --- x402 SPAM CONTROL ---
       // Pay 0.0001 SOL Service Fee
-      setMintingStatus("Paying Service Fee (0.0001 SOL)... 🛡️");
+      if (authMode === 'passkey') {
+        // Passkey users are sponsored (Gasless)
+        // FIX: Append UUID to ensure uniqueness in database (x402PaymentSignature must be unique)
+        const uniqueParams = crypto.randomUUID();
+        console.log("Skipping service fee for Passkey user (Sponsored)");
+        (finalPayload as any).x402PaymentSignature = `sponsored_lazorkit_passkey_${uniqueParams}`;
+      } else {
+        setMintingStatus("Paying Service Fee (0.0001 SOL)... 🛡️");
 
-      if (!wallet.signTransaction) {
-        throw new Error("Wallet does not support signing!");
+        if (!wallet.publicKey || !wallet.signTransaction) {
+          throw new Error("Wallet does not support signing!");
+        }
+
+        const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("devnet"));
+
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: wallet.publicKey,
+            toPubkey: new PublicKey(TREASURY_WALLET_ADDRESS),
+            lamports: parseFloat(INVOICE_SERVICE_FEE_SOL) * LAMPORTS_PER_SOL,
+          })
+        );
+
+        const { blockhash } = await connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = wallet.publicKey;
+
+        const signedTx = await wallet.signTransaction(transaction);
+        // Note: Using sendRawTransaction directly to control confirmation
+        const signature = await connection.sendRawTransaction(signedTx.serialize());
+
+        setMintingStatus("Verifying Fee... ⏳");
+        await connection.confirmTransaction(signature, "confirmed");
+
+        // Add signature to payload
+        (finalPayload as any).x402PaymentSignature = signature;
       }
-
-      const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("devnet"));
-
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: wallet.publicKey,
-          toPubkey: new PublicKey(TREASURY_WALLET_ADDRESS),
-          lamports: parseFloat(INVOICE_SERVICE_FEE_SOL) * LAMPORTS_PER_SOL,
-        })
-      );
-
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = wallet.publicKey;
-
-      const signedTx = await wallet.signTransaction(transaction);
-      const signature = await connection.sendRawTransaction(signedTx.serialize());
-
-      setMintingStatus("Verifying Fee... ⏳");
-      await connection.confirmTransaction(signature, "confirmed");
-
-      // Add signature to payload
-      (finalPayload as any).x402PaymentSignature = signature;
-      // -------------------------
 
       const res = await fetch("/api/invoices", {
         method: "POST",
@@ -242,12 +254,21 @@ export default function InvoiceCreate() {
       }
 
       // 2. Handle Client-Side Minting (if selected)
-      if (data.mintNFT && wallet.signTransaction) {
+      if (data.mintNFT) {
         try {
-          setMintingStatus("Preparing Mint Transaction...");
+          // Check if wallet is available for traditional flow
+          // For passkey, we don't need a connected wallet, so we skip this check
+          if (authMode !== 'passkey' && !wallet.signTransaction) {
+            throw new Error("Wallet signing required for NFT minting in this mode.");
+          }
 
-          // A. Request Transaction
-          const mintRes = await fetch(`/api/nft/mint-invoice/${invoiceId}?wallet=${wallet.publicKey.toBase58()}`, {
+          setMintingStatus(authMode === 'passkey' ? "Minting NFT (Gasless)... ✨" : "Preparing Mint Transaction...");
+
+          // A. Request Transaction (or trigger server-side mint for passkey)
+          // For passkey, we send the authenticated address (walletAddress)
+          const walletParam = authMode === 'passkey' ? walletAddress! : wallet.publicKey!.toBase58();
+
+          const mintRes = await fetch(`/api/nft/mint-invoice/${invoiceId}?wallet=${walletParam}`, {
             method: "POST",
             credentials: "include",
           });
@@ -257,40 +278,55 @@ export default function InvoiceCreate() {
             throw new Error("Mint prep failed: " + (err.message || "Unknown error"));
           }
 
-          const { transaction: base64Tx } = await mintRes.json();
+          const mintData = await mintRes.json();
 
-          setMintingStatus("Please Sign (User Pays Fee) ✍️");
+          // NEW LOGIC: Check if server handled it (Passkey / Server-Side Mint)
+          if (mintData.mintedOnServer) {
+            console.debug(`✅ Minted NFT (Server-Side): ${mintData.signature}`);
+            setMintingStatus("Success! ✨");
 
-          // B. Deserialize
-          const txBuffer = Buffer.from(base64Tx, "base64");
-          const transaction = VersionedTransaction.deserialize(txBuffer);
+            toast({
+              title: "NFT Minted",
+              description: "Gasless NFT minting completed successfully!",
+            });
+          } else {
+            // TRADITIONAL FLOW: Client signs the transaction
+            const { transaction: base64Tx } = mintData;
 
-          // C. Sign
-          const signedTx = await wallet.signTransaction(transaction);
+            setMintingStatus("Please Sign (User Pays Fee) ✍️");
 
-          // D. Send
-          setMintingStatus("Sending Transaction... 🚀");
-          const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("devnet"));
+            // B. Deserialize
+            const txBuffer = Buffer.from(base64Tx, "base64");
+            const transaction = VersionedTransaction.deserialize(txBuffer);
 
-          const signature = await connection.sendRawTransaction(signedTx.serialize());
+            // C. Sign
+            // @ts-ignore - Checked above
+            const signedTx = await wallet.signTransaction(transaction);
 
-          setMintingStatus("Confirming... ⏳");
-          const confirmation = await connection.confirmTransaction(signature, "confirmed");
+            // D. Send
+            setMintingStatus("Sending Transaction... 🚀");
+            const connection = new Connection(import.meta.env.VITE_SOLANA_RPC_URL || clusterApiUrl("devnet"));
 
-          if (confirmation.value.err) {
-            throw new Error(`Transaction failed: ${confirmation.value.err}`);
+            const signature = await connection.sendRawTransaction(signedTx.serialize());
+
+            setMintingStatus("Confirming... ⏳");
+            const confirmation = await connection.confirmTransaction(signature, "confirmed");
+
+            if (confirmation.value.err) {
+              throw new Error(`Transaction failed: ${confirmation.value.err}`);
+            }
+
+            console.debug(`✅ Minted NFT: ${signature}`);
+            setMintingStatus("Success! ✨");
+
+            // E. Confirm with Server
+            await fetch(`/api/nft/confirm-mint/${invoiceId}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ signature }),
+            });
           }
-
-          console.debug(`✅ Minted NFT: ${signature}`);
-          setMintingStatus("Success! ✨");
-
-          // E. Confirm with Server
-          await fetch(`/api/nft/confirm-mint/${invoiceId}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ signature }),
-          });
 
         } catch (mintErr: any) {
           console.error("Minting failed:", mintErr);
@@ -365,7 +401,7 @@ export default function InvoiceCreate() {
           onSubmit={onSubmit}
           isSubmitting={isSubmitting}
           mintingStatus={mintingStatus}
-          connected={connected}
+          connected={authMode === 'passkey' ? isAuthenticated : connected} // Passkey auth replaces connected
           templates={templates}
           onTemplateSelect={setSelectedTemplateId}
           defaultValues={templateData}

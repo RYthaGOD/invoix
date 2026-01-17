@@ -5,6 +5,7 @@ import * as schemaSqlite from "../shared/invoice-schema-sqlite";
 import { eq } from "drizzle-orm";
 
 const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const Database = require("better-sqlite3");
 
 // 1. Setup In-Memory SQLite DB

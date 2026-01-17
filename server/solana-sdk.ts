@@ -83,11 +83,96 @@ export async function getArciumProgram(): Promise<any> {
       const localIdlPath = path.resolve(process.cwd(), "arcium_idl.json");
       const idlFile = fs.readFileSync(localIdlPath, "utf-8");
       idl = JSON.parse(idlFile);
-    } catch (e) {logger.error("Failed to load arcium_idl.json", "solana", { error: e });
+    } catch (e) {
+      logger.error("Failed to load arcium_idl.json", "solana", { error: e });
       throw new Error("IDL not found");
     }
   }
 
   // @ts-expect-error - Provider type mismatch between anchor packages
   return new Program(idl, provider);
+}
+
+// --- RPC Optimization Utilities ---
+
+interface BlockhashCache {
+  blockhash: string;
+  lastValidBlockHeight: number;
+  expiry: number;
+}
+
+let cachedBlockhash: BlockhashCache | null = null;
+const CACHE_TTL_MS = 30000; // 30 seconds
+
+/**
+ * Get latest blockhash with caching to reduce RPC usage.
+ * @param connection Solana connection
+ * @returns Latest blockhash and lastValidBlockHeight
+ */
+export async function getBlockhash(connection: Connection): Promise<{ blockhash: string; lastValidBlockHeight: number }> {
+  const now = Date.now();
+  if (cachedBlockhash && now < cachedBlockhash.expiry) {
+    return {
+      blockhash: cachedBlockhash.blockhash,
+      lastValidBlockHeight: cachedBlockhash.lastValidBlockHeight
+    };
+  }
+
+  // Refresh cache
+  const result = await connection.getLatestBlockhash('confirmed');
+  cachedBlockhash = {
+    blockhash: result.blockhash,
+    lastValidBlockHeight: result.lastValidBlockHeight,
+    expiry: now + CACHE_TTL_MS
+  };
+  logger.debug("[RPC] Refreshed blockhash cache", "solana");
+  return result;
+}
+
+/**
+ * Execute an RPC operation with rate-limit aware retry logic.
+ */
+export async function executeWithRateLimit<T>(
+  operation: () => Promise<T>,
+  operationName: string = "rpc-call",
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: any;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      const msg = (error.message || error.toString()).toLowerCase();
+      const isRateLimit = msg.includes("429") || msg.includes("too many requests");
+
+      // Fail fast on non-retryable errors
+      if (
+        msg.includes("account not found") ||
+        msg.includes("insufficient funds") ||
+        msg.includes("instructionerror") ||
+        msg.includes("signature verification failed")
+      ) {
+        throw error;
+      }
+
+      // Retry logic
+      let delay = baseDelay * Math.pow(2, attempt);
+
+      if (isRateLimit) {
+        logger.warn(`⚠️ Rate limit hit for ${operationName}. Waiting longer...`, "rpc");
+        delay = 5000; // Force 5s wait on rate limit
+      } else {
+        logger.debug(`⚠️ RPC Retry ${attempt + 1}/${maxRetries} for ${operationName}`, "rpc", { error: msg });
+      }
+
+      // Don't sleep on the last failure, just throw
+      if (attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
 }

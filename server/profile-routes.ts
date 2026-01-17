@@ -1,6 +1,6 @@
-
 import type { Express, Request, Response } from "express";
 import { Connection } from "@solana/web3.js";
+import { getSolanaConnection } from "./solana-sdk";
 import { db, schema } from "./db";
 const { businessProfiles, invoices } = schema;
 import { eq, and } from "drizzle-orm";
@@ -218,7 +218,7 @@ export function registerProfileRoutes(app: Express) {
             }
 
             // 1. Verify Transaction on Solana
-            const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com");
+            const connection = getSolanaConnection();
             const status = await connection.getSignatureStatus(signature);
 
             // Allow "confirmed" or "finalized"

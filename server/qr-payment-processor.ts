@@ -11,6 +11,7 @@
  */
 
 import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction, VersionedTransactionResponse } from "@solana/web3.js";
+import { getSolanaConnection, getBlockhash } from "./solana-sdk";
 import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID, getAccount } from "@solana/spl-token";
 import { db } from "./db";
 import { invoices, payments } from "@shared/invoice-schema";
@@ -67,7 +68,7 @@ async function processQRPayments() {
 
         if (pendingInvoices.length === 0) return;
 
-        const connection = new Connection(SOLANA_RPC_URL, "confirmed");
+        const connection = getSolanaConnection();
         const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
 
         // 2. Get recent signatures once (not per invoice - optimization)
@@ -277,7 +278,7 @@ async function distributePayment(
         }
 
         // Send distribution transaction
-        const { blockhash } = await connection.getLatestBlockhash();
+        const { blockhash } = await getBlockhash(connection);
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = payerKeypair.publicKey;
 

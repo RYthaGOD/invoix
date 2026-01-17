@@ -48,36 +48,54 @@ async function withRetry<T>(fn: () => Promise<T>, operationName: string): Promis
         }
     }
     throw lastError;
+
+}
+
+const CACHE_TTL_MS = 5000;
+const cache = new Map<string, { data: any, expiry: number }>();
+
+async function getWithCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    const now = Date.now();
+    const cached = cache.get(key);
+
+    if (cached && now < cached.expiry) {
+        return cached.data;
+    }
+
+    const data = await fetcher();
+    cache.set(key, { data, expiry: now + CACHE_TTL_MS });
+    return data;
 }
 
 export const dasService = {
+
     /**
      * Get Asset Data
      * Required for Data Hash and Creator Hash
      */
     async getAsset(assetId: string): Promise<any> {
-        return withRetry(async () => {
+        return getWithCache(`asset:${assetId}`, () => withRetry(async () => {
             const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
             const response = await axios.post(rpcUrl, {
-                    jsonrpc: "2.0",
-                    id: "get-asset",
-                    method: "getAsset",
-                    params: {
-                        id: assetId
-                    }
-                });
-
-                if (response.data.error) {
-                    throw new Error(`DAS Error: ${response.data.error.message}`);
+                jsonrpc: "2.0",
+                id: "get-asset",
+                method: "getAsset",
+                params: {
+                    id: assetId
                 }
+            });
 
-                return response.data.result;
+            if (response.data.error) {
+                throw new Error(`DAS Error: ${response.data.error.message}`);
+            }
+
+            return response.data.result;
 
         }, `getAsset:${assetId}`).catch(err => {
             logger.error("Failed to fetch asset", "das", { assetId, error: err.message });
             throw err;
-        });
+        }));
     },
 
     /**
@@ -85,7 +103,8 @@ export const dasService = {
      * @param assetId - The Compressed NFT Asset ID
      */
     async getAssetProof(assetId: string): Promise<DASProof> {
-        return withRetry(async () => {
+        return getWithCache(`proof:${assetId}`, () => withRetry(async () => {
+
             const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
             const response = await axios.post(rpcUrl, {
                 jsonrpc: "2.0",
@@ -106,7 +125,7 @@ export const dasService = {
         }, `getAssetProof:${assetId}`).catch(err => {
             logger.error("Failed to fetch asset proof", "das", { assetId, error: err.message });
             throw err;
-        });
+        }));
     },
 
     /**

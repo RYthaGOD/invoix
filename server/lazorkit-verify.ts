@@ -4,7 +4,7 @@
  * Implements server-side verification of WebAuthn signatures from LazorKit smart wallets
  */
 
-import { PublicKey, Connection } from '@solana/web3.js';
+import { PublicKey, Connection, AccountInfo } from '@solana/web3.js';
 import * as nacl from 'tweetnacl';
 import bs58 from 'bs58';
 import { logger } from './logger';
@@ -16,13 +16,15 @@ import { logger } from './logger';
  * @param message - The message that was signed
  * @param signatureBase58 - The signature in base58 format
  * @param connection - Solana connection instance
+ * @param preFetchedAccountInfo - Optional pre-fetched account info to avoid RPC calls
  * @returns Promise<boolean> - true if signature is valid
  */
 export async function verifySmartWalletSignature(
     smartWalletAddress: string,
     message: string,
     signatureBase58: string,
-    connection: Connection
+    connection: Connection,
+    preFetchedAccountInfo?: AccountInfo<Buffer> | null
 ): Promise<{ isValid: boolean; isNewWallet: boolean }> {
     try {
         const walletPubkey = new PublicKey(smartWalletAddress);
@@ -71,7 +73,10 @@ export async function verifySmartWalletSignature(
             } catch (sdkError) {
                 // SDK fails if account doesn't exist on-chain yet - this is expected for NEW wallets
                 // Check if this is a new wallet (account not on-chain)
-                const accountInfo = await connection.getAccountInfo(walletPubkey);
+                const accountInfo = preFetchedAccountInfo !== undefined
+                    ? preFetchedAccountInfo
+                    : await connection.getAccountInfo(walletPubkey);
+
                 if (!accountInfo) {
                     isNewWallet = true;
                     logger.info("[Signature Verify] New wallet detected (not yet on-chain)", "auth");
@@ -82,18 +87,6 @@ export async function verifySmartWalletSignature(
         }
 
         // Fallback for when SDK verify fails or is skipped
-
-        // Option B: Direct verify (unlikely to work for PDAs but good sanity check)
-        try {
-            const signature = bs58.decode(signatureBase58);
-            const messageBytes = new TextEncoder().encode(message);
-            if (nacl.sign.detached.verify(messageBytes, signature, walletPubkey.toBytes())) {
-                return { isValid: true, isNewWallet: false };
-            }
-        } catch {
-            logger.debug('[Signature Verify] Direct PDA verify failed (expected for smart wallets)', 'auth');
-        }
-
         if (LAZORKIT_STRICT_MODE) {
             logger.warn('[Signature Verify] Strict mode: Verification failed.', "auth");
             return { isValid: false, isNewWallet };
@@ -107,7 +100,10 @@ export async function verifySmartWalletSignature(
             }
 
             // For existing wallets that failed SDK verification, check existence as last resort
-            const accountInfo = await connection.getAccountInfo(walletPubkey);
+            const accountInfo = preFetchedAccountInfo !== undefined
+                ? preFetchedAccountInfo
+                : await connection.getAccountInfo(walletPubkey);
+
             if (accountInfo) {
                 logger.warn('[Signature Verify] Allowing login based on on-chain existence only (Non-Strict Mode).', "auth");
                 return { isValid: true, isNewWallet: false };

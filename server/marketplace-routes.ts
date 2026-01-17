@@ -8,14 +8,10 @@
 
 import type { Express, Request, Response, NextFunction } from "express";
 import { db, schema } from "./db";
-import {
-    type InvoiceMarketplaceListing,
-} from "@shared/invoice-schema";
-import { eq, and, desc, sql, ne, isNull, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import { logger } from "./logger";
 import { creditScoringService } from "./credit-scoring-service";
 import { getInvoiceNFTService } from "./nft-service";
-import { Connection } from "@solana/web3.js";
 
 // ============================================
 // TYPES
@@ -54,7 +50,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
 // ============================================
 
 // Risk Assessment moved to services/risk-engine
-import { calculateRiskScore, RiskAssessment } from "./services/risk-engine";
+import { calculateRiskScore } from "./services/risk-engine";
 
 function calculateYield(faceValue: string, askingPrice: string): number {
     const face = parseFloat(faceValue);

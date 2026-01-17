@@ -11,7 +11,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { requireWalletOwnership, strictRateLimit } from "./security";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { getArciumProgram, getSolanaConnection } from "./solana-sdk";
+import { getArciumProgram, getSolanaConnection, getBlockhash } from "./solana-sdk";
 import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 const { BN } = anchor;
@@ -362,7 +362,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // STEP 4: Confirm on-chain transaction
             const connection = getSolanaConnection();
-            const latestBlockhash = await connection.getLatestBlockhash();
+            const latestBlockhash = await getBlockhash(connection);
 
             let confirmation;
             try {
@@ -716,7 +716,7 @@ export function registerSubscriptionRoutes(app: Express): void {
 
             // STEP 4: Confirm on-chain transaction (C1)
             const connection = getSolanaConnection();
-            const latestBlockhash = await connection.getLatestBlockhash();
+            const latestBlockhash = await getBlockhash(connection);
 
             let confirmation;
             try {

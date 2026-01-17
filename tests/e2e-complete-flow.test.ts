@@ -5,6 +5,7 @@ import { registerRoutes } from "../server/routes";
 import request from "supertest";
 import { db } from "../server/db";
 import session from "express-session";
+import fs from "fs";
 
 // Mock dependencies setup (if needed)
 
@@ -77,7 +78,6 @@ describe("E2E Complete Flow", () => {
             });
 
         if (res.status !== 201) {
-            const fs = require('fs');
             fs.writeFileSync('tests/error_log_step1.json', JSON.stringify(res.body, null, 2));
             console.error("Create Invoice Phase Failed BODY LOGGED TO STEP1 FILE");
             throw new Error("Create Invoice Phase Failed");
@@ -137,7 +137,6 @@ describe("E2E Complete Flow", () => {
             });
 
         if (res.status !== 201) {
-            const fs = require('fs');
             fs.writeFileSync('tests/error_log.json', JSON.stringify(res.body, null, 2));
             console.error("Payment Phase Failed BODY LOGGED TO FILE");
             throw new Error("Payment Failed");
@@ -178,7 +177,6 @@ describe("E2E Complete Flow", () => {
             });
 
         if (resPay1.status !== 201) {
-            const fs = require('fs');
             fs.writeFileSync('tests/error_log.json', JSON.stringify(resPay1.body, null, 2));
             console.error("Step 5 Partial Payment 1 Failed BODY LOGGED");
         }

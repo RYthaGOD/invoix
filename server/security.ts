@@ -543,7 +543,40 @@ export function checkSecurityEnvVars(): void {
     logger.warn("ENCRYPTION_MASTER_KEY is too short (recommended: 64+)", "security", { length: masterKey.length });
   }
 
+  // Check LazorKit Strict Mode in Production
+  if (process.env.NODE_ENV === "production" && process.env.LAZORKIT_STRICT_MODE !== "true") {
+    logger.warn("SECURITY WARNING: LazorKit Strict Mode is DISABLED in Production!", "security");
+  }
+
   if (missingRecommended.length === 0 && (!masterKey || masterKey.length >= 64)) {
     logger.info("All security environment variables properly configured", "security");
   }
+}
+
+/**
+ * Validates authentication message timestamp
+ * Ensures message is recent (within 15 mins) and not in future
+ */
+export function validateAuthMessage(message: string): { isValid: boolean; error?: string } {
+  // Matches "at {timestamp}" or just "{timestamp}" at the end of string
+  const timestampMatch = message.match(/(?:at\s+)?(\d+)$/);
+
+  if (!timestampMatch) {
+    return { isValid: false, error: "Invalid message format: timestamp required" };
+  }
+
+  const messageTimestamp = parseInt(timestampMatch[1], 10);
+  const now = Date.now();
+  const fifteenMinutesInMs = 15 * 60 * 1000;
+
+  if (now - messageTimestamp > fifteenMinutesInMs) {
+    return { isValid: false, error: "Message expired: Please sign a new message" };
+  }
+
+  // Future check: Allow 5 minutes clock skew
+  if (messageTimestamp - now > (5 * 60 * 1000)) {
+    return { isValid: false, error: "Invalid timestamp: Your clock appears to be ahead" };
+  }
+
+  return { isValid: true };
 }

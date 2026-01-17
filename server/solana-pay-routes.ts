@@ -1,9 +1,10 @@
 
 import type { Express } from "express";
-import { PublicKey, Connection, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { invoiceStorage } from "./invoice-storage";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import { getAssociatedTokenAddress, createTransferInstruction, createAssociatedTokenAccountInstruction } from "@solana/spl-token";
+import { getSolanaConnection, getBlockhash } from "./solana-sdk";
 import { logger } from "./logger";
 import { getStablecoinConfig } from "@shared/stablecoin-config";
 
@@ -86,7 +87,7 @@ export function registerSolanaPayRoutes(app: Express) {
             }
 
             const userPubkey = new PublicKey(account);
-            const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+            const connection = getSolanaConnection();
 
             // --- 1. Calculate Amounts ---
             const amountToPay = parseFloat(invoice.remainingAmount);
@@ -174,7 +175,7 @@ export function registerSolanaPayRoutes(app: Express) {
             }
 
             // --- 3. Finalize (USER is fee payer) ---
-            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+            const { blockhash, lastValidBlockHeight } = await getBlockhash(connection);
             transaction.recentBlockhash = blockhash;
             transaction.feePayer = userPubkey; // USER pays gas
 

@@ -56,6 +56,27 @@ export function registerNftRoutes(app: Express): void {
             }
 
             // 5. Create Transaction
+            // Check for Gasless/Passkey Mode
+            if ((req as any).authMode === 'passkey') {
+                // Server Sponsored Mint (Gasless)
+                const result = await nftService.mintInvoiceNFT(invoice);
+
+                // Update Invoice immediately (since we trusted the server to do it)
+                await invoiceStorage.updateInvoice(id, {
+                    nftMint: result.assetId,
+                    nftMintedAt: new Date(),
+                    nftMerkleTree: result.merkleTree,
+                    nftLeafIndex: result.leafIndex,
+                } as any);
+
+                return res.json({
+                    success: true,
+                    mintedOnServer: true,
+                    signature: result.signature,
+                    message: "NFT minted successfully (Gasless)"
+                });
+            }
+
             // User pays, so we pass their wallet as payer
             const base64Transaction = await nftService.createMintInvoiceTransaction(
                 invoice,

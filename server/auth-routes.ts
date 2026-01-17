@@ -6,7 +6,7 @@
 
 import type { Express, Request, Response } from "express";
 import { verifyWalletSignature } from "./solana-sdk";
-import { isValidSolanaAddress, auditLog, strictRateLimit } from "./security";
+import { isValidSolanaAddress, auditLog, strictRateLimit, validateAuthMessage } from "./security";
 import { logger } from "./logger";
 
 // Extend Express Session type
@@ -56,33 +56,16 @@ export function registerAuthRoutes(app: Express): void {
                 });
             }
 
-            // Extract timestamp from message (format: "Sign in to SolanaInvoice at {timestamp}")
-            const timestampMatch = message.match(/at (\d+)$/);
-            if (!timestampMatch) {
-                logger.warn(`[AUTH] Invalid message format received: "${message}"`, "auth");
+            // Validate message timestamp
+            const authValidation = validateAuthMessage(message);
+            if (!authValidation.isValid) {
+                logger.warn(`[AUTH] Invalid message: ${authValidation.error}. Msg: "${message}"`, "auth");
                 return res.status(400).json({
-                    message: "Invalid message format: timestamp required"
+                    message: authValidation.error
                 });
             }
 
-            const messageTimestamp = parseInt(timestampMatch[1], 10);
             const now = Date.now();
-            const fifteenMinutesInMs = 15 * 60 * 1000;
-
-            // Check message is not expired (15 minute window)
-            // We also check if it's too far in the future (> 5 mins) to prevent weirdness
-            if (now - messageTimestamp > fifteenMinutesInMs) {
-                logger.warn(`[AUTH] Expired timestamp: Server ${now} vs Msg ${messageTimestamp} (Diff: ${now - messageTimestamp}ms)`, "auth");
-                return res.status(400).json({
-                    message: "Message expired: Please sign a new message"
-                });
-            }
-            if (messageTimestamp - now > (5 * 60 * 1000)) {
-                logger.warn(`[AUTH] Future timestamp detected: Server ${now} vs Msg ${messageTimestamp}`, "auth");
-                return res.status(400).json({
-                    message: "Invalid timestamp: Your clock appears to be significantly ahead"
-                });
-            }
 
             // Verify the signature cryptographically
             const isValid = await verifyWalletSignature(
@@ -183,32 +166,16 @@ export function registerAuthRoutes(app: Express): void {
                 });
             }
 
-            // Extract timestamp from message
-            const timestampMatch = message.match(/(\d+)$/);
-            if (!timestampMatch) {
-                logger.warn(`[AUTH] Invalid message format received: "${message}"`, "auth");
+            // Validate message timestamp
+            const authValidation = validateAuthMessage(message);
+            if (!authValidation.isValid) {
+                logger.warn(`[AUTH] Invalid message: ${authValidation.error}. Msg: "${message}"`, "auth");
                 return res.status(400).json({
-                    message: "Invalid message format: timestamp required"
+                    message: authValidation.error
                 });
             }
 
-            const messageTimestamp = parseInt(timestampMatch[1], 10);
             const now = Date.now();
-            const fifteenMinutesInMs = 15 * 60 * 1000;
-
-            // Check message is not expired (15 minute window)
-            if (now - messageTimestamp > fifteenMinutesInMs) {
-                logger.warn(`[AUTH] Expired timestamp: Server ${now} vs Msg ${messageTimestamp}`, "auth");
-                return res.status(400).json({
-                    message: "Message expired: Please sign a new message"
-                });
-            }
-            if (messageTimestamp - now > (5 * 60 * 1000)) {
-                logger.warn(`[AUTH] Future timestamp detected: Server ${now} vs Msg ${messageTimestamp}`, "auth");
-                return res.status(400).json({
-                    message: "Invalid timestamp: Your clock appears to be significantly ahead"
-                });
-            }
 
             // SERVER-SIDE SIGNATURE VERIFICATION
             // Verify the smart wallet signature using on-chain verification
@@ -225,7 +192,7 @@ export function registerAuthRoutes(app: Express): void {
 
             // Check if account exists first
             const walletPubkey = new PublicKey(smartWalletAddress);
-            const accountInfo = await connection.getAccountInfo(walletPubkey);
+            let accountInfo = await connection.getAccountInfo(walletPubkey);
 
             if (!accountInfo) {
                 // NEW USER: Initialize wallet on-chain using treasury
@@ -247,6 +214,9 @@ export function registerAuthRoutes(app: Express): void {
                         // Fall through to standard verification - it will likely fail in strict mode
                     } else {
                         logger.info(`[AUTH] Successfully initialized new wallet: ${smartWalletAddress}`, 'auth');
+                        // FIX: Refresh account info so verification sees the new on-chain state
+                        // Otherwise it uses the stale 'null' accountInfo and verification fails
+                        accountInfo = await connection.getAccountInfo(walletPubkey);
                     }
                 }
             }
@@ -255,7 +225,8 @@ export function registerAuthRoutes(app: Express): void {
                 smartWalletAddress,
                 message,
                 signature,
-                connection
+                connection,
+                accountInfo
             );
 
             if (!isSignatureValid) {
