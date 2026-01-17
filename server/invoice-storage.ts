@@ -302,11 +302,38 @@ class InvoiceStorage implements IInvoiceStorage {
         const [profile] = await query;
 
         if (profile) {
-          const nextNum = profile.nextInvoiceNumber;
+          let nextNum = profile.nextInvoiceNumber;
           const prefix = profile.defaultInvoicePrefix || "INV";
-          finalInvoiceNumber = `${prefix}-${new Date().getFullYear()}-${String(nextNum).padStart(3, '0')}`;
+          let isUnique = false;
+          let attempts = 0;
 
-          // Increment counter
+          // Self-healing loop: Keep incrementing until we find a unique number
+          while (!isUnique && attempts < 10) {
+            finalInvoiceNumber = `${prefix}-${new Date().getFullYear()}-${String(nextNum).padStart(3, '0')}`;
+
+            // Allow checking "local" transaction visibility first if possible, 
+            // generally checking the table is safer.
+            const existing = await tx.select({ id: invoices.id })
+              .from(invoices)
+              .where(eq(invoices.invoiceNumber, finalInvoiceNumber))
+              .limit(1);
+
+            if (existing.length === 0) {
+              isUnique = true;
+            } else {
+              console.warn(`[INVOICE] Collision detected for ${finalInvoiceNumber}. Auto-incrementing...`);
+              nextNum++;
+              attempts++;
+            }
+          }
+
+          if (!isUnique) {
+            // Fallback to random if loop fails (safety valve)
+            finalInvoiceNumber = `${prefix}-${new Date().getFullYear()}-${String(nextNum).padStart(3, '0')}-${Date.now().toString().slice(-4)}`;
+            nextNum++;
+          }
+
+          // Update counter to the NEXT available number (current + 1)
           await tx.update(businessProfiles)
             .set({
               nextInvoiceNumber: nextNum + 1,
@@ -316,6 +343,16 @@ class InvoiceStorage implements IInvoiceStorage {
         } else {
           // Fallback if no profile exists
           finalInvoiceNumber = `INV-${Date.now()}`;
+
+          // Double check uniqueness for fallback too
+          const existing = await tx.select({ id: invoices.id })
+            .from(invoices)
+            .where(eq(invoices.invoiceNumber, finalInvoiceNumber))
+            .limit(1);
+
+          if (existing.length > 0) {
+            finalInvoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          }
         }
       }
 
