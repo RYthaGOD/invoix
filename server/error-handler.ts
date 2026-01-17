@@ -84,11 +84,10 @@ export function errorHandler(
   }
 
   // Default to 500 for unknown errors
+  // DEBUG MODE: Exposing real error message in production to diagnose "Unexpected Error"
   res.status(500).json({
     success: false,
-    message: process.env.NODE_ENV === "production"
-      ? "An unexpected error occurred"
-      : error.message,
+    message: error.message, // process.env.NODE_ENV === "production" ? "An unexpected error occurred" : error.message,
     ...(process.env.NODE_ENV !== "production" && { stack: error.stack }),
   });
 }
