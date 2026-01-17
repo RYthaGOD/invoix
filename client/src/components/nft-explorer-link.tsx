@@ -9,11 +9,11 @@ interface NftExplorerLinkProps {
 }
 
 export function NftExplorerLink({ type, value, children, className }: NftExplorerLinkProps) {
-    const cluster = "mainnet"; // Or use env variable
+    const cluster = import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta';
     // Orb uses /address/ for accounts, /tx/ for transactions, and /token/ for tokens (usually).
     // Mapping generic 'account' to Orb's 'address' if needed, though often interchangeable in some explorers, Orb prefers address.
     const pathType = type === 'account' ? 'address' : type;
-    const baseUrl = `https://orb.solana.com/${pathType}/${value}?cluster=${cluster}`;
+    const baseUrl = `https://orb.helius.dev/${pathType}/${value}?cluster=${cluster}`;
 
     if (children) {
         return (

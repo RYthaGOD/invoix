@@ -962,7 +962,7 @@ export default function InvoiceDetail() {
                   <div>
                     <div className="text-xs text-purple-300">Minted as NFT</div>
                     <a
-                      href={`https://orb.solana.com/token/${invoice.nftMint}`}
+                      href={`https://orb.helius.dev/token/${invoice.nftMint}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
@@ -1047,7 +1047,7 @@ export default function InvoiceDetail() {
                     </p>
                     <div className="mt-4 flex gap-3">
                       <a
-                        href={`https://orb.solana.com/token/${invoice.nftMint}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
+                        href={`https://orb.helius.dev/token/${invoice.nftMint}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg text-sm flex items-center gap-2 transition-colors"
@@ -1162,7 +1162,7 @@ export default function InvoiceDetail() {
                     <div className="text-gray-400 text-sm">{formatDate(payment.paidAt)}</div>
                   </div>
                   <a
-                    href={`https://orb.solana.com/tx/${payment.txSignature}`}
+                    href={`https://orb.helius.dev/tx/${payment.txSignature}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-purple-400 hover:text-purple-300 text-sm flex items-center gap-1"
@@ -1172,7 +1172,7 @@ export default function InvoiceDetail() {
                   </a>
                   {payment.receiptNftMint && (
                     <a
-                      href={`https://orb.solana.com/token/${payment.receiptNftMint}`}
+                      href={`https://orb.helius.dev/token/${payment.receiptNftMint}?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-green-400 hover:text-green-300 text-sm flex items-center gap-1 ml-4"

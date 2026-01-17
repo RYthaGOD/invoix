@@ -145,7 +145,7 @@ export function PaymentModal({ open, onClose, projectId, tier, ownerWalletAddres
                 After sending SOL, copy the transaction signature from your wallet and paste it here.
                 You can also find it on{" "}
                 <a
-                  href="https://orb.solana.com"
+                  href={`https://orb.helius.dev?cluster=${import.meta.env.VITE_SOLANA_NETWORK || 'mainnet-beta'}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center gap-1"

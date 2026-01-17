@@ -536,7 +536,7 @@ export default function PayInvoice() {
     return (
         <div className="min-h-screen" style={{ background: "hsl(225 20% 8%)" }}>
             {/* Header */}
-            <nav className="glass border-b border-white/10">
+            <nav className="glass border-b border-white/10 relative z-50">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16 items-center">
                         <div className="flex items-center gap-2">
