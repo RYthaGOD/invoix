@@ -1513,8 +1513,8 @@ export class InvoiceNFTService {
       },
       {
         trait_type: "Amount",
-        value: invoice.isArciumEncrypted ? "Encrypted" : invoice.totalAmount,
-        display_type: invoice.isArciumEncrypted ? undefined : "number",
+        value: invoice.hideAmounts ? "Confidential" : (invoice.isArciumEncrypted ? "Encrypted" : invoice.totalAmount),
+        display_type: invoice.hideAmounts || invoice.isArciumEncrypted ? undefined : "number",
       },
       {
         trait_type: "Due Date",
@@ -1549,13 +1549,13 @@ export class InvoiceNFTService {
       },
       {
         trait_type: "Paid Amount",
-        value: invoice.paidAmount || "0",
-        display_type: "number",
+        value: invoice.hideAmounts ? "Confidential" : (invoice.paidAmount || "0"),
+        display_type: invoice.hideAmounts ? undefined : "number",
       },
       {
         trait_type: "Remaining Amount",
-        value: invoice.remainingAmount || invoice.totalAmount,
-        display_type: "number",
+        value: invoice.hideAmounts ? "Confidential" : (invoice.remainingAmount || invoice.totalAmount),
+        display_type: invoice.hideAmounts ? undefined : "number",
       },
       {
         trait_type: "Marketplace Eligible",
@@ -1568,7 +1568,7 @@ export class InvoiceNFTService {
       symbol: "INV",
       uri: `${apiUrl}/nft-metadata/invoice/${invoice.id}`,
       external_url: `${process.env.APP_URL || "https://solanainvoice.com"}/invoices/${invoice.id}`,
-      description: `B2B Invoice from ${invoice.invoicerWalletAddress.slice(0, 4)}...${invoice.invoicerWalletAddress.slice(-4)} to ${invoice.invoiceeWalletAddress.slice(0, 4)}...${invoice.invoiceeWalletAddress.slice(-4)}. Rendered in 8K Ultra-HD with Midnight Prism 3D styling. RWA tokenized invoice receivable.`,
+      description: `B2B Invoice${invoice.hideParties ? "" : ` from ${invoice.invoicerWalletAddress.slice(0, 4)}...${invoice.invoicerWalletAddress.slice(-4)} to ${invoice.invoiceeWalletAddress.slice(0, 4)}...${invoice.invoiceeWalletAddress.slice(-4)}`}. Rendered in 8K Ultra-HD with Midnight Prism 3D styling. RWA tokenized invoice receivable.`,
       image: imageUri,
       attributes: baseAttributes,
       properties: {
@@ -1617,8 +1617,8 @@ export class InvoiceNFTService {
         },
         {
           trait_type: "Amount",
-          value: payment.amount,
-          display_type: "number",
+          value: invoice.hideAmounts ? "Confidential" : payment.amount,
+          display_type: invoice.hideAmounts ? undefined : "number",
         },
         {
           trait_type: "Currency",
@@ -1626,11 +1626,11 @@ export class InvoiceNFTService {
         },
         {
           trait_type: "Paid By",
-          value: payment.fromAddress,
+          value: invoice.hideParties ? "Confidential" : payment.fromAddress,
         },
         {
           trait_type: "Paid To",
-          value: payment.toAddress,
+          value: invoice.hideParties ? "Confidential" : payment.toAddress,
         },
         {
           trait_type: "Transaction",

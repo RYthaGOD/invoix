@@ -813,6 +813,27 @@ export const waitlistUsers = pgTable("waitlist_users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+/**
+ * Audit Logs - Security and access logging
+ * Tracks sensitive operations and metadata access
+ */
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  action: text("action").notNull(), // e.g., metadata_access, login, admin_action
+  userId: text("user_id"), // Wallet address or user ID (nullable for unauth attempts)
+  resourceId: text("resource_id"), // The ID of the accessed resource
+  accessGranted: boolean("access_granted").notNull(),
+  ipAddress: text("ip_address"),
+  details: text("details"), // JSON string or text details
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => {
+  return {
+    actionIdx: index("audit_action_idx").on(table.action),
+    userIdIdx: index("audit_user_id_idx").on(table.userId),
+    timestampIdx: index("audit_timestamp_idx").on(table.timestamp),
+  };
+});
+
 // ============================================
 // SECURITY TABLES
 // ============================================
