@@ -321,6 +321,36 @@ async function distributePayment(
 
         logger.info(`Invoice ${invoice.id} updated: ${newStatus}`, "qr", { invoiceId: invoice.id, status: newStatus });
 
+        // --- WEBHOOK EMISSION ---
+        const { emitWebhookEvent, WEBHOOK_EVENTS } = await import("./webhook-service");
+        const eventType = newStatus === "paid"
+            ? WEBHOOK_EVENTS.INVOICE_PAID
+            : WEBHOOK_EVENTS.INVOICE_PARTIAL_PAID;
+
+        emitWebhookEvent(
+            invoice.invoicerWalletAddress,
+            eventType,
+            {
+                invoiceId: invoice.id,
+                invoiceNumber: invoice.invoiceNumber,
+                amount: actualAmount.toString(),
+                currency: invoice.currency,
+                payoutTx: incomingSignature,
+                paymentMethod: "qr_transfer",
+                timestamp: new Date().toISOString()
+            }
+        ).catch(err => logger.error("Failed to emit QR payment webhook", "webhook", { error: err }));
+
+        // --- CREDIT SCORE UPDATE (Seller Only - Payer is Anonymous) ---
+        const { creditScoringService } = await import("./credit-scoring-service");
+        await creditScoringService.updateScoreOnPayment({
+            fromAddress: "QR_PAYMENT",  // Anonymous payer
+            toAddress: invoice.invoicerWalletAddress,
+            amount: actualAmount.toString(),
+            invoiceDueDate: new Date(invoice.dueDate),
+            paidAt: new Date(),
+        }).catch(err => logger.warn("Credit score update failed (QR)", "credit", { error: err }));
+
     } catch (error: any) {
         logger.error(`Distribution error for ${invoice.id}`, "qr", { error });
     }

@@ -1,10 +1,26 @@
-import { FC, ReactNode, useMemo, useState, useEffect } from 'react';
+import { FC, ReactNode, useMemo, useState, useEffect, createContext, useContext } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
+import { createSolanaRpc, Rpc, type SolanaRpcApi } from '@solana/kit';
 
 // Import wallet adapter CSS
 import '@solana/wallet-adapter-react-ui/styles.css';
+
+// --- Modern Context Definition ---
+interface SolanaModernContextState {
+  rpc: Rpc<SolanaRpcApi>; // Standard Solana RPC interface
+}
+
+const SolanaModernContext = createContext<SolanaModernContextState | null>(null);
+
+export const useSolanaModern = () => {
+  const context = useContext(SolanaModernContext);
+  if (!context) {
+    throw new Error("useSolanaModern must be used within a SolanaWalletProvider");
+  }
+  return context;
+};
 
 interface SolanaWalletProviderProps {
   children: ReactNode;
@@ -12,7 +28,6 @@ interface SolanaWalletProviderProps {
 
 export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }) => {
   const [LazorkitProvider, setLazorkitProvider] = useState<any>(null);
-
 
   // Use custom RPC (Helius) for better performance, fallback to devnet
   const endpoint = useMemo(() => {
@@ -27,6 +42,12 @@ export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }
     return clusterApiUrl(network as any);
   }, []);
 
+  // Initialize Modern RPC Client (v2)
+  const modernRpc = useMemo(() => {
+    // Create the RPC client using the same endpoint
+    return createSolanaRpc(endpoint) as Rpc<SolanaRpcApi>;
+  }, [endpoint]);
+
   // Browser wallets auto-detected (Phantom, Solflare, etc.)
   const wallets = useMemo(() => [], []);
 
@@ -39,7 +60,6 @@ export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }
     }
   }), []);
 
-  // Dynamically load LazorKit only when enabled (fixes top-level await issue)
   // Dynamically load LazorKit (always enabled now)
   useEffect(() => {
     if (!LazorkitProvider) {
@@ -57,13 +77,15 @@ export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          {LazorkitProvider ? (
-            <LazorkitProvider {...lazorkitConfig}>
-              {children}
-            </LazorkitProvider>
-          ) : (
-            children
-          )}
+          <SolanaModernContext.Provider value={{ rpc: modernRpc }}>
+            {LazorkitProvider ? (
+              <LazorkitProvider {...lazorkitConfig}>
+                {children}
+              </LazorkitProvider>
+            ) : (
+              children
+            )}
+          </SolanaModernContext.Provider>
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

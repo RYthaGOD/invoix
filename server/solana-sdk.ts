@@ -89,7 +89,6 @@ export async function getArciumProgram(): Promise<any> {
     }
   }
 
-  // @ts-expect-error - Provider type mismatch between anchor packages
   return new Program(idl, provider);
 }
 
@@ -109,6 +108,14 @@ const CACHE_TTL_MS = 30000; // 30 seconds
  * @param connection Solana connection
  * @returns Latest blockhash and lastValidBlockHeight
  */
+import { getModernBlockhash } from "./solana-modern";
+
+/**
+ * Get latest blockhash with caching to reduce RPC usage.
+ * Uses Modern RPC (v2) with fallback to Legacy (v1).
+ * @param connection Legacy Solana connection (used for fallback)
+ * @returns Latest blockhash and lastValidBlockHeight
+ */
 export async function getBlockhash(connection: Connection): Promise<{ blockhash: string; lastValidBlockHeight: number }> {
   const now = Date.now();
   if (cachedBlockhash && now < cachedBlockhash.expiry) {
@@ -118,14 +125,28 @@ export async function getBlockhash(connection: Connection): Promise<{ blockhash:
     };
   }
 
-  // Refresh cache
+  try {
+    // Try Modern RPC first (Standard)
+    const result = await getModernBlockhash();
+    cachedBlockhash = {
+      blockhash: result.blockhash,
+      lastValidBlockHeight: Number(result.lastValidBlockHeight), // Ensure number compatibility
+      expiry: now + CACHE_TTL_MS
+    };
+    logger.debug("[RPC] Refreshed blockhash via Modern Kit", "solana");
+    return { blockhash: result.blockhash, lastValidBlockHeight: Number(result.lastValidBlockHeight) };
+  } catch (e) {
+    logger.warn("[RPC] Modern blockhash failed, falling back to legacy", "solana", { error: (e as any).message });
+  }
+
+  // Fallback or Legacy Refresh
   const result = await connection.getLatestBlockhash('confirmed');
   cachedBlockhash = {
     blockhash: result.blockhash,
     lastValidBlockHeight: result.lastValidBlockHeight,
     expiry: now + CACHE_TTL_MS
   };
-  logger.debug("[RPC] Refreshed blockhash cache", "solana");
+  logger.debug("[RPC] Refreshed blockhash cache via Legacy", "solana");
   return result;
 }
 

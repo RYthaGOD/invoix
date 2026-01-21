@@ -116,7 +116,7 @@ export class MarketplaceService {
             commitment: "confirmed",
         });
 
-        this.program = new Program(IDL, IDL.metadata.address, this.provider);
+        this.program = new Program(IDL, this.provider);
     }
 
     /**

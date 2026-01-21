@@ -7,17 +7,19 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PublicKey, Keypair } from "@solana/web3.js";
-import { assert } from "chai";
+import { describe, it, assert, beforeAll } from "vitest";
 
 // Import Arcium SDK when available
 // import { ArciumClient } from "@arcium/sdk";
+
+// Mock Type
+type ArciumMxe = any;
 
 describe("arcium-mxe", () => {
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
 
-    // TODO: Load program when built
-    // const program = anchor.workspace.ArciumMxe as Program<ArciumMxe>;
+    const program = anchor.workspace.ArciumMxe as Program<ArciumMxe>;
 
     const payer = provider.wallet as anchor.Wallet;
 
@@ -26,7 +28,7 @@ describe("arcium-mxe", () => {
     let invoicee: Keypair;
     let auditor: Keypair;
 
-    before(async () => {
+    beforeAll(async () => {
         // Initialize test accounts
         invoicer = Keypair.generate();
         invoicee = Keypair.generate();
@@ -122,20 +124,110 @@ describe("arcium-mxe", () => {
     });
 
     describe("Invoice Lifecycle with Encryption", () => {
-        it.skip("Should support encrypted invoice creation", async () => {
-            // TODO: End-to-end test
-            // Test flow:
-            // 1. Create invoice with encrypted details
-            // 2. Invoicer can view
-            // 3. Invoicee can view
-            // 4. Public cannot view
+        it("Should support encrypted invoice creation", async () => {
+            const invoiceId = Buffer.from("INV-1001");
+            const seed = [Buffer.from("invoice"), invoicer.publicKey.toBuffer(), invoiceId];
+            const [invoicePda, bump] = PublicKey.findProgramAddressSync(seed, program.programId);
 
-            console.log("⚠️  Skipped: Requires full Arcium integration");
+            const contentHash = Array(32).fill(1).map((_, i) => i); // Mock hash
+            const assetId = Array(32).fill(2).map((_, i) => i); // Mock asset
+
+            await program.methods
+                .createInvoice(
+                    Buffer.from(invoiceId),
+                    new anchor.BN(1000),
+                    new anchor.BN(Date.now() / 1000 + 86400),
+                    contentHash,
+                    assetId
+                )
+                .accounts({
+                    invoice: invoicePda,
+                    authority: invoicer.publicKey,
+                    payer: invoicee.publicKey,
+                    mint: PublicKey.default,
+                    systemProgram: anchor.web3.SystemProgram.programId,
+                })
+                .signers([invoicer])
+                .rpc();
+
+            const account: any = await program.account.invoiceAccount.fetch(invoicePda);
+            assert.equal(account.authority.toBase58(), invoicer.publicKey.toBase58());
+            assert.equal(account.amount.toNumber(), 1000);
+
+            // Test Locking (Listing)
+            const delegate = Keypair.generate().publicKey; // Mock Marketplace PDA
+            await program.methods
+                .lockInvoice(delegate)
+                .accounts({
+                    invoice: invoicePda,
+                    authority: invoicer.publicKey
+                })
+                .signers([invoicer])
+                .rpc();
+
+            const lockedAccount: any = await program.account.invoiceAccount.fetch(invoicePda);
+            // Verify Locked status (Enum index 6 based on definition)
+            assert.ok(lockedAccount.status.locked);
+            assert.equal(lockedAccount.delegate.toBase58(), delegate.toBase58());
+
+            // Test Unlocking
+            await program.methods
+                .unlockInvoice()
+                .accounts({
+                    invoice: invoicePda,
+                    authority: invoicer.publicKey
+                })
+                .signers([invoicer])
+                .rpc();
+
+            const unlockedAccount: any = await program.account.invoiceAccount.fetch(invoicePda);
+            assert.ok(unlockedAccount.status.unpaid); // Should revert to Unpaid
         });
 
-        it.skip("Should support adding auditor post-creation", async () => {
-            // TODO: Test dynamic authorization
-            console.log("⚠️  Skipped: Requires full Arcium integration");
+        it("Should support subscription creation and usage", async () => {
+            const subId = Buffer.from("SUB-001");
+            const seed = [Buffer.from("subscription"), invoicer.publicKey.toBuffer(), subId];
+            const [subPda] = PublicKey.findProgramAddressSync(seed, program.programId);
+
+            const assetId = Array(32).fill(3);
+
+            // Create Subscription
+            await program.methods.createSubscription(
+                Buffer.from(subId),
+                new anchor.BN(500),
+                new anchor.BN(60), // 60 seconds
+                new anchor.BN(Date.now() / 1000 - 100), // Started in past
+                assetId,
+                null
+            ).accounts({
+                subscription: subPda,
+                authority: invoicer.publicKey,
+                payer: invoicee.publicKey,
+                mint: PublicKey.default,
+                systemProgram: anchor.web3.SystemProgram.programId
+            }).signers([invoicer]).rpc();
+
+            // Mint Invoice from Subscription
+            const newInvId = Buffer.from("INV-FROM-SUB-1");
+            const [newInvPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from("invoice"), invoicer.publicKey.toBuffer(), newInvId],
+                program.programId
+            );
+
+            await program.methods.mintInvoiceFromSubscription(
+                Buffer.from(newInvId),
+                Array(32).fill(0),
+                Array(32).fill(0)
+            ).accounts({
+                subscription: subPda,
+                invoice: newInvPda,
+                authority: invoicer.publicKey,
+                systemProgram: anchor.web3.SystemProgram.programId
+            }).signers([invoicer]).rpc();
+
+            const invAccount: any = await program.account.invoiceAccount.fetch(newInvPda);
+            assert.equal(invAccount.amount.toNumber(), 500);
+            assert.equal(invAccount.subscriptionId.toBase58(), subPda.toBase58());
         });
     });
 

@@ -34,6 +34,7 @@ import {
 import { validateEnvironment } from "./env-validator";
 import { healthCheck, liveness, readiness } from "./health";
 import { getSystemMetrics } from "./metrics";
+import { metricsMiddleware, getMetrics, getMetricsContentType } from "./metrics-service";
 import { initializeNFTService } from "./nft-service";
 import { initializeArciumService } from "./arcium-service";
 import { loadKeypairFromPrivateKey } from "./arcium-service";
@@ -80,6 +81,10 @@ app.use(express.urlencoded({ extended: false, limit: requestSizeLimit }));
 // Input sanitization
 app.use(sanitizeInput);
 
+// Prometheus metrics middleware (BEFORE routes for accurate tracking)
+// @ts-ignore - express-prom-bundle middleware type compatibility
+app.use(metricsMiddleware);
+
 // Structured JSON Logging Middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -120,18 +125,59 @@ app.use((req, res, next) => {
 app.get("/health", healthCheck);
 app.get("/health/live", liveness);
 app.get("/health/ready", readiness);
+
+// Prometheus metrics endpoint (for Grafana/Prometheus scraping)
+app.get("/metrics", async (req, res) => {
+  try {
+    res.set('Content-Type', getMetricsContentType());
+    res.end(await getMetrics());
+  } catch (error: any) {
+    logger.error("Failed to fetch Prometheus metrics", "metrics", { error });
+    res.status(500).send("Error fetching metrics");
+  }
+});
+
+// System metrics endpoint (JSON format for internal use)
 app.get("/api/metrics", async (req, res) => {
   try {
     const metrics = await getSystemMetrics();
     res.json(metrics);
   } catch (error: any) {
-    logger.error("Failed to fetch metrics", "metrics", { error });
+    logger.error("Failed to fetch system metrics", "metrics", { error });
     res.status(500).json({ error: "Failed to fetch metrics" });
   }
 });
 
 // Sentry request handler (must be first middleware)
 app.use(sentryRequestHandler());
+
+// Bull Board UI for job queue monitoring (only if queues are enabled)
+if (process.env.NODE_ENV !== 'test' && process.env.REDIS_URL) {
+  try {
+    const { createBullBoard } = await import('@bull-board/api');
+    const { BullMQAdapter } = await import('@bull-board/api/bullMQAdapter');
+    const { ExpressAdapter } = await import('@bull-board/express');
+    const { webhookQueue, emailQueue } = await import('./queue-service');
+
+    if (webhookQueue && emailQueue) {
+      const serverAdapter = new ExpressAdapter();
+      serverAdapter.setBasePath('/admin/queues');
+
+      createBullBoard({
+        queues: [
+          new BullMQAdapter(webhookQueue),
+          new BullMQAdapter(emailQueue)
+        ],
+        serverAdapter
+      });
+
+      app.use('/admin/queues', serverAdapter.getRouter());
+      logger.info('Bull Board UI available at /admin/queues', 'queue');
+    }
+  } catch (error: any) {
+    logger.warn('Bull Board UI not available - queue service disabled', 'queue', { error: error.message });
+  }
+}
 
 // Global rate limiting for all API routes
 app.use("/api", globalRateLimit);

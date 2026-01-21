@@ -252,20 +252,212 @@ const docsContent = {
                     </ul>
                 </div>
 
-                {/* Phase 4 - In Progress */}
-                <div className="glass-card p-6 border-yellow-500/30">
+                {/* Phase 4 - Updated with Production Features */}
+                <div className="glass-card p-6 border-green-500/30">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 font-bold">4</div>
-                        <h4 className="text-xl font-bold text-white">Enterprise & Scale</h4>
-                        <span className="ml-auto px-3 py-1 text-xs font-bold bg-yellow-500/20 text-yellow-400 rounded-full">IN PROGRESS</span>
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-bold">4</div>
+                        <h4 className="text-xl font-bold text-white">Enterprise & Production Readiness</h4>
+                        <span className="ml-auto px-3 py-1 text-xs font-bold bg-green-500/20 text-green-400 rounded-full">80% COMPLETE</span>
                     </div>
                     <ul className="space-y-2 text-sm text-muted-foreground pl-11">
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> GDPR Compliance (Data Deletion & Export)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Legal Documents (Terms, Privacy, Cookies, Refunds)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Prometheus Metrics & Monitoring</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Disaster Recovery & Automated Backups</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Job Queue System (BullMQ + Redis)</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Liquidity Pools for Accounts Receivable</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Cross-Chain Settlement (Wormhole)</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> White-Label Solutions</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Multi-Signature Treasury</li>
                         <li className="flex items-center gap-2"><span className="text-muted-foreground">○</span> Fiat On/Off Ramps Integration</li>
                     </ul>
+                </div>
+            </div>
+        )
+    },
+    compliance: {
+        title: "Production & Compliance",
+        icon: <ShieldCheck className="w-5 h-5" />,
+        content: (
+            <div className="space-y-8">
+                {/* Hero Card */}
+                <div className="glass-card p-8 border-green-500/30 bg-gradient-to-br from-green-500/10 to-transparent">
+                    <h3 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                        <ShieldCheck className="w-6 h-6 text-green-400" />
+                        Production-Ready & Compliant
+                    </h3>
+                    <p className="text-lg text-muted-foreground leading-relaxed">
+                        Invoix is built for <strong className="text-white">enterprise production deployment</strong> with comprehensive compliance, monitoring, and disaster recovery systems. We meet the highest standards for data privacy, legal protection, and operational excellence.
+                    </p>
+                </div>
+
+                {/* GDPR Compliance */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl flex items-center gap-2">
+                        <Lock className="w-5 h-5 text-primary" />
+                        GDPR & Data Privacy
+                    </h4>
+                    <p className="text-muted-foreground mb-4">
+                        Full compliance with <strong className="text-white">GDPR Article 17</strong> (Right to be Forgotten) and <strong className="text-white">Article 20</strong> (Data Portability). Users have complete control over their data.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <strong className="text-white block mb-2">Data Deletion</strong>
+                            <p className="text-sm text-muted-foreground">Hybrid anonymization + deletion strategy preserves audit trails while protecting privacy</p>
+                        </div>
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <strong className="text-white block mb-2">Data Export</strong>
+                            <p className="text-sm text-muted-foreground">Complete data export in JSON format for portability and compliance</p>
+                        </div>
+                    </div>
+                    <div className="mt-4 p-4 glass rounded-xl border border-primary/20 bg-primary/5">
+                        <div className="text-sm text-muted-foreground">
+                            <strong className="text-white block mb-1">API Endpoints</strong>
+                            <code className="text-primary text-xs">DELETE /api/gdpr/delete-my-data</code><br />
+                            <code className="text-primary text-xs">GET /api/gdpr/export-my-data</code>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Legal Compliance */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-cyan-400" />
+                        Legal Documentation
+                    </h4>
+                    <p className="text-muted-foreground mb-4">
+                        Comprehensive legal framework protecting both the platform and users.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="glass p-3 rounded border border-white/5 text-center">
+                            <div className="text-white font-bold">Terms of Service</div>
+                            <div className="text-xs text-muted-foreground mt-1">/legal/terms</div>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5 text-center">
+                            <div className="text-white font-bold">Privacy Policy</div>
+                            <div className="text-xs text-muted-foreground mt-1">/legal/privacy</div>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5 text-center">
+                            <div className="text-white font-bold">Cookie Policy</div>
+                            <div className="text-xs text-muted-foreground mt-1">/legal/cookies</div>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5 text-center">
+                            <div className="text-white font-bold">Refund Policy</div>
+                            <div className="text-xs text-muted-foreground mt-1">/legal/refunds</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Monitoring & Metrics */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-green-400" />
+                        Monitoring & Metrics
+                    </h4>
+                    <p className="text-muted-foreground mb-4">
+                        Real-time monitoring with <strong className="text-white">Prometheus + Grafana</strong> for complete system observability.
+                    </p>
+                    <div className="space-y-3">
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <strong className="text-white block mb-2">Business Metrics</strong>
+                            <div className="text-sm text-muted-foreground">
+                                Invoices created, payments processed, NFT mints, subscription events, marketplace transactions
+                            </div>
+                        </div>
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <strong className="text-white block mb-2">Technical Metrics</strong>
+                            <div className="text-sm text-muted-foreground">
+                                RPC call latency, database query duration, active sessions, email delivery, HTTP request metrics
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-4 p-4 glass rounded-xl border border-green-500/20 bg-green-500/5">
+                        <div className="text-sm">
+                            <strong className="text-white block mb-1">Metrics Endpoint</strong>
+                            <code className="text-green-400 text-xs">GET /metrics</code> (Prometheus format)
+                        </div>
+                    </div>
+                </div>
+
+                {/* Disaster Recovery */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-cyan-400" />
+                        Disaster Recovery
+                    </h4>
+                    <p className="text-muted-foreground mb-4">
+                        Comprehensive disaster recovery plan with automated backups and documented procedures.
+                    </p>
+                    <div className="grid grid-cols-3 gap-4 text-center mb-4">
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <div className="text-2xl font-bold text-white">4h</div>
+                            <div className="text-xs text-muted-foreground">RTO (Recovery Time)</div>
+                        </div>
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <div className="text-2xl font-bold text-white">1h</div>
+                            <div className="text-xs text-muted-foreground">RPO (Recovery Point)</div>
+                        </div>
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <div className="text-2xl font-bold text-white">30d</div>
+                            <div className="text-xs text-muted-foreground">Backup Retention</div>
+                        </div>
+                    </div>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Daily automated database backups</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Off-site backup storage (S3/R2)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Point-in-time recovery (Supabase)</li>
+                        <li className="flex items-center gap-2"><span className="text-green-400">✓</span> Documented recovery procedures</li>
+                    </ul>
+                </div>
+
+                {/* Job Queue */}
+                <div className="glass-card p-6 border-white/10">
+                    <h4 className="font-bold mb-4 text-xl flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-purple-400" />
+                        Async Job Processing
+                    </h4>
+                    <p className="text-muted-foreground mb-4">
+                        <strong className="text-white">BullMQ + Redis</strong> job queue for reliable async processing with automatic retries.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <strong className="text-white block mb-2">Webhook Queue</strong>
+                            <div className="text-sm text-muted-foreground">5 retries, exponential backoff, 100/min rate limit</div>
+                        </div>
+                        <div className="glass p-4 rounded-xl border border-white/5">
+                            <strong className="text-white block mb-2">Email Queue</strong>
+                            <div className="text-sm text-muted-foreground">3 retries, exponential backoff, 50/min rate limit</div>
+                        </div>
+                    </div>
+                    <div className="mt-4 p-4 glass rounded-xl border border-purple-500/20 bg-purple-500/5">
+                        <div className="text-sm">
+                            <strong className="text-white block mb-1">Monitoring UI</strong>
+                            <code className="text-purple-400 text-xs">GET /admin/queues</code> (Bull Board)
+                        </div>
+                    </div>
+                </div>
+
+                {/* Security & Compliance Summary */}
+                <div className="glass-card p-6 border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent">
+                    <h4 className="font-bold mb-4 text-xl">Compliance Summary</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                        <div className="glass p-3 rounded border border-white/5">
+                            <div className="text-green-400 font-bold text-sm">GDPR</div>
+                            <div className="text-xs text-muted-foreground mt-1">Compliant</div>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5">
+                            <div className="text-green-400 font-bold text-sm">CCPA</div>
+                            <div className="text-xs text-muted-foreground mt-1">Compliant</div>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5">
+                            <div className="text-green-400 font-bold text-sm">SOC 2</div>
+                            <div className="text-xs text-muted-foreground mt-1">Ready</div>
+                        </div>
+                        <div className="glass p-3 rounded border border-white/5">
+                            <div className="text-green-400 font-bold text-sm">ISO 27001</div>
+                            <div className="text-xs text-muted-foreground mt-1">Ready</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         )

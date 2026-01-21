@@ -16,4 +16,4 @@ cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "echo 'No tests'"
+test = "npx vitest run tests/mxe.test.ts"

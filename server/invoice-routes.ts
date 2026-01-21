@@ -292,7 +292,15 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
       }
     }
 
-    // E. Emit Webhook
+    // Track invoice creation metrics
+    const { recordInvoiceCreated } = await import('./metrics-service');
+    recordInvoiceCreated(
+      invoice.currency,
+      invoice.status,
+      invoice.isPrivate || false
+    );
+
+    // Emit INVOICE_CREATED webhook
     emitWebhookEvent(
       authenticatedWallet,
       WEBHOOK_EVENTS.INVOICE_CREATED,
@@ -302,10 +310,10 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
         amount: invoice.totalAmount,
         currency: invoice.currency,
         dueDate: invoice.dueDate,
-        customerWallet: invoice.invoiceeWalletAddress,
-        status: invoice.status
+        status: invoice.status,
+        createdAt: new Date().toISOString()
       }
-    ).catch(err => logger.error("Failed to emit invoice.created webhook", "webhook", { error: err }));
+    ).catch((err) => logger.error("Failed to emit invoice.created webhook", "webhook", { error: err }));
 
     // 7. Response
     res.status(201).json({
@@ -637,25 +645,21 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
     }
     // --------------------------------
 
-    // --- EMIT WEBHOOK: INVOICE.UPDATED ---
-    // NOTE: INVOICE_UPDATED webhook intentionally not implemented.
-    // invoice.sent event already covers the primary state change.
-    // Generic updates (description, notes) don't warrant webhook notification.
-    /*
-    emitWebhookEvent(
-      invoice.invoicerWalletAddress,
-      // @ts-ignore - Event type not yet defined
-      "invoice.updated",
-      {
-        invoiceId: id,
-        invoiceNumber: invoice.invoiceNumber,
-        status: updates.status || invoice.status,
-        updatedFields: Object.keys(updates),
-        timestamp: new Date().toISOString()
-      }
-    ).catch(err => logger.error("Failed to emit invoice.updated webhook", "webhook", { error: err }));
-    */
-    // -------------------------------------
+    // --- EMIT WEBHOOK: INVOICE.SENT ---
+    if (updates.status === 'sent') {
+      emitWebhookEvent(
+        invoice.invoicerWalletAddress,
+        WEBHOOK_EVENTS.INVOICE_SENT,
+        {
+          invoiceId: id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.totalAmount,
+          currency: invoice.currency,
+          customerWallet: invoice.invoiceeWalletAddress,
+          sentAt: new Date().toISOString()
+        }
+      ).catch(err => logger.error("Failed to emit invoice.sent webhook", "webhook", { error: err }));
+    }
     // -------------------------------------
 
     res.json({
@@ -692,6 +696,18 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
         status: "cancelled",
         cancelledAt: new Date(),
       });
+
+      // --- EMIT WEBHOOK: INVOICE.CANCELLED ---
+      emitWebhookEvent(
+        invoice.invoicerWalletAddress,
+        WEBHOOK_EVENTS.INVOICE_CANCELLED,
+        {
+          invoiceId: id,
+          invoiceNumber: invoice.invoiceNumber,
+          reason: "user_cancelled",
+          cancelledAt: new Date().toISOString()
+        }
+      ).catch(err => logger.error("Failed to emit invoice.cancelled webhook", "webhook", { error: err }));
 
       return res.json({
         success: true,
@@ -1069,6 +1085,53 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
 
     // Get updated invoice
     const updatedInvoice = await invoiceStorage.getInvoice(validatedData.invoiceId);
+
+    // --- METRICS TRACKING ---
+    const { recordPaymentProcessed } = await import('./metrics-service');
+    recordPaymentProcessed(
+      payment.currency,
+      'crypto',
+      'success',
+      parseFloat(payment.usdValueAtPayment || '0')
+    );
+
+    // --- WEBHOOK EMISSION ---
+    if (updatedInvoice) {
+      const eventType = updatedInvoice.status === 'paid'
+        ? WEBHOOK_EVENTS.INVOICE_PAID
+        : WEBHOOK_EVENTS.INVOICE_PARTIAL_PAID;
+
+      emitWebhookEvent(
+        invoice.invoicerWalletAddress,
+        eventType,
+        {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          paymentId: payment.id,
+          amount: payment.amount,
+          currency: payment.currency,
+          txSignature: payment.txSignature,
+          payer: verification?.fromAddress || validatedData.fromAddress,
+          timestamp: new Date().toISOString()
+        }
+      ).catch(err => logger.error("Failed to emit payment webhook", "webhook", { error: err }));
+    }
+
+    // --- CREDIT SCORE UPDATE (Crypto Payments Only) ---
+    if (verification && verification.verified) {
+      try {
+        const { creditScoringService } = await import("./credit-scoring-service");
+        await creditScoringService.updateScoreOnPayment({
+          fromAddress: verification.fromAddress,
+          toAddress: invoice.invoicerWalletAddress,
+          amount: payment.amount,
+          invoiceDueDate: new Date(invoice.dueDate),
+          paidAt: new Date(),
+        }).catch(err => logger.warn("Credit score update failed", "credit", { error: err }));
+      } catch (creditErr) {
+        logger.warn("Credit scoring service unavailable", "credit", { error: creditErr });
+      }
+    }
 
     // --- EMAIL RECEIPT LOGIC ---
     if (updatedInvoice && updatedInvoice.invoiceeWalletAddress) {

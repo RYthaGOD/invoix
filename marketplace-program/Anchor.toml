@@ -9,14 +9,14 @@ marketplace_program = "F8XqbBJaKzpF5CWqmXR6uqutZ9HcNuiQAo7o5XgSYXrE"
 marketplace_program = "F8XqbBJaKzpF5CWqmXR6uqutZ9HcNuiQAo7o5XgSYXrE"
 
 [programs.mainnet]
-marketplace_program = "InvxMkt3pA3hYn8V7JbmBKZ1FjJQX9YwqG5K6Zx8uP9m"
+marketplace_program = "F8XqbBJaKzpF5CWqmXR6uqutZ9HcNuiQAo7o5XgSYXrE"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
-wallet = "~/.config/solana/id.json"
+cluster = "localnet"
+wallet = "C:\\Users\\craig\\test-wallet.json"
 
 [scripts]
-test = "echo 'No tests'"
+test = "npx vitest run tests/marketplace.test.ts"

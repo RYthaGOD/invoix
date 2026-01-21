@@ -18,6 +18,7 @@ default = []
 [dependencies]
 anchor-lang = "0.32.0"
 anchor-spl = { version = "0.32.0", default-features = false, features = ["token"] }
+solana-program = "3.0.0"
 
 [profile.release]
 overflow-checks = true

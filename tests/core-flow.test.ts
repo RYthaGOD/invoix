@@ -5,34 +5,23 @@ import * as schemaSqlite from "../shared/invoice-schema-sqlite";
 import { eq } from "drizzle-orm";
 
 const require = createRequire(import.meta.url);
- 
 const Database = require("better-sqlite3");
 
-// 1. Setup In-Memory SQLite DB
-let sqlite: any;
-try {
-    sqlite = new Database(":memory:");
-} catch (e) {
-    console.error("Failed to init SQLite:", e);
-    throw e;
-}
-// sqlite.pragma("foreign_keys = ON"); // Optional for test speed/simplicity
+// 1. Create database instance FIRST
+const sqlite = new Database(":memory:");
 const testDb = drizzle(sqlite, { schema: schemaSqlite });
 
-// 2. Mock Schema (Service Layer will use SQLite tables)
-vi.mock("../shared/invoice-schema", async () => {
-    return await import("../shared/invoice-schema-sqlite");
-});
+// 2. Setup mocks using factory functions to avoid hoisting issues
+vi.mock("../shared/invoice-schema", () => schemaSqlite);
 
-// 3. Mock DB Module (Service Layer will use our testDb)
 vi.mock("../server/db", () => ({
     db: testDb,
     schema: schemaSqlite
 }));
 
-// Import Service AFTER mocks are established
+// 3. Import Service AFTER mocks are established
 import { CreditScoringService } from "../server/credit-scoring-service";
-import { invoices, payments, businessCreditScores } from "../shared/invoice-schema-sqlite"; // Import correct types locally
+import { invoices, payments, businessCreditScores } from "../shared/invoice-schema-sqlite";
 
 // Test Data
 const WALLET_A = "WalletA_Test_11111111111111111111111111111111"; // Seller

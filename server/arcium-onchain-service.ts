@@ -72,7 +72,7 @@ export class ArciumOnChainService {
             commitment: "confirmed",
         });
 
-        this.program = new Program(ARCIUM_IDL, ARCIUM_IDL.metadata.address, this.provider);
+        this.program = new Program(ARCIUM_IDL, this.provider);
 
         // Load server keypair for server-side signing if available
         this.loadServerKeypair();

@@ -604,7 +604,7 @@ export class InvoiceNFTService {
       // The collection may not exist on the current network (mainnet vs devnet mismatch)
       // Once a proper mainnet collection is created, re-enable mintToCollectionV1
       let builder;
-      const useCollectionVerification = false; // Temporarily disabled
+      const useCollectionVerification = true; // Enabled for better wallet visibility
       if (useCollectionVerification && this.collectionMint) {
         builder = mintToCollectionV1(this.umi, {
           leafOwner,
@@ -714,7 +714,7 @@ export class InvoiceNFTService {
 
       // Build Mint Instruction (Server is Payer & Authority)
       let builder;
-      const useCollectionVerification = false; // Temporarily disabled
+      const useCollectionVerification = true; // Enabled for better wallet visibility
 
       if (useCollectionVerification && this.collectionMint) {
         builder = mintToCollectionV1(this.umi, {
@@ -823,7 +823,7 @@ export class InvoiceNFTService {
       // FIX: Temporarily disabled collection-verified minting due to CollectionNotFound errors
       // Use same logic as createMintInvoiceTransaction
       let mintIx;
-      const useCollectionVerification = false; // Temporarily disabled
+      const useCollectionVerification = true; // Enabled for better wallet visibility
       if (useCollectionVerification && this.collectionMint) {
         mintIx = mintToCollectionV1(this.umi, {
           leafOwner,

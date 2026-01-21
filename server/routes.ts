@@ -156,6 +156,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerTaxRoutes(app);
 
   // ================================================
+  // GDPR COMPLIANCE ROUTES (Data Privacy)
+  // ================================================
+  const { registerGDPRRoutes } = await import("./gdpr-routes");
+  registerGDPRRoutes(app);
+
+  // ================================================
   // ADMIN: Glass Citadel Diagnostic Endpoint
   // ================================================
 

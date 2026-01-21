@@ -1,5 +1,17 @@
 import { Connection, Transaction, VersionedTransaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
+import {
+    type Rpc,
+    type SolanaRpcApi,
+    address,
+    getStructDecoder,
+    getU64Decoder,
+    getU32Decoder,
+    getU8Decoder,
+    getAddressDecoder,
+    getArrayDecoder,
+    type Decoder
+} from "@solana/kit";
 
 export interface ListingResponse {
     success: boolean;
@@ -19,6 +31,31 @@ export interface ListInvoiceParams {
     expiresInDays: number;
     isBlind?: boolean;
 }
+
+// Matches Rust "ListingState" struct
+export interface ListingState {
+    discriminator: bigint; // 8 bytes
+    seller: string;
+    price: bigint;
+    currencyMint: string;
+    assetId: string;
+    nonce: bigint;
+    index: number;
+    root: number[]; // [u8; 32] decodes to number array by default with getArrayDecoder
+    bump: number;
+}
+
+const listingStateDecoder: Decoder<ListingState> = getStructDecoder([
+    ['discriminator', getU64Decoder()],
+    ['seller', getAddressDecoder()],
+    ['price', getU64Decoder()],
+    ['currencyMint', getAddressDecoder()],
+    ['assetId', getAddressDecoder()],
+    ['nonce', getU64Decoder()],
+    ['index', getU32Decoder()],
+    ['root', getArrayDecoder(getU8Decoder(), { size: 32 })],
+    ['bump', getU8Decoder()],
+]);
 
 export const marketplaceSdk = {
     /**
@@ -57,5 +94,29 @@ export const marketplaceSdk = {
     deserializeTransaction(base64Tx: string): VersionedTransaction {
         const txBuffer = Uint8Array.from(atob(base64Tx), c => c.charCodeAt(0));
         return VersionedTransaction.deserialize(txBuffer);
+    },
+
+    /**
+     * Fetch Listing State using Modern RPC (v2)
+     * Demonstrates hybrid usage: API for Writes, Direct RPC for Reads.
+     */
+    async getListingState(rpc: Rpc<SolanaRpcApi>, listingPda: string): Promise<ListingState | null> {
+        try {
+            const { value: account } = await rpc.getAccountInfo(address(listingPda), { encoding: 'base64' }).send();
+            if (!account || !account.data) return null;
+
+            // Decode the data using the modern codec
+            // account.data is [base64_string, encoding] in v2 RPC response? 
+            // The @solana/kit RPC client unifies this. 
+            // If encoding is base64, data is string.
+            // We need to decode base64 string to Uint8Array first.
+            const base64Data = account.data[0];
+            const dataBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+
+            return listingStateDecoder.decode(dataBytes);
+        } catch (e) {
+            console.error("Failed to fetch/decode listing state", e);
+            throw e;
+        }
     }
 };

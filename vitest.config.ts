@@ -5,7 +5,7 @@ import path from "path";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "marketplace-program/tests/**/*.test.ts"],
     fileParallelism: false, // Avoid race conditions in sqlite memory
   },
   resolve: {
