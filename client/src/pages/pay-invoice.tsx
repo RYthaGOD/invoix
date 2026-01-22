@@ -314,7 +314,10 @@ export default function PayInvoice() {
                     transaction.add(
                         createAssociatedTokenAccountInstruction(
                             FEE_PAYER_PUBKEY,
-                            recipientTokenAccount, recipientPubkey, mintPubkey
+                            recipientTokenAccount,
+                            recipientPubkey,
+                            mintPubkey,
+                            TOKEN_PROGRAM_ID
                         )
                     );
                 }
@@ -325,7 +328,10 @@ export default function PayInvoice() {
                     transaction.add(
                         createAssociatedTokenAccountInstruction(
                             FEE_PAYER_PUBKEY,
-                            treasuryTokenAccount, TREASURY_ADDRESS, mintPubkey
+                            treasuryTokenAccount,
+                            TREASURY_ADDRESS,
+                            mintPubkey,
+                            TOKEN_PROGRAM_ID
                         )
                     );
                 }
