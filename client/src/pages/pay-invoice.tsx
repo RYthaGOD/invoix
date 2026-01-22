@@ -57,13 +57,14 @@ export default function PayInvoice() {
     // Payment State
     const [txSignature, setTxSignature] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [submittedSignatures, setSubmittedSignatures] = useState<Set<string>>(new Set()); // Track submitted signatures
 
     // Accounting & Notes State
     const [paymentNotes, setPaymentNotes] = useState("");
     const [isBusinessExpense, setIsBusinessExpense] = useState(false);
 
     // Use Custom Hook for Confirmation
-    const { status: paymentStatus, error: confirmationError } = usePaymentConfirmation({
+    const { status: paymentStatus, error: confirmationError, elapsedSeconds } = usePaymentConfirmation({
         connection,
         signature: txSignature,
         invoiceId: invoiceId
@@ -392,7 +393,16 @@ export default function PayInvoice() {
                 }
 
                 // Success! We have a signature. Use Hook to track confirmation.
-                setTxSignature(relayResult.signature);
+                const signature = relayResult.signature;
+
+                // Prevent duplicate submission tracking
+                if (submittedSignatures.has(signature)) {
+                    console.warn("Duplicate signature detected, ignoring", { signature });
+                    return;
+                }
+
+                setSubmittedSignatures(prev => new Set(prev).add(signature));
+                setTxSignature(signature);
             } catch (fetchErr: any) {
                 clearTimeout(timeoutId);
                 if (fetchErr.name === 'AbortError') {
@@ -557,6 +567,7 @@ export default function PayInvoice() {
                             status={paymentStatus}
                             txSignature={txSignature}
                             error={confirmationError}
+                            elapsedSeconds={elapsedSeconds}
                         />
                         {/* Claim NFT Button for Community Drop */}
                         {paymentStatus === 'verified' && invoice?.description === "Exclusive Community NFT Mint" && (
@@ -767,11 +778,13 @@ export default function PayInvoice() {
                                 ) : (
                                     <button
                                         onClick={handlePayment}
-                                        disabled={paying || !isAuthorizedPayer}
+                                        disabled={paying || !isAuthorizedPayer || txSignature !== null}
                                         className="w-full smoke-shadow px-8 py-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed text-lg"
                                     >
                                         {paying ? "Processing Payment..." : (
-                                            !isAuthorizedPayer ? "Unauthorized Wallet" : `Pay ${parseFloat(invoice.remainingAmount).toFixed(2)} ${invoice.currency}`
+                                            txSignature ? "Payment Submitted - Verifying..." : (
+                                                !isAuthorizedPayer ? "Unauthorized Wallet" : `Pay ${parseFloat(invoice.remainingAmount).toFixed(2)} ${invoice.currency}`
+                                            )
                                         )}
                                     </button>
                                 )}

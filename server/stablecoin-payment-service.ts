@@ -64,19 +64,68 @@ export async function verifyStablecoinPayment(
         }
 
         // Fetch transaction from blockchain with retries (RPC may not have indexed immediately)
+        // Enhanced retry logic with getSignatureStatus polling and exponential backoff
         let tx = null;
-        const maxRetries = 5;
+        const maxRetries = 10; // Increased from 5 to handle network congestion
+        const baseDelay = 2000; // Start at 2 seconds
+
+        // STEP 1: Quick signature status check (lightweight, faster than getTransaction)
         for (let attempt = 0; attempt < maxRetries; attempt++) {
-            tx = await connection.getTransaction(txSignature, {
-                maxSupportedTransactionVersion: 0,
+            // Check signature status first (cheaper RPC call)
+            const statusResponse = await connection.getSignatureStatus(txSignature, {
+                searchTransactionHistory: true // Check beyond recent cache
             });
-            if (tx) break;
-            // Wait before retry (exponential backoff: 1s, 2s, 3s, 4s, 5s)
-            logger.debug(`Transaction not found yet, retry ${attempt + 1}/${maxRetries}...`, "payment");
-            await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
+
+            const status = statusResponse?.value;
+
+            // If transaction failed on-chain, stop immediately
+            if (status?.err) {
+                logger.error(`Transaction failed on-chain: ${txSignature}`, "payment", { error: status.err });
+                return {
+                    verified: false,
+                    amount: "0",
+                    currency: expectedCurrency,
+                    fromAddress: "",
+                    toAddress: "",
+                    txSignature,
+                    timestamp: new Date(),
+                    error: `Transaction failed on-chain: ${JSON.stringify(status.err)}`,
+                };
+            }
+
+            // If confirmed or finalized, proceed to get full transaction
+            if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') {
+                tx = await connection.getTransaction(txSignature, {
+                    maxSupportedTransactionVersion: 0,
+                    commitment: 'confirmed'
+                });
+                if (tx) {
+                    logger.info(`Transaction confirmed after ${attempt + 1} attempts`, "payment", { signature: txSignature });
+                    break;
+                }
+            }
+
+            // Exponential backoff: 2s, 4s, 6s, 8s, 10s, 12s, 14s, 16s, 18s, 20s (total: 110s)
+            const delay = baseDelay * (attempt + 1);
+            logger.debug(
+                `Transaction not confirmed yet (attempt ${attempt + 1}/${maxRetries}), waiting ${delay}ms...`,
+                "payment",
+                { signature: txSignature, status: status?.confirmationStatus || 'not found' }
+            );
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
 
         if (!tx) {
+            // After 110 seconds, still not found - likely invalid signature or extreme network issues
+            const errorMessage = `Transaction not indexed after ${maxRetries} retries (110 seconds). This may indicate:\n` +
+                `1. Network congestion - please wait 2-3 minutes and check Solana Explorer\n` +
+                `2. Invalid transaction signature\n` +
+                `3. RPC node issues\n\n` +
+                `Signature: ${txSignature}\n` +
+                `Check status: https://orb.helius.dev/tx/${txSignature}?cluster=${process.env.SOLANA_NETWORK || 'devnet'}`;
+
+            logger.error("Payment verification timeout", "payment", { signature: txSignature, error: errorMessage });
+
             return {
                 verified: false,
                 amount: "0",
@@ -85,7 +134,7 @@ export async function verifyStablecoinPayment(
                 toAddress: "",
                 txSignature,
                 timestamp: new Date(),
-                error: "Transaction not found after 5 retries. Please wait a moment and try again.",
+                error: errorMessage,
             };
         }
 

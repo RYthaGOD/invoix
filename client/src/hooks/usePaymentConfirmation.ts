@@ -13,6 +13,7 @@ export function usePaymentConfirmation({ connection, signature, invoiceId }: Use
     const [status, setStatus] = useState<PaymentStatus>('idle');
     const [error, setError] = useState<string | null>(null);
     const [confirmations, setConfirmations] = useState(0);
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
     const checkStatus = useCallback(async () => {
         if (!signature) return;
@@ -73,6 +74,7 @@ export function usePaymentConfirmation({ connection, signature, invoiceId }: Use
     useEffect(() => {
         if (!signature) {
             setStatus('idle');
+            setElapsedSeconds(0);
             return;
         }
 
@@ -81,22 +83,34 @@ export function usePaymentConfirmation({ connection, signature, invoiceId }: Use
             return;
         }
 
+        // Start elapsed time counter
+        const timerInterval = setInterval(() => {
+            setElapsedSeconds(prev => prev + 1);
+        }, 1000);
+
         const intervalId = setInterval(checkStatus, 2000); // Poll every 2s
 
-        return () => clearInterval(intervalId);
+        return () => {
+            clearInterval(intervalId);
+            clearInterval(timerInterval);
+        };
     }, [signature, checkStatus, status]);
 
-    // Failsafe timeout - stop polling after 120 seconds (increased for slow networks)
+    // Failsafe timeout - stop polling after 120 seconds (aligned with backend retry logic)
     useEffect(() => {
         if (status === 'confirming') {
             const timeoutId = setTimeout(() => {
                 // Set status to failed so the polling interval gets cleared
                 setStatus('failed');
-                setError("Confirmation timed out. Please check your wallet or Explorer.");
-            }, 120000); // 2 minute timeout (was 1 minute)
+                setError(
+                    `Verification timed out after 2 minutes. Your payment may still be processing.\n\n` +
+                    `Please check Solana Explorer or wait a few minutes before retrying.\n` +
+                    `Signature: ${signature}`
+                );
+            }, 120000); // 2 minute timeout
             return () => clearTimeout(timeoutId);
         }
-    }, [status]);
+    }, [status, signature]);
 
-    return { status, error };
+    return { status, error, elapsedSeconds };
 }

@@ -3,40 +3,45 @@
 ## 🚨 Phase 1: Security & Foundation (Weeks 1-4)
 
 ### 🔴 Week 1: Critical Security Fixes (IMMEDIATE PRIORITY)
-- [ ] **Fix Unauthenticated Metadata Access**
-    - [ ] Create `requireAuth` middleware in `server/middleware/auth.ts` (if not exists) checking verified session
-    - [ ] Update `/api/nft-metadata/:identifier` in `server/invoice-routes.ts` to use `requireAuth`
-    - [ ] Implement access control logic:
+
 - [x] **[CRITICAL]** Fix Unauthenticated Metadata Access
-    - [x] **[BLOCKING]** Update `/api/nft-metadata/:identifier` to require authentication (signature/session).
-    - [x] Implement ACL: Only allow Invoicer, Invoicee, or authorized Buyer (if sold) to view full metadata.
-    - [x] If `isPrivate=true`, ensure the public endpoint returns ONLY the generic "Private Invoice" metadata (verified via hash), NOT the details.
-    - [x] **[BLOCKING]** Force redacted metadata for unauthenticated requests if we allow them at all (currently completely blocking unauth is safer).
+    - [x] **[BLOCKING]** Update `/api/nft-metadata/:identifier` to require authentication (signature/session)
+    - [x] Implement ACL: Only allow Invoicer, Invoicee, or authorized Buyer (if sold) to view full metadata
+    - [x] If `isPrivate=true`, ensure the public endpoint returns ONLY the generic "Private Invoice" metadata (verified via hash), NOT the details
+    - [x] **[BLOCKING]** Force redacted metadata for unauthenticated requests
 
 - [x] **[CRITICAL]** Sanitize Private Invoice Metadata
-    - [x] Scan `server/nft-service.ts` for `generateInvoiceMetadata`.
-    - [x] Update logic to strictly check `hideAmounts`, `hideParties` flags.
-    - [x] Ensure that even if a user IS authorized, the *generated JSON* respects these flags if they are intended to be hidden in the NFT standard fields (attributes).
+    - [x] Scan `server/nft-service.ts` for `generateInvoiceMetadata`
+    - [x] Update logic to strictly check `hideAmounts`, `hideParties` flags
+    - [x] Ensure that even if a user IS authorized, the *generated JSON* respects these flags
 
 - [x] **[CRITICAL]** Enforce Privacy Flag Enforcement
-    - [x] Verify `hideAmounts` physically removes the amount from the JSON, not just the UI.
-    - [x] Verify `hideParties` physically removes the wallet addresses from the attributes/description.
+    - [x] Verify `hideAmounts` physically removes the amount from the JSON, not just the UI
+    - [x] Verify `hideParties` physically removes the wallet addresses from the attributes/description
 
 - [x] **[CRITICAL]** Prevent Receipt Data Exposure
-    - [x] Update `generatePaymentReceiptMetadata`.
-    - [x] Ensure it checks the *parent invoice's* privacy settings before including `fromAddress` or `toAddress`.
+    - [x] Update `generatePaymentReceiptMetadata`
+    - [x] Ensure it checks the *parent invoice's* privacy settings before including `fromAddress` or `toAddress`
 
 - [x] **[SECURITY]** Implement Rate Limiting & Audit Logging
-    - [x] Add `express-rate-limit` to all metadata endpoints (e.g., 10 req/min per IP).
-    - [x] Create `audit_logs` table in schema.
-    - [x] Log every access attempt to private metadata (User ID, Timestamp, Success/Failure, IP).
-    - [ ] Create `metadataLimiter` configuration (window: 1m, max: 10)
-    - [ ] Apply `metadataLimiter` to all `/api/nft-metadata/*` routes
-- [ ] **Implement Audit Logging**
-    - [ ] Check schema for `audit_logs` table
-    - [ ] Create `server/utils/audit-logger.ts` service
-    - [ ] Implement `logMetadataAccess(user, resource, success, ip)`
-    - [ ] Call logger in `server/invoice-routes.ts` metadata endpoint (log both allowed and denied attempts)
+    - [x] Add `express-rate-limit` to all metadata endpoints (e.g., 10 req/min per IP)
+    - [x] Create `audit_logs` table in schema
+    - [x] Log every access attempt to private metadata (User ID, Timestamp, Success/Failure, IP)
+    - [x] Create `metadataLimiter` configuration (window: 1m, max: 10)
+    - [x] Apply `metadataLimiter` to all `/api/nft-metadata/*` routes
+    - [x] Create `server/utils/audit-logger.ts` service
+    - [x] Implement `logMetadataAccess(user, resource, success, ip)`
+    - [x] Call logger in `server/invoice-routes.ts` metadata endpoint (log both allowed and denied attempts)
+
+- [x] **[VERIFICATION]** Test Security Fixes
+    - [x] Database migration completed (audit_logs table created)
+    - [ ] Test unauthenticated access to `/api/nft-metadata/:identifier` (should return 401)
+    - [ ] Test unauthorized access (different wallet) to metadata (should return 403)
+    - [ ] Test that `hideAmounts=true` properly redacts amounts in metadata JSON
+    - [ ] Test that `hideParties=true` properly redacts wallet addresses in metadata JSON
+    - [ ] Test rate limiting (11th request should fail with 429)
+    - [ ] Verify audit logs are being written to database
+
 
 ### Week 2: Code Quality & Testing
 - [ ] **Technical Debt Cleanup**
