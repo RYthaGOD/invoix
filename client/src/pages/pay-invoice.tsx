@@ -199,7 +199,7 @@ export default function PayInvoice() {
 
                     // Assume ATAs exist or are created (Smart Wallet should handle ATA creation via bundled tx if needed)
                     // Simple transfer for now
-                    const { createTransferInstruction } = await import('@solana/spl-token');
+                    const { createTransferInstruction, TOKEN_PROGRAM_ID } = await import('@solana/spl-token');
 
                     transaction.add(
                         createTransferInstruction(
@@ -306,7 +306,7 @@ export default function PayInvoice() {
                 const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, TREASURY_ADDRESS);
 
                 // Import instructions
-                const { createAssociatedTokenAccountInstruction, createTransferInstruction } = await import('@solana/spl-token');
+                const { createAssociatedTokenAccountInstruction, createTransferInstruction, TOKEN_PROGRAM_ID } = await import('@solana/spl-token');
 
                 // Check/Create Recipient ATA
                 const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
