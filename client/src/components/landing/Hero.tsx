@@ -120,6 +120,6 @@ export function Hero() {
                     </div>
                 </div>
             </section>
-        </DotGlobeHero>
+        </BackgroundPaths>
     );
 }
