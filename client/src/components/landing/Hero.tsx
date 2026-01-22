@@ -1,12 +1,16 @@
 import { motion } from "framer-motion";
 import { ShieldCheck, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
-import { BackgroundPaths } from "@/components/ui/background-paths";
+import { DotGlobeHero } from "@/components/ui/globe-hero";
 import { ShinyButton } from "@/components/ui/shiny-button";
 
 export function Hero() {
     return (
-        <BackgroundPaths>
+        <DotGlobeHero
+            rotationSpeed={0.003}
+            globeRadius={1.2}
+            className="bg-gradient-to-br from-background via-background/95 to-purple-950/10"
+        >
             <section className="relative pt-32 pb-32 md:pt-48 md:pb-40">
                 <div className="container mx-auto px-6 relative z-10">
                     <div className="flex flex-col items-center gap-12 text-center max-w-5xl mx-auto">
@@ -116,6 +120,6 @@ export function Hero() {
                     </div>
                 </div>
             </section>
-        </BackgroundPaths>
+        </DotGlobeHero>
     );
 }
