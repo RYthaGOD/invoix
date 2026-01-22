@@ -15,17 +15,17 @@ export function Features() {
                 className="text-center mb-24"
                 {...fadeInUp}
             >
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
-                    <span className="text-xs font-bold text-emerald-400 tracking-widest uppercase">Glass Citadel™ Architecture</span>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6">
+                    <span className="text-xs font-bold text-primary tracking-widest uppercase">Verified Features</span>
                 </div>
-                <h2 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl mb-6 tracking-tight">Audited & Enterprise-Ready</h2>
+                <h2 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl mb-6 tracking-tight">Everything Your Business Needs</h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                    Confidential data stays encrypted. Payments create permanent proof. Fully audited security for industrial-scale commerce.
+                    Instant settlement, automated receipts, and enterprise-grade security. All verified and production-ready.
                 </p>
             </motion.div>
 
             <div className="bento-grid max-w-7xl mx-auto">
-                {/* 1. Large Card: Lightning Settlements */}
+                {/* 1. Instant Settlement */}
                 <motion.div
                     className="md:col-span-3 lg:col-span-2 row-span-2 feature-card group hover:border-primary/40 transition-all duration-500 overflow-hidden"
                     variants={fadeInUp}
@@ -38,10 +38,10 @@ export function Features() {
                         <div className="icon-wrapper group-hover:shadow-[0_0_20px_rgba(139,92,246,0.3)] mb-8">
                             <Zap className="w-8 h-8 text-primary" />
                         </div>
-                        <h3 className="text-3xl font-bold font-heading mb-4">400ms Settlement</h3>
+                        <h3 className="text-3xl font-bold font-heading mb-4">Instant Settlement</h3>
                         <p className="text-muted-foreground text-lg leading-relaxed max-w-md mb-auto">
-                            Net-30 is history. Invoix leverages Solana's ~400ms block times to settle global transactions instantly.
-                            Realize revenue immediately with cryptographic proof of payment.
+                            Get paid in seconds, not days. Invoix leverages Solana's high-speed blockchain to settle transactions instantly.
+                            No more waiting for Net-30 payment terms.
                         </p>
 
                         <div className="mt-12 h-48 relative rounded-2xl border border-white/5 bg-black/40 overflow-hidden group-hover:border-primary/20 transition-colors">
@@ -59,7 +59,7 @@ export function Features() {
                     </div>
                 </motion.div>
 
-                {/* 2. NFT Receipts (3D Asset) */}
+                {/* 2. Compressed NFT Receipts */}
                 <motion.div
                     className="md:col-span-1 lg:col-span-2 row-span-2 feature-card group bg-gradient-to-b from-cyan-500/5 to-transparent hover:border-cyan-400/40 transition-all duration-500 overflow-hidden"
                     variants={fadeInUp}
@@ -72,7 +72,7 @@ export function Features() {
                             <div className="absolute inset-0 bg-cyan-500/10 blur-[80px] rounded-full group-hover:bg-cyan-500/20 transition-colors duration-700" />
                             <img
                                 src="/nft-receipt.png"
-                                alt="Holographic NFT Receipt"
+                                alt="Compressed NFT Receipt"
                                 className="w-full max-w-[280px] h-auto drop-shadow-2xl animate-float relative z-10"
                             />
                         </div>
@@ -80,16 +80,16 @@ export function Features() {
                             <div className="icon-wrapper group-hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]">
                                 <Receipt className="w-6 h-6 text-cyan-400" />
                             </div>
-                            <h3 className="text-2xl font-bold font-heading">Immutable Audit Trail</h3>
+                            <h3 className="text-2xl font-bold font-heading">Automated NFT Receipts</h3>
                             <p className="text-muted-foreground leading-relaxed">
-                                Every payment mints a compressed NFT receipt on-chain.
-                                Permanent, verifiable proof that satisfies auditors and regulators alike.
+                                Every payment automatically mints a compressed NFT receipt. 95% cheaper than standard NFTs.
+                                Permanent, verifiable proof for auditors and regulators.
                             </p>
                         </div>
                     </div>
                 </motion.div>
 
-                {/* 3. Multi-Currency */}
+                {/* 3. Multi-Currency Support */}
                 <motion.div
                     className="md:col-span-2 lg:col-span-2 row-span-1 feature-card group hover:border-pink-500/40 transition-all duration-500"
                     variants={fadeInUp}
@@ -102,15 +102,15 @@ export function Features() {
                             <CreditCard className="w-6 h-6 text-pink-400" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold font-heading mb-2">Stablecoin Native</h3>
+                            <h3 className="text-xl font-bold font-heading mb-2">Multi-Currency Support</h3>
                             <p className="text-muted-foreground text-sm leading-relaxed">
-                                Accept USDC, USDT, EURC, PYUSD, or native SOL. Real-time settlement in the currency your business needs.
+                                Accept payments in USDC, USDT, EURC, PYUSD, or native SOL. Instant settlement in the currency your business needs.
                             </p>
                         </div>
                     </div>
                 </motion.div>
 
-                {/* 4. Glass Citadel Security */}
+                {/* 4. Enterprise Privacy (Optional) */}
                 <motion.div
                     className="md:col-span-2 lg:col-span-2 row-span-1 feature-card group bg-gradient-to-br from-emerald-500/5 to-transparent hover:border-emerald-400/40 transition-all duration-500"
                     variants={fadeInUp}
@@ -124,12 +124,12 @@ export function Features() {
                         </div>
                         <div>
                             <h3 className="text-xl font-bold font-heading mb-2 flex items-center gap-2">
-                                Strict Mode Privacy
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">AUDITED</span>
+                                Optional Encryption
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">VERIFIED</span>
                             </h3>
                             <p className="text-muted-foreground text-sm leading-relaxed">
-                                Sponsored Smart Wallets ensure strict on-chain existence.
-                                Invoice data is encrypted with Arcium. Non-custodial auth via SIWS and Passkeys.
+                                Optionally encrypt sensitive invoice data with Arcium for confidential transactions.
+                                Non-custodial authentication via passkeys for maximum security.
                             </p>
                         </div>
                     </div>
