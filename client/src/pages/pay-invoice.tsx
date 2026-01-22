@@ -192,23 +192,31 @@ export default function PayInvoice() {
                     const decimals = invoice.tokenDecimals;
                     const toAtomic = (val: number) => Math.floor(val * Math.pow(10, decimals));
                     const mintPubkey = new PublicKey(invoice.tokenMint);
+
+                    // DYNAMIC PROGRAM ID DETECTION (Supports Token & Token-2022)
+                    const mintInfo = await connection.getAccountInfo(mintPubkey);
+                    if (!mintInfo) {
+                        throw new Error("Token mint account not found on chain.");
+                    }
+                    const tokenProgramId = mintInfo.owner; // Use the actual program ID that owns the mint
+
                     const smartWalletAddress = new PublicKey(await lazorkitWallet.getAddress());
-                    const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey);
-                    const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, new PublicKey(TREASURY_WALLET_ADDRESS));
-                    const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, smartWalletAddress);
+                    const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey, false, tokenProgramId);
+                    const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, new PublicKey(TREASURY_WALLET_ADDRESS), false, tokenProgramId);
+                    const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, smartWalletAddress, false, tokenProgramId);
 
                     // Assume ATAs exist or are created (Smart Wallet should handle ATA creation via bundled tx if needed)
                     // Simple transfer for now
-                    const { createTransferInstruction, TOKEN_PROGRAM_ID } = await import('@solana/spl-token');
+                    const { createTransferInstruction } = await import('@solana/spl-token');
 
                     transaction.add(
                         createTransferInstruction(
-                            senderTokenAccount, recipientTokenAccount, smartWalletAddress, toAtomic(recipientAmount), [], TOKEN_PROGRAM_ID
+                            senderTokenAccount, recipientTokenAccount, smartWalletAddress, toAtomic(recipientAmount), [], tokenProgramId
                         )
                     );
                     transaction.add(
                         createTransferInstruction(
-                            senderTokenAccount, treasuryTokenAccount, smartWalletAddress, toAtomic(platformFeeAmount), [], TOKEN_PROGRAM_ID
+                            senderTokenAccount, treasuryTokenAccount, smartWalletAddress, toAtomic(platformFeeAmount), [], tokenProgramId
                         )
                     );
                 }
@@ -301,12 +309,21 @@ export default function PayInvoice() {
                     throw new Error("Invoice token mint is missing. Please contact support.");
                 }
                 const mintPubkey = new PublicKey(invoice.tokenMint);
-                const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, publicKey);
-                const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey);
-                const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, TREASURY_ADDRESS);
+
+                // DYNAMIC PROGRAM ID DETECTION (Supports Token & Token-2022)
+                const mintInfo = await connection.getAccountInfo(mintPubkey);
+                if (!mintInfo) {
+                    throw new Error("Token mint account not found on chain.");
+                }
+                const tokenProgramId = mintInfo.owner; // Use the actual program ID that owns the mint
+
+                // Calculate ATAs using the correct Program ID
+                const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, publicKey, false, tokenProgramId);
+                const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey, false, tokenProgramId);
+                const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, TREASURY_ADDRESS, false, tokenProgramId);
 
                 // Import instructions
-                const { createAssociatedTokenAccountInstruction, createTransferInstruction, TOKEN_PROGRAM_ID } = await import('@solana/spl-token');
+                const { createAssociatedTokenAccountInstruction, createTransferInstruction } = await import('@solana/spl-token');
 
                 // Check/Create Recipient ATA
                 const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
@@ -317,7 +334,7 @@ export default function PayInvoice() {
                             recipientTokenAccount,
                             recipientPubkey,
                             mintPubkey,
-                            TOKEN_PROGRAM_ID
+                            tokenProgramId
                         )
                     );
                 }
@@ -331,7 +348,7 @@ export default function PayInvoice() {
                             treasuryTokenAccount,
                             TREASURY_ADDRESS,
                             mintPubkey,
-                            TOKEN_PROGRAM_ID
+                            tokenProgramId
                         )
                     );
                 }
@@ -340,7 +357,7 @@ export default function PayInvoice() {
                 if (recipientLamports > 0) {
                     transaction.add(
                         createTransferInstruction(
-                            senderTokenAccount, recipientTokenAccount, publicKey, recipientLamports, [], TOKEN_PROGRAM_ID
+                            senderTokenAccount, recipientTokenAccount, publicKey, recipientLamports, [], tokenProgramId
                         )
                     );
                 }
@@ -349,7 +366,7 @@ export default function PayInvoice() {
                 if (platformFeeLamports > 0) {
                     transaction.add(
                         createTransferInstruction(
-                            senderTokenAccount, treasuryTokenAccount, publicKey, platformFeeLamports, [], TOKEN_PROGRAM_ID
+                            senderTokenAccount, treasuryTokenAccount, publicKey, platformFeeLamports, [], tokenProgramId
                         )
                     );
                 }
@@ -358,7 +375,7 @@ export default function PayInvoice() {
                 if (gasFeeLamports > 0) {
                     transaction.add(
                         createTransferInstruction(
-                            senderTokenAccount, treasuryTokenAccount, publicKey, gasFeeLamports, [], TOKEN_PROGRAM_ID
+                            senderTokenAccount, treasuryTokenAccount, publicKey, gasFeeLamports, [], tokenProgramId
                         )
                     );
                 }
