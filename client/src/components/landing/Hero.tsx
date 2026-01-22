@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ShieldCheck, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { BackgroundPaths } from "@/components/ui/background-paths";
+import { ShinyButton } from "@/components/ui/shiny-button";
 
 export function Hero() {
     return (
@@ -52,7 +53,7 @@ export function Hero() {
                             Every payment automatically creates a permanent NFT receipt for auditing.
                         </motion.p>
 
-                        {/* CTAs */}
+                        {/* CTAs with ShinyButton */}
                         <motion.div
                             className="flex flex-col sm:flex-row gap-5 justify-center items-center"
                             initial={{ opacity: 0, y: 30 }}
@@ -60,21 +61,16 @@ export function Hero() {
                             transition={{ duration: 0.6, delay: 0.3 }}
                         >
                             <Link href="/invoices/create">
-                                <button className="btn-primary smoke-shadow h-14 px-10 text-lg flex items-center justify-center group relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(139,92,246,0.5)]" id="hero-create-invoice">
-                                    <div className="absolute inset-0 animate-shimmer opacity-30"></div>
-                                    <span className="relative flex items-center font-bold tracking-wide">
-                                        Get Started Free
-                                        <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                    </span>
-                                </button>
+                                <ShinyButton variant="primary" className="text-lg px-10">
+                                    Get Started Free
+                                    <ArrowRight className="w-5 h-5" />
+                                </ShinyButton>
                             </Link>
 
                             <Link href="/docs">
-                                <button
-                                    className="btn-secondary h-14 px-10 text-lg flex items-center justify-center hover:bg-white/10 border border-white/10 backdrop-blur-md"
-                                >
+                                <ShinyButton variant="secondary" className="text-lg px-10">
                                     View Documentation
-                                </button>
+                                </ShinyButton>
                             </Link>
                         </motion.div>
 

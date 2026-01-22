@@ -33,13 +33,26 @@ export function Navbar() {
 
     return (
         <>
-            {/* Devnet Banner */}
-            <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-yellow-500/90 via-orange-500/90 to-yellow-500/90 text-black py-2 px-4 text-center text-sm font-bold backdrop-blur-sm">
-                <span className="inline-flex items-center gap-2">
-                    <span className="animate-pulse">⚠️</span>
-                    DEVNET ONLY — This is a testnet deployment. Do not use real funds.
-                    <span className="animate-pulse">⚠️</span>
-                </span>
+            {/* Devnet Glass Island Banner */}
+            <div className="fixed top-0 left-0 right-0 z-[60] flex justify-center px-6 py-3">
+                <motion.div
+                    initial={{ y: -100, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="
+                        max-w-4xl w-full px-6 py-2.5 rounded-full
+                        bg-gradient-to-r from-yellow-500/90 via-orange-500/90 to-yellow-500/90
+                        backdrop-blur-xl border border-yellow-400/30
+                        shadow-[0_4px_16px_rgba(251,191,36,0.3)]
+                        text-center text-sm font-bold text-black
+                    "
+                >
+                    <span className="inline-flex items-center gap-2">
+                        <span className="animate-pulse">⚠️</span>
+                        DEVNET ONLY — This is a testnet deployment. Do not use real funds.
+                        <span className="animate-pulse">⚠️</span>
+                    </span>
+                </motion.div>
             </div>
 
             {/* Midnight Purple Glass Island Navbar */}
