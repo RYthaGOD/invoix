@@ -317,10 +317,20 @@ export default function PayInvoice() {
                 }
                 const tokenProgramId = mintInfo.owner; // Use the actual program ID that owns the mint
 
+                console.log("[DEBUG] Payment Flow Debug:");
+                console.log("[DEBUG] Mint:", mintPubkey.toBase58());
+                console.log("[DEBUG] Mint Owner (Program ID):", tokenProgramId.toBase58());
+                console.log("[DEBUG] Token Token-2022 ID: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+                console.log("[DEBUG] Standard Token ID: TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+
                 // Calculate ATAs using the correct Program ID
                 const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, publicKey, false, tokenProgramId);
                 const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey, false, tokenProgramId);
                 const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, TREASURY_ADDRESS, false, tokenProgramId);
+
+                console.log("[DEBUG] Sender ATA:", senderTokenAccount.toBase58());
+                console.log("[DEBUG] Recipient ATA:", recipientTokenAccount.toBase58());
+                console.log("[DEBUG] Treasury ATA:", treasuryTokenAccount.toBase58());
 
                 // Import instructions
                 const { createAssociatedTokenAccountInstruction, createTransferInstruction } = await import('@solana/spl-token');

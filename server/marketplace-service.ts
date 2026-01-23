@@ -239,14 +239,21 @@ export class MarketplaceService {
                 this.program.programId
             );
 
-            // Token Accounts
-            const buyerAta = await this.getAta(buyer, new PublicKey(currencyMint));
-            const sellerAta = await this.getAta(seller, new PublicKey(currencyMint));
+            // Look up the correct token program for this currency
+            const { getStablecoinByMint } = await import("@shared/stablecoin-config");
+            const stablecoinConfig = getStablecoinByMint(currencyMint);
+            const tokenProgramPubkey = stablecoinConfig
+                ? new PublicKey(stablecoinConfig.tokenProgramId)
+                : new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"); // Fallback
+
+            // Token Accounts (with Token-2022 support)
+            const buyerAta = await this.getAta(buyer, new PublicKey(currencyMint), tokenProgramPubkey);
+            const sellerAta = await this.getAta(seller, new PublicKey(currencyMint), tokenProgramPubkey);
             const treasuryWallet = process.env.TREASURY_WALLET || process.env.PLATFORM_TREASURY_WALLET;
             if (!treasuryWallet) {
                 throw new Error("Treasury wallet not configured (TREASURY_WALLET or PLATFORM_TREASURY_WALLET)");
             }
-            const treasuryAta = await this.getAta(new PublicKey(treasuryWallet), new PublicKey(currencyMint));
+            const treasuryAta = await this.getAta(new PublicKey(treasuryWallet), new PublicKey(currencyMint), tokenProgramPubkey);
 
             const treeAuthority = await this.getTreeAuthority(new PublicKey(tree_id));
 
@@ -276,7 +283,7 @@ export class MarketplaceService {
                     currencyMint: new PublicKey(currencyMint),
                     treeAuthority: treeAuthority,
                     merkleTree: new PublicKey(tree_id),
-                    tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+                    tokenProgram: tokenProgramPubkey, // Dynamic based on currency
                     logWrapper: new PublicKey("noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV"),
                     compressionProgram: new PublicKey("cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK"),
                     bubblegumProgram: new PublicKey("BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY"),
@@ -389,9 +396,13 @@ export class MarketplaceService {
         return treeAuthority;
     }
 
-    // Helper: Get ATA (simplified)
-    private async getAta(owner: PublicKey, mint: PublicKey): Promise<PublicKey> {
+    // Helper: Get ATA (with Token-2022 support)
+    private async getAta(owner: PublicKey, mint: PublicKey, tokenProgramId?: PublicKey): Promise<PublicKey> {
         const { getAssociatedTokenAddress } = await import("@solana/spl-token");
+        // If tokenProgramId is provided, use it; otherwise default to standard token program
+        if (tokenProgramId) {
+            return getAssociatedTokenAddress(mint, owner, false, tokenProgramId);
+        }
         return getAssociatedTokenAddress(mint, owner);
     }
 }

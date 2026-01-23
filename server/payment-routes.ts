@@ -235,8 +235,10 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             }
             decimals = feeConfig.decimals;
 
-            const treasuryAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), treasuryPubkey);
-            const sellerAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), sellerPubkey);
+            // Use the correct token program ID for ATA derivation
+            const tokenProgramPubkey = new PublicKey(feeConfig.tokenProgramId);
+            const treasuryAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), treasuryPubkey, false, tokenProgramPubkey);
+            const sellerAta = await getAssociatedTokenAddress(new PublicKey(feeConfig.mint), sellerPubkey, false, tokenProgramPubkey);
 
             const totalAmount = new Decimal(invoice.remainingAmount);
             // Fee logic: 1% + Gas (0.15 USDC)
@@ -255,7 +257,9 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
             let treasuryPaidAmount = BigInt(0);
             let sellerPaidAmount = BigInt(0);
 
+            // Support both Standard Token Program and Token-2022 Program
             const TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+            const TOKEN_2022_PROGRAM_ID = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 
             // Normalize instructions for iteration
             const instructions = isVersioned
@@ -270,7 +274,9 @@ router.post("/payments/relay", strictRateLimit, async (req, res) => {
                 : (transaction as Transaction).instructions;
 
             for (const ix of instructions) {
-                if (ix.programId.toString() === TOKEN_PROGRAM_ID) {
+                const programIdStr = ix.programId.toString();
+                // Check for BOTH Token Programs
+                if (programIdStr === TOKEN_PROGRAM_ID || programIdStr === TOKEN_2022_PROGRAM_ID) {
                     // Check Transfer (3) or TransferChecked (12)
                     if (ix.data.length >= 9) {
                         const type = ix.data[0];

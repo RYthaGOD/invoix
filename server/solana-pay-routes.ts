@@ -128,9 +128,14 @@ export function registerSolanaPayRoutes(app: Express) {
                 if (!invoice.tokenMint) throw new Error("Token Mint missing");
                 const mintPubkey = new PublicKey(invoice.tokenMint);
 
-                const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, userPubkey);
-                const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey);
-                const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, treasuryPubkey);
+                // Get the token program ID for this currency
+                const stablecoinConfig = getStablecoinConfig(invoice.currency);
+                if (!stablecoinConfig) throw new Error("Unsupported currency");
+                const tokenProgramPubkey = new PublicKey(stablecoinConfig.tokenProgramId);
+
+                const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, userPubkey, false, tokenProgramPubkey);
+                const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey, false, tokenProgramPubkey);
+                const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, treasuryPubkey, false, tokenProgramPubkey);
 
                 // Check if ATAs exist - USER pays for creation if needed
                 const recipientInfo = await connection.getAccountInfo(recipientTokenAccount);
@@ -140,7 +145,8 @@ export function registerSolanaPayRoutes(app: Express) {
                         userPubkey, // USER Pays Rent
                         recipientTokenAccount,
                         recipientPubkey,
-                        mintPubkey
+                        mintPubkey,
+                        tokenProgramPubkey
                     ));
                 }
 
@@ -151,7 +157,8 @@ export function registerSolanaPayRoutes(app: Express) {
                         userPubkey, // USER Pays Rent
                         treasuryTokenAccount,
                         treasuryPubkey,
-                        mintPubkey
+                        mintPubkey,
+                        tokenProgramPubkey
                     ));
                 }
 
@@ -161,7 +168,9 @@ export function registerSolanaPayRoutes(app: Express) {
                         senderTokenAccount,
                         recipientTokenAccount,
                         userPubkey,
-                        recipientLamports
+                        recipientLamports,
+                        [],
+                        tokenProgramPubkey
                     ));
                 }
                 if (feeLamports > 0) {
@@ -169,7 +178,9 @@ export function registerSolanaPayRoutes(app: Express) {
                         senderTokenAccount,
                         treasuryTokenAccount,
                         userPubkey,
-                        feeLamports
+                        feeLamports,
+                        [],
+                        tokenProgramPubkey
                     ));
                 }
             }

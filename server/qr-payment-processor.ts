@@ -262,8 +262,15 @@ async function distributePayment(
             const decimals = invoice.tokenDecimals;
             const atomicAmount = Math.floor(invoicerAmount * Math.pow(10, decimals));
 
-            const treasuryAta = await getAssociatedTokenAddress(mintPubkey, payerKeypair.publicKey);
-            const invoicerAta = await getAssociatedTokenAddress(mintPubkey, invoicerPubkey);
+            // Get the correct token program ID for this currency
+            const { getStablecoinConfig } = await import("@shared/stablecoin-config");
+            const stablecoinConfig = getStablecoinConfig(invoice.currency);
+            const tokenProgramPubkey = stablecoinConfig
+                ? new PublicKey(stablecoinConfig.tokenProgramId)
+                : TOKEN_PROGRAM_ID; // Fallback for unknown currencies
+
+            const treasuryAta = await getAssociatedTokenAddress(mintPubkey, payerKeypair.publicKey, false, tokenProgramPubkey);
+            const invoicerAta = await getAssociatedTokenAddress(mintPubkey, invoicerPubkey, false, tokenProgramPubkey);
 
             transaction.add(
                 createTransferInstruction(
@@ -272,7 +279,7 @@ async function distributePayment(
                     payerKeypair.publicKey,
                     atomicAmount,
                     [],
-                    TOKEN_PROGRAM_ID
+                    tokenProgramPubkey
                 )
             );
         }

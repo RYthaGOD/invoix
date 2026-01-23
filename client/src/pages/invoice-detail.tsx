@@ -418,23 +418,24 @@ export default function InvoiceDetail() {
 
         const mintPubkey = new PublicKey(invoice.tokenMint);
 
-        const senderTokenAccount = await getAssociatedTokenAddress(
-          mintPubkey,
-          wallet.publicKey
-        );
+        // DYNAMIC PROGRAM ID DETECTION (Supports Token & Token-2022)
+        const mintInfo = await connection.getAccountInfo(mintPubkey);
+        if (!mintInfo) {
+          throw new Error("Token mint account not found on chain.");
+        }
+        const tokenProgramId = mintInfo.owner; // Use the actual program ID that owns the mint
 
-        const recipientTokenAccount = await getAssociatedTokenAddress(
-          mintPubkey,
-          recipientPubkey
-        );
+        console.log("[DEBUG] Dashboard Payment Flow:");
+        console.log("[DEBUG] Mint:", mintPubkey.toBase58());
+        console.log("[DEBUG] Mint Owner (Program ID):", tokenProgramId.toBase58());
 
-        const treasuryTokenAccount = await getAssociatedTokenAddress(
-          mintPubkey,
-          treasuryPubkey
-        );
+        // Calculate ATAs using the correct Program ID
+        const senderTokenAccount = await getAssociatedTokenAddress(mintPubkey, wallet.publicKey, false, tokenProgramId);
+        const recipientTokenAccount = await getAssociatedTokenAddress(mintPubkey, recipientPubkey, false, tokenProgramId);
+        const treasuryTokenAccount = await getAssociatedTokenAddress(mintPubkey, treasuryPubkey, false, tokenProgramId);
 
         // Import createAssociatedTokenAccountInstruction dynamically
-        const { createAssociatedTokenAccountInstruction } = await import('@solana/spl-token');
+        const { createAssociatedTokenAccountInstruction, createTransferInstruction } = await import('@solana/spl-token');
 
         // 1. Check/Create Recipient ATA
         const recipientAccountInfo = await connection.getAccountInfo(recipientTokenAccount);
@@ -444,7 +445,8 @@ export default function InvoiceDetail() {
               wallet.publicKey,
               recipientTokenAccount,
               recipientPubkey,
-              mintPubkey
+              mintPubkey,
+              tokenProgramId
             )
           );
         }
@@ -457,7 +459,8 @@ export default function InvoiceDetail() {
               wallet.publicKey,
               treasuryTokenAccount,
               treasuryPubkey,
-              mintPubkey
+              mintPubkey,
+              tokenProgramId
             )
           );
         }
@@ -471,7 +474,7 @@ export default function InvoiceDetail() {
               wallet.publicKey,
               recipientLamports,
               [],
-              TOKEN_PROGRAM_ID
+              tokenProgramId
             )
           );
         }
@@ -485,7 +488,7 @@ export default function InvoiceDetail() {
               wallet.publicKey,
               feeLamports,
               [],
-              TOKEN_PROGRAM_ID
+              tokenProgramId
             )
           );
         }

@@ -3,7 +3,9 @@
  * Supported stablecoins for B2B invoicing
  */
 
-
+// Token Program IDs
+export const TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+export const TOKEN_2022_PROGRAM_ID = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 
 export interface StablecoinConfig {
     symbol: string;
@@ -12,6 +14,7 @@ export interface StablecoinConfig {
     decimals: number;
     icon: string;
     network: 'mainnet-beta' | 'devnet';
+    tokenProgramId: string; // Which token program owns this mint
 }
 
 // Mainnet Stablecoin Mints
@@ -23,6 +26,7 @@ export const STABLECOINS: Record<string, StablecoinConfig> = {
         decimals: 9,
         icon: '◎',
         network: 'mainnet-beta',
+        tokenProgramId: TOKEN_PROGRAM_ID, // Native SOL uses standard token program
     },
     USDC: {
         symbol: 'USDC',
@@ -31,6 +35,7 @@ export const STABLECOINS: Record<string, StablecoinConfig> = {
         decimals: 6,
         icon: '💵',
         network: 'mainnet-beta',
+        tokenProgramId: TOKEN_PROGRAM_ID,
     },
     USDT: {
         symbol: 'USDT',
@@ -39,6 +44,7 @@ export const STABLECOINS: Record<string, StablecoinConfig> = {
         decimals: 6,
         icon: '💲',
         network: 'mainnet-beta',
+        tokenProgramId: TOKEN_PROGRAM_ID,
     },
     PYUSD: {
         symbol: 'PYUSD',
@@ -47,6 +53,7 @@ export const STABLECOINS: Record<string, StablecoinConfig> = {
         decimals: 6,
         icon: '🅿️',
         network: 'mainnet-beta',
+        tokenProgramId: TOKEN_2022_PROGRAM_ID, // PYUSD is Token-2022
     },
     EURC: {
         symbol: 'EURC',
@@ -55,6 +62,7 @@ export const STABLECOINS: Record<string, StablecoinConfig> = {
         decimals: 6,
         icon: '💶',
         network: 'mainnet-beta',
+        tokenProgramId: TOKEN_PROGRAM_ID,
     },
 };
 
@@ -68,14 +76,16 @@ export const DEVNET_STABLECOINS: Record<string, StablecoinConfig> = {
         decimals: 9,
         icon: '◎',
         network: 'devnet',
+        tokenProgramId: TOKEN_PROGRAM_ID,
     },
     USDC: {
         symbol: 'USDC',
         name: 'USD Coin (Devnet)',
-        mint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', // Devnet USDC
+        mint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', // Devnet USDC - This is a Token-2022 token!
         decimals: 6,
         icon: '💵',
         network: 'devnet',
+        tokenProgramId: TOKEN_2022_PROGRAM_ID, // Devnet USDC is Token-2022
     },
 };
 

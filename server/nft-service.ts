@@ -1210,10 +1210,11 @@ export class InvoiceNFTService {
 
       const mint = new PublicKey(feeConfig.mint);
       const decimals = feeConfig.decimals;
+      const tokenProgramPubkey = new PublicKey(feeConfig.tokenProgramId);
 
-      const buyerAta = await getAssociatedTokenAddress(mint, new PublicKey(buyerPublicKey));
-      const sellerAta = await getAssociatedTokenAddress(mint, new PublicKey(sellerPublicKey));
-      const treasuryAta = await getAssociatedTokenAddress(mint, treasury);
+      const buyerAta = await getAssociatedTokenAddress(mint, new PublicKey(buyerPublicKey), false, tokenProgramPubkey);
+      const sellerAta = await getAssociatedTokenAddress(mint, new PublicKey(sellerPublicKey), false, tokenProgramPubkey);
+      const treasuryAta = await getAssociatedTokenAddress(mint, treasury, false, tokenProgramPubkey);
 
       const amountTotal = BigInt(Math.floor(parseFloat(listing.askingPrice) * Math.pow(10, decimals)));
 
@@ -1229,7 +1230,9 @@ export class InvoiceNFTService {
         buyerAta,
         treasuryAta,
         new PublicKey(buyerPublicKey),
-        feeAmount
+        feeAmount,
+        [],
+        tokenProgramPubkey
       );
 
       // Instruction 2: Buyer -> Seller (Net)
@@ -1237,7 +1240,9 @@ export class InvoiceNFTService {
         buyerAta,
         sellerAta,
         new PublicKey(buyerPublicKey),
-        sellerAmount
+        sellerAmount,
+        [],
+        tokenProgramPubkey
       );
 
       const umiFeeIx = fromWeb3JsInstruction(feeTransferIx);
