@@ -27,6 +27,8 @@ import { registerMarketplaceRoutes } from "./marketplace-routes";
 import { registerSubscriptionRoutes } from "./subscription-routes";
 import webhookRouter from "./webhook-routes";
 import { startWebhookCron } from "./webhook-service";
+import arciumRouter from "./arcium-routes";
+import { actionsRouter } from "./actions-routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check
@@ -124,6 +126,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerSolanaPayRoutes(app);
 
   // ================================================
+  // SOLANA ACTIONS DISCOVERY (actions.json)
+  // ================================================
+  app.use(actionsRouter);
+
+  // ================================================
   // WAITLIST / DEVELOPER ROUTES
   // ================================================
   registerWaitlistRoutes(app);
@@ -148,6 +155,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================================================
   app.use("/api/webhooks", webhookRouter);
   startWebhookCron();
+
+  // ================================================
+  // ARCIUM MXE ROUTES (Confidential Computing)
+  // ================================================
+  app.use("/api/arcium", arciumRouter);
 
   // ================================================
   // TAX DATA EXPORT ROUTES (Annual Reporting)

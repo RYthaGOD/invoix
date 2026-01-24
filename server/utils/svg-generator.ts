@@ -218,7 +218,7 @@ export function generateInvoiceSvg(invoice: Invoice, business?: BusinessProfile,
 /**
  * 8K Private Invoice Placeholder (3D Lock)
  */
-export function generatePrivateInvoiceSvg(invoiceId: string): string {
+export function generatePrivateInvoiceSvg(): string {
   const width = 1200;
   const height = 1200;
 

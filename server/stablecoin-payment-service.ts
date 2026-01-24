@@ -430,10 +430,13 @@ export async function hasTokenAccount(
 
         const walletPubkey = new PublicKey(walletAddress);
         const mintPubkey = new PublicKey(stablecoinConfig.mint);
+        const tokenProgramPubkey = new PublicKey(stablecoinConfig.tokenProgramId);
 
         const tokenAccountAddress = await getAssociatedTokenAddress(
             mintPubkey,
-            walletPubkey
+            walletPubkey,
+            false,
+            tokenProgramPubkey
         );
 
         const accountInfo = await connection.getAccountInfo(tokenAccountAddress);
@@ -458,10 +461,13 @@ export async function getTokenBalance(
 
         const walletPubkey = new PublicKey(walletAddress);
         const mintPubkey = new PublicKey(stablecoinConfig.mint);
+        const tokenProgramPubkey = new PublicKey(stablecoinConfig.tokenProgramId);
 
         const tokenAccountAddress = await getAssociatedTokenAddress(
             mintPubkey,
-            walletPubkey
+            walletPubkey,
+            false,
+            tokenProgramPubkey
         );
 
         const tokenAccount = await getAccount(connection, tokenAccountAddress);

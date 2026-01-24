@@ -97,6 +97,7 @@ export const invoices = pgTable("invoices", {
 
   // Arcium On-Chain Account (for marketplace)
   arciumInvoicePda: text("arcium_invoice_pda"), // On-chain Arcium InvoiceAccount address
+  arciumTxSignature: text("arcium_tx_signature"), // Transaction signature for on-chain invoice creation
 }, (table) => {
   return {
     invoicerWalletIdx: index("invoicer_wallet_idx").on(table.invoicerWalletAddress),

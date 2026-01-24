@@ -23,7 +23,7 @@ export function registerSolanaPayRoutes(app: Express) {
 
     /**
      * GET /api/solana-pay/:id
-     * Wallet fetches this to display Label/Icon before payment
+     * Returns the "Action Card" metadata for Solflare/Blinks
      */
     app.get("/api/solana-pay/:id", async (req, res) => {
         try {
@@ -38,10 +38,20 @@ export function registerSolanaPayRoutes(app: Express) {
                 return res.status(400).json({ error: "Invoice already paid" });
             }
 
-            // Return Solana Pay compliant response
+            // --- SOLANA ACTIONS (BLINK) METADATA ---
             res.status(200).json({
-                label: `Invoix Payment`,
-                icon: `${BASE_URL}/logo.png`,
+                icon: `${BASE_URL}/logo.png`, // Must be absolute URL
+                title: `Invoice #${invoice.invoiceNumber}`,
+                description: `Pay ${invoice.remainingAmount} ${invoice.currency} to ${invoice.invoicerWalletAddress.slice(0, 4)}...${invoice.invoicerWalletAddress.slice(-4)}. Due: ${new Date(invoice.dueDate).toLocaleDateString()}`,
+                label: `Pay ${invoice.remainingAmount} ${invoice.currency}`,
+                links: {
+                    actions: [
+                        {
+                            label: `Pay ${invoice.remainingAmount} ${invoice.currency}`, // Button Text
+                            href: `${BASE_URL}/api/solana-pay/${id}`, // POST endpoint
+                        }
+                    ]
+                }
             });
 
         } catch (error: any) {

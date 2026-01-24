@@ -27,7 +27,7 @@ export function registerDynamicImageRoutes(app: Express) {
 
             // VISUAL PRIVACY CHECK
             if (invoice.isPrivate) {
-                const svg = generatePrivateInvoiceSvg(invoice.id);
+                const svg = generatePrivateInvoiceSvg();
                 res.setHeader("Content-Type", "image/svg+xml");
                 res.setHeader("Cache-Control", "public, max-age=604800");
                 return res.send(svg);

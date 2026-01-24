@@ -210,22 +210,34 @@ export function corsPolicy() {
       // Add Railway deployment domains (pattern matching)
       const railwayAppPattern = /^https:\/\/[a-z0-9-]+\.up\.railway\.app$/i;
 
+      // SOLANA ACTIONS / BLINKS DISCOVERY CORS
+      // We must allow public access to the actions discovery and endpoints
+      const isActionsRoute = req.path.startsWith('/api/solana-pay') || req.path === '/actions.json';
+
       let corsAllowed = false;
 
-      if (origin) {
+      if (isActionsRoute) {
+        corsAllowed = true;
+        // For Actions, we must allow all origins (or the specific blink client, but * is standard for discovery)
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      } else if (origin) {
         // Exact match against allowed origins
         if (allowedOrigins.includes(origin)) {
           corsAllowed = true;
+          res.setHeader("Access-Control-Allow-Origin", origin);
         }
         // Pattern match for Replit or Railway domains
         else if (replitAppPattern.test(origin) || railwayAppPattern.test(origin)) {
           corsAllowed = true;
+          res.setHeader("Access-Control-Allow-Origin", origin);
         }
       }
 
-      if (corsAllowed && origin) {
-        res.setHeader("Access-Control-Allow-Origin", origin);
-        res.setHeader("Access-Control-Allow-Credentials", "true");
+      if (corsAllowed) {
+        // Only set credentials if not wildcard (wildcard + creds is invalid)
+        if (res.getHeader("Access-Control-Allow-Origin") !== "*") {
+          res.setHeader("Access-Control-Allow-Credentials", "true");
+        }
       } else {
         // Log blocked origin for debugging mobile wallet issues
         if (origin && !corsAllowed) {

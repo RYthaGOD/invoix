@@ -30,7 +30,7 @@ export function OnboardingFlow() {
 
                     {/* Visual Side Panel */}
                     <div className="hidden md:flex md:col-span-2 bg-gradient-to-br from-purple-900/50 to-black p-8 flex-col justify-between border-r border-white/5 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
+                        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-20" />
 
                         <div className="relative z-10">
                             <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-6 backdrop-blur-md border border-white/20">
