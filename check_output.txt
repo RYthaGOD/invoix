@@ -1,0 +1,8 @@
+
+> check
+> tsc
+
+server/arcium-routes.ts(89,35): error TS2304: Cannot find name 'requireAuth'.
+server/arcium-routes.ts(153,25): error TS2304: Cannot find name 'requireAuth'.
+server/arcium-routes.ts(202,25): error TS2304: Cannot find name 'requireAuth'.
+server/arcium-routes.ts(284,28): error TS2304: Cannot find name 'requireAuth'.

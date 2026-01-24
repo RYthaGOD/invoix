@@ -1,0 +1,170 @@
+
+> test
+> vitest run tests/marketplace-integration.test.ts
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/craig/OneDrive/Desktop/B2B solana[39m
+
+[90mstdout[2m | server\db.ts:56:13[22m[39m
+Γ£à Using PostgreSQL database (pg driver)
+
+[90mstdout[2m | server\db.ts:66:13[22m[39m
+≡ƒöî DB Config: Internal=false, SSL=true
+
+stderr | Module.validateEnvironment (C:\Users\craig\OneDrive\Desktop\B2B solana\server\env-validator.ts:175:13)
+
+ΓÜá∩╕Å  Environment Warnings:
+
+stderr | server\env-validator.ts:176:39
+ΓÜá∩╕Å  Optional environment variable not set: FRONTEND_URL
+   Description: URL of the frontend (e.g. https://your-app.up.railway.app) for CORS policy
+ΓÜá∩╕Å  Optional environment variable not set: BUNDLR_PRIVATE_KEY
+   Description: Private key for Bundlr (Arweave) metadata storage
+ΓÜá∩╕Å  Optional environment variable not set: ARWEAVE_WALLET_JWK
+   Description: Arweave wallet JWK for direct uploads
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_API_URL
+   Description: IPFS API endpoint (e.g., https://ipfs.infura.io:5001)
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_ID
+   Description: IPFS project ID for authentication
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_SECRET
+   Description: IPFS project secret for authentication
+ΓÜá∩╕Å  Using default for MARKETPLACE_PROGRAM_ID: InvxMkt111111111111111111111111111111111111
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:40:12.618Z [[32mINFO[0m] [sentry] [Sentry] No SENTRY_DSN configured - error monitoring disabled 
+2026-01-24T02:40:12.620Z [[32mINFO[0m] [express] ≡ƒöì Validating environment variables... 
+2026-01-24T02:40:12.622Z [[32mINFO[0m] [express] Γ£à Environment validation passed 
+2026-01-24T02:40:12.622Z [[32mINFO[0m] [system] Config reload trigger { timestamp: [33m1769222412622[39m }
+2026-01-24T02:40:12.623Z [[33mWARN[0m] [security] Optional security variables not configured {
+  missing: [
+    [32m'INVOICE_ENCRYPTION_KEY'[39m,
+    [32m'PLATFORM_TREASURY_WALLET'[39m,
+    [32m'SOL_PRICE_FALLBACK'[39m
+  ]
+}
+2026-01-24T02:40:12.627Z [[32mINFO[0m] [boot] Initializing Invoix Platform Components... { cluster: [32m'test'[39m }
+2026-01-24T02:40:12.627Z [[32mINFO[0m] [dns] DB Host: aws-1-ap-northeast-1.pooler.supabase.com 
+2026-01-24T02:40:12.627Z [[32mINFO[0m] [arcium] Arcium Service initialized 
+
+stderr | tests/marketplace-integration.test.ts
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:40:13.316Z [[33mWARN[0m] [special-mint] PLATFORM_TREASURY_WALLET not set. Special mints will be unavailable. 
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+<empty line>
+stderr | tests/marketplace-integration.test.ts
+PLATFORM_TREASURY_WALLET not set. Community drops will be unavailable. community-drop
+
+stderr | tests/marketplace-integration.test.ts
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:40:13.435Z [[32mINFO[0m] [email] Email Service Initialized (Mock Mode) 
+
+<empty line>
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:40:13.544Z [[32mINFO[0m] [boot] Test mode detected, skipping server.listen 
+2026-01-24T02:40:13.544Z [[32mINFO[0m] [auth] LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified. 
+2026-01-24T02:40:13.548Z [[32mINFO[0m] [solana-pay] Solana Pay Transaction Request routes enabled (Secure Mode) 
+2026-01-24T02:40:13.549Z [[32mINFO[0m] [routes] Registered credit score routes 
+2026-01-24T02:40:13.549Z [[32mINFO[0m] [routes] Registered marketplace routes 
+2026-01-24T02:40:13.550Z [[32mINFO[0m] [system] Subscription routes registered 
+2026-01-24T02:40:13.550Z [[32mINFO[0m] [webhook] Starting Webhook Delivery Cron Job... 
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:40:13.588Z [[32mINFO[0m] [gdpr] GDPR routes registered at /api/gdpr 
+2026-01-24T02:40:13.588Z [[32mINFO[0m] [boot] App routes registered 
+2026-01-24T02:40:13.588Z [[32mINFO[0m] [static] Serving static files {
+  path: [32m'C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\server\\public'[39m
+}
+2026-01-24T02:40:13.588Z [[32mINFO[0m] [boot] Connecting to Database... 
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+Γ£à Database connection established
+ΓÅ│ Running database migrations...
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+Using migrations folder: C:\Users\craig\OneDrive\Desktop\B2B solana\migrations
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:40:15.736Z [[31mERROR[0m] [boot] Startup Failure {
+  error: [32m'relation "marketplace_access_requests" already exists'[39m,
+  stack: [32m'error: relation "marketplace_access_requests" already exists\n'[39m +
+    [32m'    at C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\node_modules\\pg\\lib\\client.js:545:17\n'[39m +
+    [32m'    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n'[39m +
+    [32m'    at file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/pg-core/dialect.js:64:13\n'[39m +
+    [32m'    at NodePgSession.transaction (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/node-postgres/session.js:142:22)\n'[39m +
+    [32m'    at PgDialect.migrate (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/pg-core/dialect.js:60:5)\n'[39m +
+    [32m'    at migrate (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/node-postgres/migrator.js:4:3)\n'[39m +
+    [32m'    at runMigrations (C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\server\\db.ts:118:5)\n'[39m +
+    [32m'    at C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\server\\index.ts:369:5\n'[39m +
+    [32m'    at C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\tests\\setup-integration.ts:16:5\n'[39m +
+    [32m'    at async Promise.all (index 0)'[39m
+}
+Test Server Ready
+
+stderr | tests/marketplace-integration.test.ts
+Γ¥î Migration failed: error: relation "marketplace_access_requests" already exists
+    at C:\Users\craig\OneDrive\Desktop\B2B solana\node_modules\pg\lib\client.js:545:17
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/pg-core/dialect.js:64:13
+    at NodePgSession.transaction (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/node-postgres/session.js:142:22)
+    at PgDialect.migrate (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/pg-core/dialect.js:60:5)
+    at migrate (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/node-postgres/migrator.js:4:3)
+    at runMigrations (C:\Users\craig\OneDrive\Desktop\B2B solana\server\db.ts:118:5)
+    at C:\Users\craig\OneDrive\Desktop\B2B solana\server\index.ts:369:5
+    at C:\Users\craig\OneDrive\Desktop\B2B solana\tests\setup-integration.ts:16:5
+    at async Promise.all (index 0) {
+  length: 121,
+  severity: 'ERROR',
+  code: '42P07',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'heap.c',
+  line: '1160',
+  routine: 'heap_create_with_catalog'
+}
+
+ [33mΓ¥»[39m tests/marketplace-integration.test.ts [2m ([22m[2m5 tests[22m[2m)[22m[33m 4549[2mms[22m[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Suites 1 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  tests/marketplace-integration.test.ts > Marketplace Deep Verification (List -> Buy flow)
+error: column "arcium_tx_signature" of relation "invoices" does not exist
+ Γ¥» node_modules/pg-pool/index.js:45:11
+ Γ¥» tests/marketplace-integration.test.ts:80:9
+     78|         invoiceId = randomUUID();
+     79| 
+     80|         await db.insert(schema.invoices).values({
+       |         ^
+     81|             id: invoiceId,
+     82|             invoiceNumber: `INV-${Date.now()}`,
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+Serialized Error: { length: 141, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '841', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1065', routine: 'checkInsertTargets' }
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/1]ΓÄ»
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [90m (5)[39m
+[2m   Start at [22m 10:40:10
+[2m   Duration [22m 6.64s[2m (transform 535ms, setup 0ms, collect 1.63s, tests 4.55s, environment 0ms, prepare 295ms)[22m
+

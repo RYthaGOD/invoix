@@ -3,6 +3,7 @@ import { beforeAll, afterAll } from "vitest";
 // Use distinct port/env for tests if needed, though supertest often doesn't need a port
 process.env.NODE_ENV = "test";
 process.env.PORT = "5002"; // Avoid conflict with dev server
+process.env.SKIP_MIGRATIONS = "true"; // Skip migrations as DB is managed externally/manually
 delete process.env.DATABASE_URL; // Force SQLite usage
 
 // Mock database interactions if necessary, or use a test DB file

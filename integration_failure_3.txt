@@ -1,0 +1,348 @@
+
+> test
+> vitest run tests/marketplace-integration.test.ts
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/craig/OneDrive/Desktop/B2B solana[39m
+
+[90mstdout[2m | server\db.ts:56:13[22m[39m
+Γ£à Using PostgreSQL database (pg driver)
+
+[90mstdout[2m | server\db.ts:66:13[22m[39m
+≡ƒöî DB Config: Internal=false, SSL=true
+
+stderr | Module.validateEnvironment (C:\Users\craig\OneDrive\Desktop\B2B solana\server\env-validator.ts:175:13)
+
+ΓÜá∩╕Å  Environment Warnings:
+
+stderr | server\env-validator.ts:176:39
+ΓÜá∩╕Å  Optional environment variable not set: FRONTEND_URL
+   Description: URL of the frontend (e.g. https://your-app.up.railway.app) for CORS policy
+ΓÜá∩╕Å  Optional environment variable not set: BUNDLR_PRIVATE_KEY
+   Description: Private key for Bundlr (Arweave) metadata storage
+ΓÜá∩╕Å  Optional environment variable not set: ARWEAVE_WALLET_JWK
+   Description: Arweave wallet JWK for direct uploads
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_API_URL
+   Description: IPFS API endpoint (e.g., https://ipfs.infura.io:5001)
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_ID
+   Description: IPFS project ID for authentication
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_SECRET
+   Description: IPFS project secret for authentication
+ΓÜá∩╕Å  Using default for MARKETPLACE_PROGRAM_ID: InvxMkt111111111111111111111111111111111111
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:46:32.807Z [[32mINFO[0m] [sentry] [Sentry] No SENTRY_DSN configured - error monitoring disabled 
+2026-01-24T02:46:32.810Z [[32mINFO[0m] [express] ≡ƒöì Validating environment variables... 
+2026-01-24T02:46:32.813Z [[32mINFO[0m] [express] Γ£à Environment validation passed 
+2026-01-24T02:46:32.814Z [[32mINFO[0m] [system] Config reload trigger { timestamp: [33m1769222792814[39m }
+2026-01-24T02:46:32.814Z [[33mWARN[0m] [security] Optional security variables not configured {
+  missing: [
+    [32m'INVOICE_ENCRYPTION_KEY'[39m,
+    [32m'PLATFORM_TREASURY_WALLET'[39m,
+    [32m'SOL_PRICE_FALLBACK'[39m
+  ]
+}
+2026-01-24T02:46:32.820Z [[32mINFO[0m] [boot] Initializing Invoix Platform Components... { cluster: [32m'test'[39m }
+2026-01-24T02:46:32.820Z [[32mINFO[0m] [dns] DB Host: aws-1-ap-northeast-1.pooler.supabase.com 
+2026-01-24T02:46:32.821Z [[32mINFO[0m] [arcium] Arcium Service initialized 
+
+stderr | tests/marketplace-integration.test.ts
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:46:33.677Z [[33mWARN[0m] [special-mint] PLATFORM_TREASURY_WALLET not set. Special mints will be unavailable. 
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+<empty line>
+stderr | tests/marketplace-integration.test.ts
+PLATFORM_TREASURY_WALLET not set. Community drops will be unavailable. community-drop
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:46:33.808Z [[32mINFO[0m] [email] Email Service Initialized (Mock Mode) 
+
+stderr | tests/marketplace-integration.test.ts
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+<empty line>
+2026-01-24T02:46:33.921Z [[32mINFO[0m] [boot] Test mode detected, skipping server.listen 
+2026-01-24T02:46:33.921Z [[32mINFO[0m] [auth] LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified. 
+2026-01-24T02:46:33.925Z [[32mINFO[0m] [solana-pay] Solana Pay Transaction Request routes enabled (Secure Mode) 
+2026-01-24T02:46:33.926Z [[32mINFO[0m] [routes] Registered credit score routes 
+2026-01-24T02:46:33.926Z [[32mINFO[0m] [routes] Registered marketplace routes 
+2026-01-24T02:46:33.927Z [[32mINFO[0m] [system] Subscription routes registered 
+2026-01-24T02:46:33.927Z [[32mINFO[0m] [webhook] Starting Webhook Delivery Cron Job... 
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:46:33.972Z [[32mINFO[0m] [gdpr] GDPR routes registered at /api/gdpr 
+2026-01-24T02:46:33.972Z [[32mINFO[0m] [boot] App routes registered 
+2026-01-24T02:46:33.972Z [[32mINFO[0m] [static] Serving static files {
+  path: [32m'C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\server\\public'[39m
+}
+2026-01-24T02:46:33.972Z [[32mINFO[0m] [boot] Connecting to Database... 
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+Γ£à Database connection established
+ΓÅ│ Running database migrations...
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+Using migrations folder: C:\Users\craig\OneDrive\Desktop\B2B solana\migrations
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:46:35.989Z [[31mERROR[0m] [boot] Startup Failure {
+  error: [32m'relation "audit_logs" already exists'[39m,
+  stack: [32m'error: relation "audit_logs" already exists\n'[39m +
+    [32m'    at C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\node_modules\\pg\\lib\\client.js:545:17\n'[39m +
+    [32m'    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n'[39m +
+    [32m'    at file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/pg-core/dialect.js:64:13\n'[39m +
+    [32m'    at NodePgSession.transaction (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/node-postgres/session.js:142:22)\n'[39m +
+    [32m'    at PgDialect.migrate (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/pg-core/dialect.js:60:5)\n'[39m +
+stderr | tests/marketplace-integration.test.ts
+Γ¥î Migration failed: error: relation "audit_logs" already exists
+    at C:\Users\craig\OneDrive\Desktop\B2B solana\node_modules\pg\lib\client.js:545:17
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/pg-core/dialect.js:64:13
+    at NodePgSession.transaction (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/node-postgres/session.js:142:22)
+    at PgDialect.migrate (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/pg-core/dialect.js:60:5)
+    at migrate (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/node-postgres/migrator.js:4:3)
+    [32m'    at migrate (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/drizzle-orm/node-postgres/migrator.js:4:3)\n'[39m +
+    [32m'    at runMigrations (C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\server\\db.ts:118:5)\n'[39m +
+    [32m'    at C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\server\\index.ts:369:5\n'[39m +
+    [32m'    at C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\tests\\setup-integration.ts:16:5\n'[39m +
+    [32m'    at async Promise.all (index 0)'[39m
+}
+Test Server Ready
+
+    at runMigrations (C:\Users\craig\OneDrive\Desktop\B2B solana\server\db.ts:118:5)
+    at C:\Users\craig\OneDrive\Desktop\B2B solana\server\index.ts:369:5
+    at C:\Users\craig\OneDrive\Desktop\B2B solana\tests\setup-integration.ts:16:5
+    at async Promise.all (index 0) {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P07',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'heap.c',
+  line: '1160',
+  routine: 'heap_create_with_catalog'
+}
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[2m > [22m[2mMarketplace Deep Verification (List -> Buy flow)[22m[39m
+[Setup] Created Test Invoice: a874eb0f-0f1b-4dbd-8e26-c40390e315d8
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[2m > [22m[2mMarketplace Deep Verification (List -> Buy flow)[2m > [22m[2m1. Seller can LIST an invoice[22m[39m
+2026-01-24T02:46:36.180Z [[32mINFO[0m] [express] POST /api/marketplace/list 503 {
+  method: [32m'POST'[39m,
+  path: [32m'/api/marketplace/list'[39m,
+  status: [33m503[39m,
+  duration: [32m'4ms'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m,
+  userAgent: [90mundefined[39m,
+  response: {
+    status: [32m'starting_up'[39m,
+    message: [32m'Invoix is initializing - Please try again in a few seconds.'[39m,
+    phase: [32m'failed'[39m,
+    lastError: [32m'relation "audit_logs" already exists'[39m,
+    timestamp: [32m'2026-01-24T02:46:36.177Z'[39m
+  }
+}
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[2m > [22m[2mMarketplace Deep Verification (List -> Buy flow)[2m > [22m[2m2. Listing appears in the marketplace feed[22m[39m
+2026-01-24T02:46:36.194Z [[32mINFO[0m] [express] GET /api/marketplace/listings 503 {
+  method: [32m'GET'[39m,
+  path: [32m'/api/marketplace/listings'[39m,
+  status: [33m503[39m,
+  duration: [32m'1ms'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m,
+  userAgent: [90mundefined[39m,
+  response: {
+    status: [32m'starting_up'[39m,
+    message: [32m'Invoix is initializing - Please try again in a few seconds.'[39m,
+    phase: [32m'failed'[39m,
+    lastError: [32m'relation "audit_logs" already exists'[39m,
+    timestamp: [32m'2026-01-24T02:46:36.193Z'[39m
+  }
+}
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[2m > [22m[2mMarketplace Deep Verification (List -> Buy flow)[2m > [22m[2m3. Seller cannot buy their own listing[22m[39m
+2026-01-24T02:46:36.200Z [[32mINFO[0m] [express] POST /api/marketplace/purchase 503 {
+  method: [32m'POST'[39m,
+  path: [32m'/api/marketplace/purchase'[39m,
+  status: [33m503[39m,
+  duration: [32m'1ms'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m,
+  userAgent: [90mundefined[39m,
+  response: {
+    status: [32m'starting_up'[39m,
+    message: [32m'Invoix is initializing - Please try again in a few seconds.'[39m,
+    phase: [32m'failed'[39m,
+    lastError: [32m'relation "audit_logs" already exists'[39m,
+    timestamp: [32m'2026-01-24T02:46:36.200Z'[39m
+  }
+}
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[2m > [22m[2mMarketplace Deep Verification (List -> Buy flow)[2m > [22m[2m4. Buyer can generates purchase transaction[22m[39m
+2026-01-24T02:46:36.206Z [[32mINFO[0m] [express] POST /api/marketplace/purchase 503 {
+  method: [32m'POST'[39m,
+  path: [32m'/api/marketplace/purchase'[39m,
+  status: [33m503[39m,
+  duration: [32m'0ms'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m,
+  userAgent: [90mundefined[39m,
+  response: {
+    status: [32m'starting_up'[39m,
+    message: [32m'Invoix is initializing - Please try again in a few seconds.'[39m,
+    phase: [32m'failed'[39m,
+    lastError: [32m'relation "audit_logs" already exists'[39m,
+    timestamp: [32m'2026-01-24T02:46:36.206Z'[39m
+  }
+}
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[2m > [22m[2mMarketplace Deep Verification (List -> Buy flow)[2m > [22m[2m5. Buyer confirms purchase (Finalize Settlement)[22m[39m
+2026-01-24T02:46:36.213Z [[32mINFO[0m] [express] POST /api/marketplace/confirm-purchase 503 {
+  method: [32m'POST'[39m,
+  path: [32m'/api/marketplace/confirm-purchase'[39m,
+  status: [33m503[39m,
+  duration: [32m'1ms'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m,
+  userAgent: [90mundefined[39m,
+  response: {
+    status: [32m'starting_up'[39m,
+    message: [32m'Invoix is initializing - Please try again in a few seconds.'[39m,
+    phase: [32m'failed'[39m,
+    lastError: [32m'relation "audit_logs" already exists'[39m,
+    timestamp: [32m'2026-01-24T02:46:36.212Z'[39m
+  }
+}
+
+ [33mΓ¥»[39m tests/marketplace-integration.test.ts [2m ([22m[2m5 tests[22m [2m|[22m [31m5 failed[39m[2m)[22m[33m 3706[2mms[22m[39m
+[31m   [33mΓ¥»[31m tests/marketplace-integration.test.ts[2m > [22mMarketplace Deep Verification (List -> Buy flow)[2m > [22m1. Seller can LIST an invoice[39m
+[31m     ΓåÆ expected 503 to be 201 // Object.is equality[39m
+[31m   [33mΓ¥»[31m tests/marketplace-integration.test.ts[2m > [22mMarketplace Deep Verification (List -> Buy flow)[2m > [22m2. Listing appears in the marketplace feed[39m
+[31m     ΓåÆ expected 503 to be 200 // Object.is equality[39m
+[31m   [33mΓ¥»[31m tests/marketplace-integration.test.ts[2m > [22mMarketplace Deep Verification (List -> Buy flow)[2m > [22m3. Seller cannot buy their own listing[39m
+[31m     ΓåÆ expected 503 to be 403 // Object.is equality[39m
+[31m   [33mΓ¥»[31m tests/marketplace-integration.test.ts[2m > [22mMarketplace Deep Verification (List -> Buy flow)[2m > [22m4. Buyer can generates purchase transaction[39m
+[31m     ΓåÆ expected 503 to be 200 // Object.is equality[39m
+[31m   [33mΓ¥»[31m tests/marketplace-integration.test.ts[2m > [22mMarketplace Deep Verification (List -> Buy flow)[2m > [22m5. Buyer confirms purchase (Finalize Settlement)[39m
+[31m     ΓåÆ expected 503 to be 200 // Object.is equality[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 5 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  tests/marketplace-integration.test.ts > Marketplace Deep Verification (List -> Buy flow) > 1. Seller can LIST an invoice
+AssertionError: expected 503 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 503
+
+ Γ¥» tests/marketplace-integration.test.ts:117:28
+    115|             });
+    116| 
+    117|         expect(res.status).toBe(201);
+       |                            ^
+    118|         expect(res.body.success).toBe(true);
+    119|         expect(res.body.transaction).toBe("mock_base64_list_transactioΓÇª
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/5]ΓÄ»
+
+ FAIL  tests/marketplace-integration.test.ts > Marketplace Deep Verification (List -> Buy flow) > 2. Listing appears in the marketplace feed
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ Γ¥» tests/marketplace-integration.test.ts:129:28
+    127|         const res = await request(app).get("/api/marketplace/listings"ΓÇª
+    128| 
+    129|         expect(res.status).toBe(200);
+       |                            ^
+    130|         const listing = res.body.listings.find((l: any) => l.id === liΓÇª
+    131|         expect(listing).toBeDefined();
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/5]ΓÄ»
+
+ FAIL  tests/marketplace-integration.test.ts > Marketplace Deep Verification (List -> Buy flow) > 3. Seller cannot buy their own listing
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+AssertionError: expected 503 to be 403 // Object.is equality
+[2m      Tests [22m [1m[31m5 failed[39m[22m[90m (5)[39m
+[2m   Start at [22m 10:46:30
+[2m   Duration [22m 6.01s[2m (transform 628ms, setup 0ms, collect 1.78s, tests 3.71s, environment 0ms, prepare 342ms)[22m
+
+
+- Expected
++ Received
+
+- 403
++ 503
+
+ Γ¥» tests/marketplace-integration.test.ts:142:28
+    140|             .send({ listingId });
+    141| 
+    142|         expect(res.status).toBe(403);
+       |                            ^
+    143|         expect(res.body.error).toContain("Cannot buy your own listing"ΓÇª
+    144|     });
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[3/5]ΓÄ»
+
+ FAIL  tests/marketplace-integration.test.ts > Marketplace Deep Verification (List -> Buy flow) > 4. Buyer can generates purchase transaction
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ Γ¥» tests/marketplace-integration.test.ts:152:28
+    150|             .send({ listingId });
+    151| 
+    152|         expect(res.status).toBe(200);
+       |                            ^
+    153|         expect(res.body.success).toBe(true);
+    154|         expect(res.body.transaction).toBe("mock_base64_buy_transactionΓÇª
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[4/5]ΓÄ»
+
+ FAIL  tests/marketplace-integration.test.ts > Marketplace Deep Verification (List -> Buy flow) > 5. Buyer confirms purchase (Finalize Settlement)
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ Γ¥» tests/marketplace-integration.test.ts:166:28
+    164|             });
+    165| 
+    166|         expect(res.status).toBe(200);
+       |                            ^
+    167|         expect(res.body.success).toBe(true);
+    168| 
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[5/5]ΓÄ»
+

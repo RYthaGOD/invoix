@@ -12,6 +12,7 @@ import { Router } from 'express';
 import { getArciumService } from './arcium-service';
 import { getArciumOnChainService } from './arcium-onchain-service';
 import { requireWalletOwnership } from './security';
+import { requireAuth } from './middleware/auth-middleware';
 import { db } from './db';
 import { invoices } from '../shared/invoice-schema';
 import { eq } from 'drizzle-orm';

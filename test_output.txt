@@ -1,0 +1,1133 @@
+
+> test
+> vitest run
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/craig/OneDrive/Desktop/B2B solana[39m
+
+ [32mΓ£ô[39m tests/subscription-lifecycle.test.ts [2m ([22m[2m37 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32mΓ£ô[39m tests/credit-scoring.test.ts [2m ([22m[2m16 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32mΓ£ô[39m tests/security-validation.test.ts [2m ([22m[2m31 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32mΓ£ô[39m tests/payment-idempotency.test.ts [2m ([22m[2m16 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32mΓ£ô[39m tests/invoice-lifecycle.test.ts [2m ([22m[2m28 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+[90mstdout[2m | server\db.ts:48:11[22m[39m
+Γ£à Using SQLite database: ./data/invoices.db
+
+stderr | Object.<anonymous> (C:\Users\craig\OneDrive\Desktop\B2B solana\node_modules\bigint-buffer\dist\node.js:10:17)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:28.474Z [[33mWARN[0m] [special-mint] PLATFORM_TREASURY_WALLET not set. Special mints will be unavailable. 
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:28.492Z [[32mINFO[0m] [solana] Initializing shared Solana connection to devnet 
+
+stderr | server\community-drop-routes.ts:21:13
+PLATFORM_TREASURY_WALLET not set. Community drops will be unavailable. community-drop
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:28.614Z [[32mINFO[0m] [email] Email Service Initialized (Mock Mode) 
+
+[Γú╖] Pulling schema from database...
+[2K[1G[Γ£ô] Pulling schema from database...
+
+[i] No changes detected
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[22m[39m
+≡ƒöä Syncing SQLite schema via drizzle-kit push...
+Γ£à SQLite Schema Synced
+2026-01-24T02:38:30.368Z [[32mINFO[0m] [auth] LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified. 
+2026-01-24T02:38:30.373Z [[32mINFO[0m] [solana-pay] Solana Pay Transaction Request routes enabled (Secure Mode) 
+2026-01-24T02:38:30.373Z [[32mINFO[0m] [routes] Registered credit score routes 
+2026-01-24T02:38:30.374Z [[32mINFO[0m] [routes] Registered marketplace routes 
+2026-01-24T02:38:30.374Z [[32mINFO[0m] [system] Subscription routes registered 
+2026-01-24T02:38:30.375Z [[32mINFO[0m] [webhook] Starting Webhook Delivery Cron Job... 
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[22m[39m
+2026-01-24T02:38:30.412Z [[32mINFO[0m] [gdpr] GDPR routes registered at /api/gdpr 
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[2m > [22m[2mStep 1: Create Invoice[22m[39m
+2026-01-24T02:38:30.435Z [[32mDEBUG[0m] [auth] Checking ownership for POST /api/invoices 
+2026-01-24T02:38:30.435Z [[32mDEBUG[0m] [auth] Session ID: Li9X7lriIuiZtZZ2SouJDmO7yMNgeqR_ 
+2026-01-24T02:38:30.436Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'Cb78901234567890123456789012345678901234567'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/invoices'[39m,
+  method: [32m'POST'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+2026-01-24T02:38:30.437Z [[32mINFO[0m] [invoice] Invoice creation request received {
+  wallet: [32m'Cb78901234567890123456789012345678901234567'[39m,
+  body: {
+    invoicerWalletAddress: [32m'Cb78901234567890123456789012345678901234567'[39m,
+    invoiceeWalletAddress: [32m'H3G8l0j9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r'[39m,
+    tokenMintAddress: [32m'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'[39m,
+    customerEmail: [32m'e2e@test.com'[39m,
+    description: [32m'Test Invoice'[39m,
+    dueDate: [32m'2026-01-24T02:38:30.415Z'[39m,
+    currency: [32m'USDC'[39m,
+    totalAmount: [32m'100'[39m,
+    lineItems: [33m1[39m,
+    isPrivate: [33mtrue[39m
+  }
+}
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[2m > [22m[2mStep 1: Create Invoice[22m[39m
+2026-01-24T02:38:30.538Z [[32mDEBUG[0m] [webhook] No webhooks subscribed to invoice.created for Cb789012... 
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[2m > [22m[2mStep 3: Send Invoice[22m[39m
+2026-01-24T02:38:30.559Z [[32mDEBUG[0m] [auth] Checking ownership for PATCH /api/invoices/5cfcd81c-91d6-4967-8c88-a9d539d82c8a 
+2026-01-24T02:38:30.559Z [[32mDEBUG[0m] [auth] Session ID: sAQnedo7y89BxtUeC4o4fxg8SA8qn2iX 
+2026-01-24T02:38:30.559Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'Cb78901234567890123456789012345678901234567'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/invoices/5cfcd81c-91d6-4967-8c88-a9d539d82c8a'[39m,
+  method: [32m'PATCH'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+2026-01-24T02:38:30.575Z [[32mDEBUG[0m] [invoice] Updated customer profile email: new@email.com 
+2026-01-24T02:38:30.575Z [[32mINFO[0m] [email] Email Service Initialized (Mock Mode) 
+2026-01-24T02:38:30.593Z [[32mDEBUG[0m] [email] Mock email send - Invoice notification {
+  to: [32m'new@email.com'[39m,
+  from: [32m'notifications@invoix.platform'[39m,
+  replyTo: [90mundefined[39m,
+  invoiceNumber: [32m'INV-1769222310443'[39m,
+  businessName: [32m'B2B Solana Invoicer'[39m,
+  amount: [32m'101 USDC'[39m,
+  dueDate: [32m'24/01/2026'[39m,
+  payLink: [32m'http://localhost:5000/pay/5cfcd81c-91d6-4967-8c88-a9d539d82c8a'[39m
+}
+2026-01-24T02:38:30.593Z [[32mINFO[0m] [express] [Email] Mock sent to new@email.com for invoice INV-1769222310443 
+2026-01-24T02:38:30.594Z [[32mDEBUG[0m] [webhook] No webhooks subscribed to invoice.sent for Cb789012... 
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[2m > [22m[2mStep 4: Record Manual Payment[22m[39m
+2026-01-24T02:38:30.613Z [[32mDEBUG[0m] [webhook] No webhooks subscribed to invoice.paid for Cb789012... 
+2026-01-24T02:38:30.613Z [[32mDEBUG[0m] [email] Mock email send - Payment receipt {
+  to: [32m'new@email.com'[39m,
+  from: [32m'notifications@invoix.platform'[39m,
+  replyTo: [90mundefined[39m,
+  invoiceNumber: [32m'INV-1769222310443'[39m,
+  businessName: [32m'B2B Solana Invoicer'[39m,
+  amountPaid: [32m'101 USDC'[39m,
+  paymentDate: [32m'24/01/2026'[39m,
+  transactionSignature: [32m'111111111111111111111111111111111111111111111111111111111111111111111111ABC1769222310596'[39m
+}
+2026-01-24T02:38:30.617Z [[33mWARN[0m] [nft] Skipped Receipt NFT - NFT Service not ready or invoice not found 
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[2m > [22m[2mStep 5: Partial Payment Flow[22m[39m
+2026-01-24T02:38:30.622Z [[32mDEBUG[0m] [auth] Checking ownership for POST /api/invoices 
+2026-01-24T02:38:30.622Z [[32mDEBUG[0m] [auth] Session ID: qCNaOspkM7Fani5Yo_SfC0vUnrvyymbP 
+2026-01-24T02:38:30.622Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'Cb78901234567890123456789012345678901234567'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/invoices'[39m,
+  method: [32m'POST'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+2026-01-24T02:38:30.622Z [[32mINFO[0m] [invoice] Invoice creation request received {
+  wallet: [32m'Cb78901234567890123456789012345678901234567'[39m,
+  body: {
+    invoicerWalletAddress: [32m'Cb78901234567890123456789012345678901234567'[39m,
+    invoiceeWalletAddress: [32m'H3G8l0j9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r'[39m,
+    tokenMintAddress: [32m'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'[39m,
+    totalAmount: [32m'200'[39m,
+    currency: [32m'USDC'[39m,
+    dueDate: [32m'2026-01-24T02:38:30.620Z'[39m,
+    lineItems: [33m1[39m
+  }
+}
+2026-01-24T02:38:30.650Z [[32mDEBUG[0m] [webhook] No webhooks subscribed to invoice.created for Cb789012... 
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[2m > [22m[2mStep 5: Partial Payment Flow[22m[39m
+2026-01-24T02:38:30.667Z [[32mDEBUG[0m] [webhook] No webhooks subscribed to invoice.partial_paid for Cb789012... 
+2026-01-24T02:38:30.667Z [[32mDEBUG[0m] [email] Mock email send - Payment receipt {
+  to: [32m'new@email.com'[39m,
+  from: [32m'notifications@invoix.platform'[39m,
+  replyTo: [90mundefined[39m,
+  invoiceNumber: [32m'INV-1769222310624'[39m,
+  businessName: [32m'B2B Solana Invoicer'[39m,
+  amountPaid: [32m'102 USDC'[39m,
+  paymentDate: [32m'24/01/2026'[39m,
+  transactionSignature: [32m'222222222222222222222222222222222222222222222222222222222222222222222222ABC1769222310652'[39m
+}
+2026-01-24T02:38:30.668Z [[33mWARN[0m] [nft] Skipped Receipt NFT - NFT Service not ready or invoice not found 
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[2m > [22m[2mStep 5: Partial Payment Flow[22m[39m
+2026-01-24T02:38:30.684Z [[32mDEBUG[0m] [webhook] No webhooks subscribed to invoice.paid for Cb789012... 
+2026-01-24T02:38:30.685Z [[32mDEBUG[0m] [email] Mock email send - Payment receipt {
+  to: [32m'new@email.com'[39m,
+  from: [32m'notifications@invoix.platform'[39m,
+  replyTo: [90mundefined[39m,
+  invoiceNumber: [32m'INV-1769222310624'[39m,
+  businessName: [32m'B2B Solana Invoicer'[39m,
+  amountPaid: [32m'102 USDC'[39m,
+  paymentDate: [32m'24/01/2026'[39m,
+  transactionSignature: [32m'333333333333333333333333333333333333333333333333333333333333333333333333ABC1769222310670'[39m
+}
+2026-01-24T02:38:30.685Z [[33mWARN[0m] [nft] Skipped Receipt NFT - NFT Service not ready or invoice not found 
+
+[90mstdout[2m | tests/e2e-complete-flow.test.ts[2m > [22m[2mE2E Complete Flow[2m > [22m[2mStep 6: Multi-Currency Invoice (EURC)[22m[39m
+2026-01-24T02:38:30.689Z [[32mDEBUG[0m] [auth] Checking ownership for POST /api/invoices 
+2026-01-24T02:38:30.689Z [[32mDEBUG[0m] [auth] Session ID: 8ukBjNTYv1wsBQ4OFthhLq-4uTQtn9Yg 
+2026-01-24T02:38:30.689Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'Cb78901234567890123456789012345678901234567'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/invoices'[39m,
+  method: [32m'POST'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+2026-01-24T02:38:30.690Z [[32mINFO[0m] [invoice] Invoice creation request received {
+  wallet: [32m'Cb78901234567890123456789012345678901234567'[39m,
+  body: {
+    invoicerWalletAddress: [32m'Cb78901234567890123456789012345678901234567'[39m,
+    invoiceeWalletAddress: [32m'H3G8l0j9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r'[39m,
+    tokenMintAddress: [32m'HzwqbKZw8NxUnPyBG19Qe7cW479kqFq560kC59J8w4r'[39m,
+    totalAmount: [32m'500'[39m,
+    currency: [32m'EURC'[39m,
+    dueDate: [32m'2026-01-24T02:38:30.687Z'[39m,
+    lineItems: [33m1[39m
+  }
+}
+2026-01-24T02:38:30.716Z [[32mDEBUG[0m] [webhook] No webhooks subscribed to invoice.created for Cb789012... 
+
+ [32mΓ£ô[39m tests/e2e-complete-flow.test.ts [2m ([22m[2m6 tests[22m[2m)[22m[33m 1913[2mms[22m[39m
+ [33mΓ¥»[39m tests/core-flow.test.ts [2m ([22m[2m0 test[22m[2m)[22m
+[90mstdout[2m | server\db.ts:48:11[22m[39m
+Γ£à Using SQLite database: ./data/invoices.db
+
+stderr | Object.<anonymous> (C:\Users\craig\OneDrive\Desktop\B2B solana\node_modules\bigint-buffer\dist\node.js:10:17)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:33.954Z [[33mWARN[0m] [special-mint] PLATFORM_TREASURY_WALLET not set. Special mints will be unavailable. 
+
+stderr | server\community-drop-routes.ts:21:13
+PLATFORM_TREASURY_WALLET not set. Community drops will be unavailable. community-drop
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:34.035Z [[32mINFO[0m] [email] Email Service Initialized (Mock Mode) 
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[22m[39m
+2026-01-24T02:38:35.674Z [[32mINFO[0m] [auth] LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified. 
+2026-01-24T02:38:35.679Z [[32mINFO[0m] [solana-pay] Solana Pay Transaction Request routes enabled (Secure Mode) 
+2026-01-24T02:38:35.680Z [[32mINFO[0m] [routes] Registered credit score routes 
+2026-01-24T02:38:35.681Z [[32mINFO[0m] [routes] Registered marketplace routes 
+2026-01-24T02:38:35.681Z [[32mINFO[0m] [system] Subscription routes registered 
+2026-01-24T02:38:35.682Z [[32mINFO[0m] [webhook] Starting Webhook Delivery Cron Job... 
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[22m[39m
+2026-01-24T02:38:35.690Z [[32mINFO[0m] [gdpr] GDPR routes registered at /api/gdpr 
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 1: Subscription Economy[2m > [22m[2m1. Create Subscription Plan[22m[39m
+2026-01-24T02:38:35.711Z [[32mDEBUG[0m] [auth] Checking ownership for POST /api/subscriptions/plans 
+2026-01-24T02:38:35.711Z [[32mDEBUG[0m] [auth] Session ID: NS45fXQRK5Vct-_ZJT3xpix3SCfvso3w 
+2026-01-24T02:38:35.712Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/subscriptions/plans'[39m,
+  method: [32m'POST'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+2026-01-24T02:38:35.722Z [[32mINFO[0m] [system] Subscription plan created: 8703ebdf-1000-4c84-a2cd-c75c6e33e2ab by G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q 
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 1: Subscription Economy[2m > [22m[2m2. Create Subscription (Subscribe Client)[22m[39m
+2026-01-24T02:38:35.733Z [[32mDEBUG[0m] [auth] Checking ownership for POST /api/subscriptions 
+2026-01-24T02:38:35.733Z [[32mDEBUG[0m] [auth] Session ID: 9fRkjFxjZX770JyXmzQJdl9YxgnXpkE8 
+2026-01-24T02:38:35.734Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/subscriptions'[39m,
+  method: [32m'POST'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+2026-01-24T02:38:35.736Z [[31mERROR[0m] [Error: Non-base58 character] Error preparing subscription: 
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 1: Subscription Economy[2m > [22m[2m2. Create Subscription (Subscribe Client)[22m[39m
+Create Subscription Failed: {
+  "error": "Failed to preparing subscription"
+}
+Using Plan ID: 8703ebdf-1000-4c84-a2cd-c75c6e33e2ab
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 1: Subscription Economy[2m > [22m[2m3. Verify Subscription Details[22m[39m
+2026-01-24T02:38:35.746Z [[32mDEBUG[0m] [auth] Checking ownership for GET /api/subscriptions/undefined 
+2026-01-24T02:38:35.746Z [[32mDEBUG[0m] [auth] Session ID: fiwSImJ4Df0ftUr79zYnHxTSY-vQHgGT 
+2026-01-24T02:38:35.746Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/subscriptions/undefined'[39m,
+  method: [32m'GET'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 2: Invoice Marketplace[2m > [22m[2m1. Create Invoice to List[22m[39m
+2026-01-24T02:38:35.752Z [[32mDEBUG[0m] [auth] Checking ownership for POST /api/invoices 
+2026-01-24T02:38:35.752Z [[32mDEBUG[0m] [auth] Session ID: w5VxF4lye1PVxqPZOQs08V_DGSrjHoqQ 
+2026-01-24T02:38:35.752Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/invoices'[39m,
+  method: [32m'POST'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+2026-01-24T02:38:35.752Z [[32mINFO[0m] [invoice] Invoice creation request received {
+  wallet: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+  body: {
+    invoicerWalletAddress: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+    invoiceeWalletAddress: [32m'H3G8l0j9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r'[39m,
+    totalAmount: [32m'5000'[39m,
+    currency: [32m'USDC'[39m,
+    dueDate: [32m'2026-01-24T02:38:35.750Z'[39m,
+    lineItems: [33m1[39m,
+    invoiceNumber: [32m'MKT-1769222315750'[39m
+  }
+}
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 2: Invoice Marketplace[2m > [22m[2m1. Create Invoice to List[22m[39m
+2026-01-24T02:38:35.827Z [[32mDEBUG[0m] [webhook] No webhooks subscribed to invoice.created for G2F7k9i8... 
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 2: Invoice Marketplace[2m > [22m[2m2. List Invoice on Marketplace[22m[39m
+Marketplace listing skipped (likely due to mock chain dep): {}
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 3: Input Sanitization & Security[2m > [22m[2m1. Reject Negative Amounts[22m[39m
+2026-01-24T02:38:35.846Z [[32mDEBUG[0m] [auth] Checking ownership for POST /api/invoices 
+2026-01-24T02:38:35.846Z [[32mDEBUG[0m] [auth] Session ID: R9vNwepuI8hP23yoM5kl_gGSdx0tUDDe 
+2026-01-24T02:38:35.846Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/invoices'[39m,
+  method: [32m'POST'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+2026-01-24T02:38:35.847Z [[32mINFO[0m] [invoice] Invoice creation request received {
+  wallet: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+  body: {
+    invoicerWalletAddress: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+    invoiceeWalletAddress: [32m'H3G8l0j9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r'[39m,
+    totalAmount: [32m'-100'[39m,
+    currency: [32m'USDC'[39m,
+    dueDate: [32m'2026-01-24T02:38:35.845Z'[39m,
+    lineItems: [33m1[39m
+  }
+}
+
+[90mstdout[2m | tests/e2e-extended-flow.test.ts[2m > [22m[2mDeep Feature Verification: Extended Flows[2m > [22m[2mFeature 3: Input Sanitization & Security[2m > [22m[2m2. Reject SQL Injection attempt in Search[22m[39m
+2026-01-24T02:38:35.853Z [[32mDEBUG[0m] [auth] Checking ownership for GET /api/invoices 
+2026-01-24T02:38:35.853Z [[32mDEBUG[0m] [auth] Session ID: J1DSmunQDrWFW-GrCQRamrYm6jlEgkvl 
+2026-01-24T02:38:35.853Z [[32mINFO[0m] [audit] wallet_access_granted {
+  walletAddress: [32m'G2F7k9i8h7G6F5E4D3C2B1A0z9y8x7w6v5u4t3s2r1q'[39m,
+  authMode: [32m'traditional'[39m,
+  resource: [32m'/api/invoices'[39m,
+  method: [32m'GET'[39m,
+  ip: [32m'::ffff:127.0.0.1'[39m
+}
+
+ [33mΓ¥»[39m tests/e2e-extended-flow.test.ts [2m ([22m[2m8 tests[22m [2m|[22m [31m2 failed[39m[2m)[22m[33m 1728[2mms[22m[39m
+[31m   [33mΓ¥»[31m tests/e2e-extended-flow.test.ts[2m > [22mDeep Feature Verification: Extended Flows[2m > [22mFeature 1: Subscription Economy[2m > [22m2. Create Subscription (Subscribe Client)[39m
+[31m     ΓåÆ expected 500 to be 201 // Object.is equality[39m
+[31m   [33mΓ¥»[31m tests/e2e-extended-flow.test.ts[2m > [22mDeep Feature Verification: Extended Flows[2m > [22mFeature 1: Subscription Economy[2m > [22m3. Verify Subscription Details[39m
+[31m     ΓåÆ expected 404 to be 200 // Object.is equality[39m
+ [32mΓ£ô[39m tests/invoice-state-transitions.test.ts [2m ([22m[2m23 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+[90mstdout[2m | _log (C:\Users\craig\OneDrive\Desktop\B2B solana\node_modules\dotenv\lib\main.js:142:11)[22m[39m
+[dotenv@17.2.3] injecting env (16) from .env -- tip: ΓÜÖ∩╕Å  override existing env vars with { override: true }
+
+ [32mΓ£ô[39m tests/invoice-api.test.ts [2m ([22m[2m20 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32mΓ£ô[39m tests/crypto.test.ts [2m ([22m[2m22 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+stderr | tests/crypto.test.ts > Crypto Module > Authentication and Tamper Detection > should detect tampered ciphertext
+Decryption error: Unsupported state or unable to authenticate data
+
+stderr | tests/crypto.test.ts > Crypto Module > Authentication and Tamper Detection > should detect tampered IV
+Decryption error: Unsupported state or unable to authenticate data
+
+stderr | tests/crypto.test.ts > Crypto Module > Authentication and Tamper Detection > should detect tampered auth tag
+Decryption error: Unsupported state or unable to authenticate data
+
+stderr | tests/crypto.test.ts > Crypto Module > Authentication and Tamper Detection > should reject wrong key (via auth tag)
+Decryption error: Unsupported state or unable to authenticate data
+
+stderr | tests/crypto.test.ts > Crypto Module > Error Handling > should throw on invalid ciphertext format
+Decryption error: The argument 'encoding' is invalid for data of length 11. Received 'hex'
+
+stderr | tests/crypto.test.ts > Crypto Module > Error Handling > should throw on invalid IV format
+Decryption error: Invalid initialization vector
+
+stderr | tests/crypto.test.ts > Crypto Module > Error Handling > should throw on invalid auth tag format
+Decryption error: Invalid authentication tag length: 0
+
+stderr | tests/crypto.test.ts > Crypto Module > Error Handling > should handle empty IV gracefully
+Decryption error: Invalid initialization vector
+
+stderr | marketplace-program\tests\marketplace.test.ts:27:17
+ΓÜá∩╕Å  MarketplaceProgram not found. Using Mock for test registration.
+
+[90mstdout[2m | marketplace-program/tests/marketplace.test.ts[2m > [22m[2mmarketplace-program[22m[39m
+ΓÜá∩╕Å  Bubblegum (Compression) program not found. Skipping CPI-dependent tests.
+
+[90mstdout[2m | marketplace-program/tests/marketplace.test.ts[2m > [22m[2mmarketplace-program[22m[39m
+<empty line>
+stderr | marketplace-program/tests/marketplace.test.ts > marketplace-program
+ΓÜá∩╕Å  Airdrop failed (mock environment?): Error: failed to get recent blockhash: TypeError: fetch failed
+    at Connection.getLatestBlockhash (C:\Users\craig\OneDrive\Desktop\B2B solana\node_modules\@solana\web3.js\src\connection.ts:4705:13)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at C:\Users\craig\OneDrive\Desktop\B2B solana\marketplace-program\tests\marketplace.test.ts:68:37
+    at async Promise.all (index 0)
+    at callSuiteHook (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/@vitest/runner/dist/index.js:700:23)
+    at runSuite (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/@vitest/runner/dist/index.js:892:27)
+    at runSuite (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/@vitest/runner/dist/index.js:909:15)
+    at runFiles (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/@vitest/runner/dist/index.js:958:5)
+    at startTests (file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/@vitest/runner/dist/index.js:967:3)
+    at file:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/node_modules/vitest/dist/chunks/runtime-runBaseTests.oAvMKtQC.js:116:7
+
+ [32mΓ£ô[39m marketplace-program/tests/marketplace.test.ts [2m ([22m[2m4 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+[90mstdout[2m | marketplace-program/tests/marketplace.test.ts[2m > [22m[2mmarketplace-program[2m > [22m[2mListing Creation[2m > [22m[2mShould create a listing (or Mock CPI if missing deps)[22m[39m
+Γä╣∩╕Å  Skipping actual CPI execution due to missing Bubblegum program in localnet.
+
+[90mstdout[2m | server\db.ts:56:13[22m[39m
+Γ£à Using PostgreSQL database (pg driver)
+
+[90mstdout[2m | server\db.ts:66:13[22m[39m
+≡ƒöî DB Config: Internal=false, SSL=true
+
+stderr | Module.validateEnvironment (C:\Users\craig\OneDrive\Desktop\B2B solana\server\env-validator.ts:175:13)
+
+ΓÜá∩╕Å  Environment Warnings:
+
+stderr | server\env-validator.ts:176:39
+ΓÜá∩╕Å  Optional environment variable not set: FRONTEND_URL
+   Description: URL of the frontend (e.g. https://your-app.up.railway.app) for CORS policy
+ΓÜá∩╕Å  Optional environment variable not set: BUNDLR_PRIVATE_KEY
+   Description: Private key for Bundlr (Arweave) metadata storage
+ΓÜá∩╕Å  Optional environment variable not set: ARWEAVE_WALLET_JWK
+   Description: Arweave wallet JWK for direct uploads
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_API_URL
+   Description: IPFS API endpoint (e.g., https://ipfs.infura.io:5001)
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_ID
+   Description: IPFS project ID for authentication
+ΓÜá∩╕Å  Optional environment variable not set: IPFS_PROJECT_SECRET
+   Description: IPFS project secret for authentication
+ΓÜá∩╕Å  Using default for MARKETPLACE_PROGRAM_ID: InvxMkt111111111111111111111111111111111111
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:38.895Z [[32mINFO[0m] [sentry] [Sentry] No SENTRY_DSN configured - error monitoring disabled 
+2026-01-24T02:38:38.896Z [[32mINFO[0m] [express] ≡ƒöì Validating environment variables... 
+2026-01-24T02:38:38.898Z [[32mINFO[0m] [express] Γ£à Environment validation passed 
+2026-01-24T02:38:38.898Z [[32mINFO[0m] [system] Config reload trigger { timestamp: [33m1769222318898[39m }
+2026-01-24T02:38:38.898Z [[33mWARN[0m] [security] Optional security variables not configured {
+  missing: [
+    [32m'INVOICE_ENCRYPTION_KEY'[39m,
+    [32m'PLATFORM_TREASURY_WALLET'[39m,
+    [32m'SOL_PRICE_FALLBACK'[39m
+  ]
+}
+2026-01-24T02:38:38.903Z [[32mINFO[0m] [boot] Initializing Invoix Platform Components... { cluster: [32m'test'[39m }
+2026-01-24T02:38:38.903Z [[32mINFO[0m] [dns] DB Host: aws-1-ap-northeast-1.pooler.supabase.com 
+2026-01-24T02:38:38.904Z [[32mINFO[0m] [arcium] Arcium Service initialized 
+
+stderr | tests/marketplace-integration.test.ts
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:38:39.410Z [[33mWARN[0m] [special-mint] PLATFORM_TREASURY_WALLET not set. Special mints will be unavailable. 
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+<empty line>
+stderr | tests/marketplace-integration.test.ts
+PLATFORM_TREASURY_WALLET not set. Community drops will be unavailable. community-drop
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:38:39.485Z [[32mINFO[0m] [email] Email Service Initialized (Mock Mode) 
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:38:39.509Z [[32mINFO[0m] [boot] Test mode detected, skipping server.listen 
+2026-01-24T02:38:39.509Z [[32mINFO[0m] [auth] LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified. 
+2026-01-24T02:38:39.514Z [[32mINFO[0m] [solana-pay] Solana Pay Transaction Request routes enabled (Secure Mode) 
+2026-01-24T02:38:39.514Z [[32mINFO[0m] [routes] Registered credit score routes 
+2026-01-24T02:38:39.515Z [[32mINFO[0m] [routes] Registered marketplace routes 
+2026-01-24T02:38:39.515Z [[32mINFO[0m] [system] Subscription routes registered 
+2026-01-24T02:38:39.515Z [[32mINFO[0m] [webhook] Starting Webhook Delivery Cron Job... 
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:38:39.523Z [[32mINFO[0m] [gdpr] GDPR routes registered at /api/gdpr 
+2026-01-24T02:38:39.524Z [[32mINFO[0m] [boot] App routes registered 
+2026-01-24T02:38:39.524Z [[32mINFO[0m] [static] Serving static files {
+  path: [32m'C:\\Users\\craig\\OneDrive\\Desktop\\B2B solana\\server\\public'[39m
+}
+2026-01-24T02:38:39.524Z [[32mINFO[0m] [boot] Connecting to Database... 
+
+stderr | tests/marketplace-integration.test.ts
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+Γ£à Database connection established
+ΓÅ│ Running database migrations...
+
+<empty line>
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+Using migrations folder: C:\Users\craig\OneDrive\Desktop\B2B solana\migrations
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+Γ£à Migrations completed successfully
+
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+stderr | tests/marketplace-integration.test.ts
+2026-01-24T02:38:41.379Z [[32mINFO[0m] [qr] QR Payment Processor started 
+
+<empty line>
+stderr | tests/marketplace-integration.test.ts
+<empty line>
+[90mstdout[2m | tests/marketplace-integration.test.ts[22m[39m
+2026-01-24T02:38:41.395Z [[32mINFO[0m] [cron] Starting Marketplace Expiry Cron Job... 
+2026-01-24T02:38:41.395Z [[32mINFO[0m] [boot] Invoix Platform is fully operational! { ready: [33mtrue[39m }
+Test Server Ready
+
+[90mstdout[2m | tests/marketplace-integration.test.ts[2m > [22m[2mMarketplace Deep Verification (List -> Buy flow)[22m[39m
+2026-01-24T02:38:41.549Z [[31mERROR[0m] [qr] Processing error {
+  error: error: column "arcium_tx_signature" does not exist
+      at [90mC:\Users\craig\OneDrive\Desktop\B2B solana\[39mnode_modules\[4mpg-pool[24m\index.js:45:11
+  [90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
+      at [90mfile:///C:/Users/craig/OneDrive/Desktop/B2B%20solana/[39mnode_modules/[4mdrizzle-orm[24m/node-postgres/session.js:83:22
+      at processQRPayments [90m(C:\Users\craig\OneDrive\Desktop\B2B solana\[39mserver\qr-payment-processor.ts:60:33[90m)[39m {
+    length: [33m120[39m,
+    severity: [32m'ERROR'[39m,
+    code: [32m'42703'[39m,
+    detail: [90mundefined[39m,
+    hint: [90mundefined[39m,
+    position: [32m'824'[39m,
+    internalPosition: [90mundefined[39m,
+    internalQuery: [90mundefined[39m,
+    where: [90mundefined[39m,
+    schema: [90mundefined[39m,
+    table: [90mundefined[39m,
+    column: [90mundefined[39m,
+    dataType: [90mundefined[39m,
+    constraint: [90mundefined[39m,
+    file: [32m'parse_relation.c'[39m,
+    line: [32m'3716'[39m,
+    routine: [32m'errorMissingColumn'[39m
+  }
+}
+
+ [33mΓ¥»[39m tests/marketplace-integration.test.ts [2m ([22m[2m5 tests[22m[2m)[22m[33m 4891[2mms[22m[39m
+ [33mΓ¥»[39m tests/security/metadata-security.test.ts [2m ([22m[2m0 test[22m[2m)[22m
+ [33mΓ¥»[39m tests/arcium-integration.test.ts [2m ([22m[2m8 tests[22m [2m|[22m [31m6 failed[39m[2m)[22m[90m 160[2mms[22m[39m
+[31m   [33mΓ¥»[31m tests/arcium-integration.test.ts[2m > [22mArcium MXE Integration[2m > [22mAPI Endpoints[2m > [22mshould return Arcium status[39m
+[31m     ΓåÆ fetch failed[39m
+[31m   [33mΓ¥»[31m tests/arcium-integration.test.ts[2m > [22mArcium MXE Integration[2m > [22mAPI Endpoints[2m > [22mshould derive invoice PDA[39m
+[31m     ΓåÆ fetch failed[39m
+[31m   [33mΓ¥»[31m tests/arcium-integration.test.ts[2m > [22mArcium MXE Integration[2m > [22mPDA Derivation[2m > [22mshould derive consistent PDAs[39m
+[31m     ΓåÆ fetch failed[39m
+[31m   [33mΓ¥»[31m tests/arcium-integration.test.ts[2m > [22mArcium MXE Integration[2m > [22mPDA Derivation[2m > [22mshould derive different PDAs for different invoice IDs[39m
+[31m     ΓåÆ fetch failed[39m
+[31m   [33mΓ¥»[31m tests/arcium-integration.test.ts[2m > [22mArcium MXE Integration[2m > [22mAuthorization[2m > [22mshould require authentication for transaction creation[39m
+[31m     ΓåÆ fetch failed[39m
+[31m   [33mΓ¥»[31m tests/arcium-integration.test.ts[2m > [22mArcium MXE Integration[2m > [22mAuthorization[2m > [22mshould require authentication for decryption[39m
+[31m     ΓåÆ fetch failed[39m
+[90mstdout[2m | tests/solana-sdk.test.ts[2m > [22m[2mSolana SDK Optimizations[2m > [22m[2mgetBlockhash[2m > [22m[2mshould cache blockhash for 30 seconds[22m[39m
+2026-01-24T02:38:45.911Z [[32mDEBUG[0m] [solana] [RPC] Refreshed blockhash via Modern Kit 
+
+[90mstdout[2m | tests/solana-sdk.test.ts[2m > [22m[2mSolana SDK Optimizations[2m > [22m[2mexecuteWithRateLimit[2m > [22m[2mshould retry on generic errors[22m[39m
+2026-01-24T02:38:45.917Z [[32mDEBUG[0m] [rpc] ΓÜá∩╕Å RPC Retry 1/3 for test { error: [32m'network error'[39m }
+
+ [33mΓ¥»[39m tests/solana-sdk.test.ts [2m ([22m[2m5 tests[22m [2m|[22m [31m1 failed[39m[2m)[22m[33m 856[2mms[22m[39m
+[31m   [33mΓ¥»[31m tests/solana-sdk.test.ts[2m > [22mSolana SDK Optimizations[2m > [22mgetBlockhash[2m > [22mshould cache blockhash for 30 seconds[39m
+[31m     ΓåÆ expected "spy" to be called 1 times, but got 0 times[39m
+[90mstdout[2m | tests/solana-sdk.test.ts[2m > [22m[2mSolana SDK Optimizations[2m > [22m[2mexecuteWithRateLimit[2m > [22m[2mshould wait longer on rate limit (429)[22m[39m
+2026-01-24T02:38:45.932Z [[33mWARN[0m] [rpc] ΓÜá∩╕Å Rate limit hit for test. Waiting longer... 
+
+ [32mΓ£ô[39m tests/das-service.test.ts [2m ([22m[2m3 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+[90mstdout[2m | tests/modern-bridge.test.ts[2m > [22m[2mModern Solana Bridge Verification[2m > [22m[2mShould fetch blockhash using modern RPC[22m[39m
+Modern Blockhash: 389LTSbCuNYEKbpQebUtnss6a9WuHAAxVs9qsYJGSedT
+
+[90mstdout[2m | tests/modern-bridge.test.ts[2m > [22m[2mModern Solana Bridge Verification[2m > [22m[2mShould return consistent data between Legacy and Modern clients[22m[39m
+2026-01-24T02:38:47.503Z [[32mINFO[0m] [solana] Initializing shared Solana connection to devnet 
+
+[90mstdout[2m | tests/modern-bridge.test.ts[2m > [22m[2mModern Solana Bridge Verification[2m > [22m[2mShould return consistent data between Legacy and Modern clients[22m[39m
+Modern Slot Res: [33m437240245n[39m Type: bigint
+
+ [32mΓ£ô[39m tests/modern-bridge.test.ts [2m ([22m[2m3 tests[22m[2m)[22m[33m 1690[2mms[22m[39m
+[90mstdout[2m | tests/modern-bridge.test.ts[2m > [22m[2mModern Solana Bridge Verification[2m > [22m[2mShould fetch blockhash via integrated SDK function[22m[39m
+2026-01-24T02:38:48.420Z [[32mDEBUG[0m] [solana] [RPC] Refreshed blockhash via Modern Kit 
+Integrated Blockhash: D7SAiJy5AteSR8aFAPJM8ZCB2vys4AGtD5RKqpBbTmvk
+
+[90mstdout[2m | server\db.ts:48:11[22m[39m
+Γ£à Using SQLite database: ./data/invoices.db
+
+stderr | Object.<anonymous> (C:\Users\craig\OneDrive\Desktop\B2B solana\node_modules\bigint-buffer\dist\node.js:10:17)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:51.085Z [[33mWARN[0m] [special-mint] PLATFORM_TREASURY_WALLET not set. Special mints will be unavailable. 
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:51.090Z [[32mINFO[0m] [solana] Initializing shared Solana connection to devnet 
+
+stderr | server\community-drop-routes.ts:21:13
+PLATFORM_TREASURY_WALLET not set. Community drops will be unavailable. community-drop
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:51.174Z [[32mINFO[0m] [email] Email Service Initialized (Mock Mode) 
+
+[90mstdout[2m | tests/call-routes.test.ts[2m > [22m[2mDebug Call Routes Central[2m > [22m[2mshould register ALL central routes[22m[39m
+Creating app...
+Calling registerRoutes...
+2026-01-24T02:38:51.235Z [[32mINFO[0m] [auth] LazorKit running in non-strict mode (dev/demo). Signatures not cryptographically verified. 
+2026-01-24T02:38:51.238Z [[32mINFO[0m] [solana-pay] Solana Pay Transaction Request routes enabled (Secure Mode) 
+2026-01-24T02:38:51.239Z [[32mINFO[0m] [routes] Registered credit score routes 
+2026-01-24T02:38:51.240Z [[32mINFO[0m] [routes] Registered marketplace routes 
+2026-01-24T02:38:51.241Z [[32mINFO[0m] [system] Subscription routes registered 
+2026-01-24T02:38:51.242Z [[32mINFO[0m] [webhook] Starting Webhook Delivery Cron Job... 
+
+[90mstdout[2m | tests/call-routes.test.ts[2m > [22m[2mDebug Call Routes Central[2m > [22m[2mshould register ALL central routes[22m[39m
+2026-01-24T02:38:51.250Z [[32mINFO[0m] [gdpr] GDPR routes registered at /api/gdpr 
+Routes registered!
+
+ [32mΓ£ô[39m tests/call-routes.test.ts [2m ([22m[2m1 test[22m[2m)[22m[90m 37[2mms[22m[39m
+[90mstdout[2m | server\db.ts:48:11[22m[39m
+Γ£à Using SQLite database: ./data/invoices.db
+
+stderr | Object.<anonymous> (C:\Users\craig\OneDrive\Desktop\B2B solana\node_modules\bigint-buffer\dist\node.js:10:17)
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:53.906Z [[32mINFO[0m] [solana] Initializing shared Solana connection to devnet 
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:53.921Z [[33mWARN[0m] [special-mint] PLATFORM_TREASURY_WALLET not set. Special mints will be unavailable. 
+
+stderr | server\community-drop-routes.ts:21:13
+PLATFORM_TREASURY_WALLET not set. Community drops will be unavailable. community-drop
+
+[90mstdout[2m | structuredLog (C:\Users\craig\OneDrive\Desktop\B2B solana\server\logger.ts:45:13)[22m[39m
+2026-01-24T02:38:53.995Z [[32mINFO[0m] [email] Email Service Initialized (Mock Mode) 
+
+ [32mΓ£ô[39m tests/debug-deps.test.ts [2m ([22m[2m1 test[22m[2m)[22m[90m 2[2mms[22m[39m
+ [32mΓ£ô[39m tests/sanity.test.ts [2m ([22m[2m1 test[22m[2m)[22m[90m 2[2mms[22m[39m
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Suites 3 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  tests/core-flow.test.ts [ tests/core-flow.test.ts ]
+Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+ Γ¥» server/credit-scoring-service.ts:1:1
+      1| /**
+       | ^
+      2|  * Credit Scoring Service
+      3|  * 
+
+Caused by: ReferenceError: Cannot access 'testDb' before initialization
+ Γ¥» tests/core-flow.test.ts:4:7
+ Γ¥» server/credit-scoring-service.ts:1:1
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[1/12]ΓÄ»
+
+ FAIL  tests/marketplace-integration.test.ts > Marketplace Deep Verification (List -> Buy flow)
+error: column "arcium_tx_signature" of relation "invoices" does not exist
+ Γ¥» node_modules/pg-pool/index.js:45:11
+ Γ¥» tests/marketplace-integration.test.ts:80:9
+     78|         invoiceId = randomUUID();
+     79| 
+     80|         await db.insert(schema.invoices).values({
+       |         ^
+     81|             id: invoiceId,
+     82|             invoiceNumber: `INV-${Date.now()}`,
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+Serialized Error: { length: 141, severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '841', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1065', routine: 'checkInsertTargets' }
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[2/12]ΓÄ»
+
+ FAIL  tests/security/metadata-security.test.ts [ tests/security/metadata-security.test.ts ]
+Error: Failed to load url ../server/index (resolved id: ../server/index) in C:/Users/craig/OneDrive/Desktop/B2B solana/tests/security/metadata-security.test.ts. Does the file exist?
+ Γ¥» loadAndTransform ../B2B%20solana/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[3/12]ΓÄ»
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ» Failed Tests 9 ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+
+ FAIL  tests/arcium-integration.test.ts > Arcium MXE Integration > API Endpoints > should return Arcium status
+TypeError: fetch failed
+ Γ¥» tests/arcium-integration.test.ts:13:30
+     11|     describe('API Endpoints', () => {
+     12|         it('should return Arcium status', async () => {
+     13|             const response = await fetch('http://localhost:3000/api/arΓÇª
+       |                              ^
+     14|             expect(response.ok).toBe(true);
+     15| 
+
+{
+  stack: 'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)',
+  errors: [
+    {
+      stack: 'Error: connect ECONNREFUSED ::1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED ::1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED 127.0.0.1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    }
+  ],
+  code: 'ECONNREFUSED',
+  message: '',
+  constructor: 'Function<AggregateError>',
+  name: 'Caused by: AggregateError',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'internalConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1134,
+      column: 18
+    },
+    {
+      method: 'afterConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1715,
+      column: 7
+    }
+  ]
+}
+ Γ¥» internalConnectMultiple node:net:1134:18
+ Γ¥» afterConnectMultiple node:net:1715:7
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+Serialized Error: { errors: [ { stack: 'Error: connect ECONNREFUSED ::1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED ::1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '::1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' }, { stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED 127.0.0.1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '127.0.0.1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' } ], code: 'ECONNREFUSED' }
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[4/12]ΓÄ»
+
+ FAIL  tests/arcium-integration.test.ts > Arcium MXE Integration > API Endpoints > should derive invoice PDA
+TypeError: fetch failed
+ Γ¥» tests/arcium-integration.test.ts:27:30
+     25|             const testInvoiceId = 'TEST-INV-001';
+     26| 
+     27|             const response = await fetch(
+       |                              ^
+     28|                 `http://localhost:3000/api/arcium/invoice-pda/${testInΓÇª
+     29|             );
+
+{
+  stack: 'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)',
+  errors: [
+    {
+      stack: 'Error: connect ECONNREFUSED ::1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED ::1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED 127.0.0.1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    }
+  ],
+  code: 'ECONNREFUSED',
+  message: '',
+  constructor: 'Function<AggregateError>',
+  name: 'Caused by: AggregateError',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'internalConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1134,
+      column: 18
+    },
+    {
+      method: 'afterConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1715,
+      column: 7
+    }
+  ]
+}
+ Γ¥» internalConnectMultiple node:net:1134:18
+ Γ¥» afterConnectMultiple node:net:1715:7
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+Serialized Error: { errors: [ { stack: 'Error: connect ECONNREFUSED ::1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED ::1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '::1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' }, { stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED 127.0.0.1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '127.0.0.1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' } ], code: 'ECONNREFUSED' }
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[5/12]ΓÄ»
+
+ FAIL  tests/arcium-integration.test.ts > Arcium MXE Integration > PDA Derivation > should derive consistent PDAs
+TypeError: fetch failed
+ Γ¥» tests/arcium-integration.test.ts:45:31
+     43| 
+     44|             // Call twice
+     45|             const response1 = await fetch(
+       |                               ^
+     46|                 `http://localhost:3000/api/arcium/invoice-pda/${invoicΓÇª
+     47|             );
+
+{
+  stack: 'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)',
+  errors: [
+    {
+      stack: 'Error: connect ECONNREFUSED ::1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED ::1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED 127.0.0.1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    }
+  ],
+  code: 'ECONNREFUSED',
+  message: '',
+  constructor: 'Function<AggregateError>',
+  name: 'Caused by: AggregateError',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'internalConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1134,
+      column: 18
+    },
+    {
+      method: 'afterConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1715,
+      column: 7
+    }
+  ]
+}
+ Γ¥» internalConnectMultiple node:net:1134:18
+ Γ¥» afterConnectMultiple node:net:1715:7
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+Serialized Error: { errors: [ { stack: 'Error: connect ECONNREFUSED ::1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED ::1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '::1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' }, { stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED 127.0.0.1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '127.0.0.1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' } ], code: 'ECONNREFUSED' }
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[6/12]ΓÄ»
+
+ FAIL  tests/arcium-integration.test.ts > Arcium MXE Integration > PDA Derivation > should derive different PDAs for different invoice IDs
+TypeError: fetch failed
+ Γ¥» tests/arcium-integration.test.ts:62:31
+     60|             const authority = PublicKey.unique().toString();
+     61| 
+     62|             const response1 = await fetch(
+       |                               ^
+     63|                 `http://localhost:3000/api/arcium/invoice-pda/INV-001?ΓÇª
+     64|             );
+
+{
+  stack: 'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)',
+  errors: [
+    {
+      stack: 'Error: connect ECONNREFUSED ::1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED ::1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED 127.0.0.1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    }
+  ],
+  code: 'ECONNREFUSED',
+  message: '',
+  constructor: 'Function<AggregateError>',
+  name: 'Caused by: AggregateError',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'internalConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1134,
+      column: 18
+    },
+    {
+      method: 'afterConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1715,
+      column: 7
+    }
+  ]
+}
+ Γ¥» internalConnectMultiple node:net:1134:18
+ Γ¥» afterConnectMultiple node:net:1715:7
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+Serialized Error: { errors: [ { stack: 'Error: connect ECONNREFUSED ::1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED ::1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '::1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' }, { stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED 127.0.0.1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '127.0.0.1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' } ], code: 'ECONNREFUSED' }
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[7/12]ΓÄ»
+
+ FAIL  tests/arcium-integration.test.ts > Arcium MXE Integration > Authorization > should require authentication for transaction creation
+TypeError: fetch failed
+ Γ¥» tests/arcium-integration.test.ts:79:30
+     77|     describe('Authorization', () => {
+     78|         it('should require authentication for transaction creation', aΓÇª
+     79|             const response = await fetch('http://localhost:3000/api/arΓÇª
+       |                              ^
+     80|                 method: 'POST',
+     81|                 headers: { 'Content-Type': 'application/json' },
+
+{
+  stack: 'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)',
+  errors: [
+    {
+      stack: 'Error: connect ECONNREFUSED ::1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED ::1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED 127.0.0.1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    }
+  ],
+  code: 'ECONNREFUSED',
+  message: '',
+  constructor: 'Function<AggregateError>',
+  name: 'Caused by: AggregateError',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'internalConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1134,
+      column: 18
+    },
+    {
+      method: 'afterConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1715,
+      column: 7
+    }
+  ]
+}
+ Γ¥» internalConnectMultiple node:net:1134:18
+ Γ¥» afterConnectMultiple node:net:1715:7
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+Serialized Error: { errors: [ { stack: 'Error: connect ECONNREFUSED ::1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED ::1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '::1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' }, { stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED 127.0.0.1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '127.0.0.1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' } ], code: 'ECONNREFUSED' }
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[8/12]ΓÄ»
+
+ FAIL  tests/arcium-integration.test.ts > Arcium MXE Integration > Authorization > should require authentication for decryption
+TypeError: fetch failed
+ Γ¥» tests/arcium-integration.test.ts:97:30
+     95| 
+     96|         it('should require authentication for decryption', async () =>ΓÇª
+     97|             const response = await fetch('http://localhost:3000/api/arΓÇª
+       |                              ^
+     98|                 method: 'POST',
+     99|                 headers: { 'Content-Type': 'application/json' },
+
+{
+  stack: 'AggregateError: \n' +
+    '    at internalConnectMultiple (node:net:1134:18)\n' +
+    '    at afterConnectMultiple (node:net:1715:7)',
+  errors: [
+    {
+      stack: 'Error: connect ECONNREFUSED ::1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED ::1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    },
+    {
+      stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n' +
+        '    at createConnectionError (node:net:1678:14)\n' +
+        '    at afterConnectMultiple (node:net:1708:16)',
+      message: 'connect ECONNREFUSED 127.0.0.1:3000',
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 3000,
+      constructor: 'Function<Error>',
+      name: 'Error',
+      toString: 'Function<toString>'
+    }
+  ],
+  code: 'ECONNREFUSED',
+  message: '',
+  constructor: 'Function<AggregateError>',
+  name: 'Caused by: AggregateError',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'internalConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1134,
+      column: 18
+    },
+    {
+      method: 'afterConnectMultiple',
+      file: 'C:/Users/craig/OneDrive/Desktop/B2B solana/node:net',
+      line: 1715,
+      column: 7
+    }
+  ]
+}
+ Γ¥» internalConnectMultiple node:net:1134:18
+ Γ¥» afterConnectMultiple node:net:1715:7
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»
+Serialized Error: { errors: [ { stack: 'Error: connect ECONNREFUSED ::1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED ::1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '::1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' }, { stack: 'Error: connect ECONNREFUSED 127.0.0.1:3000\n    at createConnectionError (node:net:1678:14)\n    at afterConnectMultiple (node:net:1708:16)', message: 'connect ECONNREFUSED 127.0.0.1:3000', errno: -4078, code: 'ECONNREFUSED', syscall: 'connect', address: '127.0.0.1', port: 3000, constructor: 'Function<Error>', name: 'Error', toString: 'Function<toString>' } ], code: 'ECONNREFUSED' }
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[9/12]ΓÄ»
+
+ FAIL  tests/e2e-extended-flow.test.ts > Deep Feature Verification: Extended Flows > Feature 1: Subscription Economy > 2. Create Subscription (Subscribe Client)
+AssertionError: expected 500 to be 201 // Object.is equality
+
+- Expected
++ Received
+
+- 201
++ 500
+
+ Γ¥» tests/e2e-extended-flow.test.ts:107:32
+    105|                 console.log("Using Plan ID:", planId);
+    106|             }
+    107|             expect(res.status).toBe(201);
+       |                                ^
+    108|             expect(res.body.subscription.status).toBe("pending_confirmΓÇª
+    109|             subscriptionId = res.body.subscription.id;
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[10/12]ΓÄ»
+
+ FAIL  tests/e2e-extended-flow.test.ts > Deep Feature Verification: Extended Flows > Feature 1: Subscription Economy > 3. Verify Subscription Details
+AssertionError: expected 404 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 404
+
+ Γ¥» tests/e2e-extended-flow.test.ts:117:32
+    115|                 .set("x-test-wallet", INVOICER_WALLET);
+    116| 
+    117|             expect(res.status).toBe(200);
+       |                                ^
+    118|             expect(res.body.subscription.planId).toBe(planId);
+    119|         });
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[11/12]ΓÄ»
+
+ FAIL  tests/solana-sdk.test.ts > Solana SDK Optimizations > getBlockhash > should cache blockhash for 30 seconds
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ Γ¥» tests/solana-sdk.test.ts:29:55
+     27|             // First call - should hit RPC
+     28|             const result1 = await getBlockhash(mockConnection);
+     29|             expect(mockConnection.getLatestBlockhash).toHaveBeenCalledΓÇª
+       |                                                       ^
+     30|             expect(result1.blockhash).toBeDefined();
+     31|             expect(result1.lastValidBlockHeight).toBeDefined();
+
+ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»ΓÄ»[12/12]ΓÄ»
+
+[2m Test Files [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m15 passed[39m[22m[90m (21)[39m
+[2m      Tests [22m [1m[31m9 failed[39m[22m[2m | [22m[1m[32m224 passed[39m[22m[90m (238)[39m
+[2m   Start at [22m 10:38:23
+[2m   Duration [22m 30.37s[2m (transform 880ms, setup 2ms, collect 13.56s, tests 11.39s, environment 4ms, prepare 2.33s)[22m
+

@@ -106,6 +106,11 @@ export async function runMigrations() {
 
     const { migrate } = await import("drizzle-orm/node-postgres/migrator");
 
+    if (process.env.SKIP_MIGRATIONS === "true") {
+      console.log('✅ Skipping migrations (SKIP_MIGRATIONS=true)');
+      return;
+    }
+
     let migrationsFolder = path.resolve(process.cwd(), "migrations");
     if (process.env.NODE_ENV === "production") {
       const distMigrations = path.resolve(process.cwd(), "dist", "migrations");
