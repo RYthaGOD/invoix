@@ -123,6 +123,12 @@ export async function runMigrations() {
     await migrate(db, { migrationsFolder });
     console.log('✅ Migrations completed successfully');
   } catch (error: any) {
+    // Treat "relation already exists" as a non-fatal warning
+    if (error.code === '42P07' || error.message?.includes('already exists')) {
+      console.warn('⚠️ Migration warning: Schema objects already exist. Assuming localized DB is up to date.');
+      console.warn('   Details:', error.message);
+      return; // Continue startup
+    }
     console.error('❌ Migration failed:', error);
     throw error;
   }
