@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Trash2 } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { InvoiceForm, InvoiceFormData } from "@/components/invoice-form";
+import { useCreateInvoiceWithArcium } from "@/hooks/use-arcium";
 import { VersionedTransaction, Connection, clusterApiUrl, Transaction, SystemProgram, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { TREASURY_WALLET_ADDRESS, INVOICE_SERVICE_FEE_SOL } from "@shared/config";
 import { Buffer } from "buffer";
@@ -25,6 +26,7 @@ export default function InvoiceCreate() {
   const { walletAddress, isAuthenticated, login, authMode } = useAuth();
   const wallet = useWallet();
   const { connected } = wallet;
+  const { createOnChainInvoice, status: arciumStatus, isProcessing: isArciumProcessing } = useCreateInvoiceWithArcium();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mintingStatus, setMintingStatus] = useState<string>("");
@@ -254,13 +256,42 @@ export default function InvoiceCreate() {
         description: message,
       });
 
-      // Verify Arcium Encryption Status
-      if (data.encryptWithArcium && !invoice.isArciumEncrypted) {
-        toast({
-          variant: "destructive",
-          title: "Privacy Warning",
-          description: "Arcium TEE was unavailable. Invoice was created WITHOUT encryption.",
-        });
+      // Verify Arcium Encryption Status & Create On-Chain Account
+      if (data.encryptWithArcium) {
+        if (!invoice.isArciumEncrypted) {
+          toast({
+            variant: "destructive",
+            title: "Privacy Warning",
+            description: "Arcium TEE was unavailable. Invoice was created WITHOUT encryption.",
+          });
+        } else {
+          // Trigger On-Chain Flow
+          try {
+            // Update text to reflect Arcium status
+            setMintingStatus("Securing with Arcium TEE...");
+
+            await createOnChainInvoice({
+              invoiceId: invoice.id,
+              amount: invoice.totalAmount, // Use server returned amount
+              dueDate: invoice.dueDate,
+              currency: invoice.currency,
+              invoiceeWalletAddress: invoice.invoiceeWalletAddress
+            });
+
+            toast({
+              title: "Arcium Secure",
+              description: "Invoice encrypted and verified on-chain.",
+            });
+          } catch (arciumErr) {
+            // Don't block navigation, but show warning
+            console.error("Arcium chain error", arciumErr);
+            toast({
+              variant: "destructive",
+              title: "On-Chain Setup Pending",
+              description: "Invoice created but on-chain account failed. You can retry from details page."
+            });
+          }
+        }
       }
 
       // 2. Handle Client-Side Minting (if selected)
@@ -409,8 +440,8 @@ export default function InvoiceCreate() {
         {/* Reusable Form Component */}
         <InvoiceForm
           onSubmit={onSubmit}
-          isSubmitting={isSubmitting}
-          mintingStatus={mintingStatus}
+          isSubmitting={isSubmitting || isArciumProcessing}
+          mintingStatus={isArciumProcessing ? arciumStatus : mintingStatus}
           connected={authMode === 'passkey' ? isAuthenticated : connected} // Passkey auth replaces connected
           templates={templates}
           onTemplateSelect={setSelectedTemplateId}

@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { marketplaceSdk } from "@/lib/marketplace";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useDecryptInvoice } from "@/hooks/use-arcium";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -138,6 +139,38 @@ export default function InvoiceDetail() {
   const [sellDescription, setSellDescription] = useState("");
   const [isBlind, setIsBlind] = useState(false);
   const [isListing, setIsListing] = useState(false);
+
+  // Arcium Decryption
+  const { decryptInvoice, isDecrypting } = useDecryptInvoice();
+
+  const handleUnlock = async () => {
+    if (!invoice) return;
+    try {
+      const decryptedData = await decryptInvoice(invoice.id);
+
+      // Update local state with decrypted data
+      setInvoice(prev => prev ? ({
+        ...prev,
+        description: decryptedData.description,
+        // If other fields were encrypted, update them here
+      }) : null);
+
+      if (decryptedData.lineItems) {
+        setLineItems(decryptedData.lineItems);
+      }
+
+      toast({
+        title: "Decryption Successful",
+        description: "Confidential details revealed securely."
+      });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Decryption Failed",
+        description: err.message
+      });
+    }
+  };
 
 
   // Solana Pay Logic
@@ -906,6 +939,43 @@ export default function InvoiceDetail() {
               <div className="text-white">{invoice.paymentTerms || "Net 30"}</div>
             </div>
           </div>
+
+          {/* Arcium Unlock Section */}
+          {invoice.isArciumEncrypted && invoice.description?.includes('ARCIUM_MASKED') && (
+            <div className="glass-card p-6 border-l-4 border-cyan-500 mt-6 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-cyan-500/5 group-hover:bg-cyan-500/10 transition-colors" />
+              <div className="relative flex justify-between items-center flex-wrap gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-cyan-400" />
+                    Confidential Invoice
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    This invoice contains encrypted data protected by Arcium TEE.
+                    <br />
+                    <span className="text-xs text-cyan-500/70">Only authorized parties (You + Counterparty) can decrypt.</span>
+                  </p>
+                </div>
+                <button
+                  onClick={handleUnlock}
+                  disabled={isDecrypting}
+                  className="smoke-shadow px-6 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
+                >
+                  {isDecrypting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Decrypting...
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="w-4 h-4" />
+                      Unlock Details
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Parties */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-white/10">

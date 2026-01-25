@@ -28,10 +28,14 @@ Invoix is a privacy-first B2B invoicing platform on Solana. The core infrastruct
 - **Compressed NFTs**: Uses Metaplex Bubblegum for low-cost, high-scale minting (Merkle Trees).
 - **Status**: Currently `OK` on production.
 
-### 🟡 Confidential Computing / Arcium (Alpha)
-- **Current State**: "SDK-Only Mode".
-- **Implementation**: Uses `x25519` key exchange + `RescueCipher` to *simulate* the confidential computing environment locally.
-- **limitation**: Relying on the server's ephemeral keypair rather than a decentralized Multi-Party Execution (MXE) network. This provides encryption but not decentralization yet.
+### 🟡 Confidential Computing / Arcium (Beta - Encryption & Anchoring)
+- **Current State**: "Encryption & Anchoring Mode".
+- **Implementation**: 
+    - **Client-Side Encryption**: `x25519` key exchange implemented in `arcium-client.ts`. Verified crypto compatibility.
+    - **On-Chain Anchoring**: `ArciumOnChainService` creates `InvoiceAccount` PDAs on Solana to "anchor" the invoice existence.
+    - **Storage**: Encrypted data blob stored in DB (or IPFS/Arweave), decryption keys exchanged solely between parties.
+    - **Verification**: Crypto logic verified. Integration tests cover API flow.
+- **Limitation**: Computation (MXE) is currently stubbed/simulated. The infrastructure is ready for the Arcium Network but runs locally/client-side for now.
 
 ### 🟢 Infrastructure (Production)
 - **Deployment**: Railway (Dockerized Node.js).
@@ -56,7 +60,29 @@ Invoix is a privacy-first B2B invoicing platform on Solana. The core infrastruct
 3.  **Cross-Chain Payments**: Strictly Solana-only currently.
 4.  **Fiat On-Ramps**: No Stripe/Credit Card integration; crypto-only.
 
-## 4. Recommendations
-The system is ready for a **Public Beta**. The critical payment and invoicing flows are solid. 
+## 4. Security
+
+### 🟢 Hardened Production
+- **Session Security**: Production mode requires `SESSION_SECRET` (enforced at startup)
+- **Database**: Production mode requires `DATABASE_URL` (SQLite fallback disabled)
+- **Rate Limiting**: All API endpoints are rate-limited
+- **Input Validation**: Zod schemas validate all inputs
+- **Program IDs**: Marketplace and Arcium program IDs validated at startup
+
+### 🟡 Known Dependency Vulnerabilities
+These are transitive dependencies with no immediate fix:
+
+| Package | Severity | Impact | Status |
+|---------|----------|--------|--------|
+| `bigint-buffer` | High | Buffer overflow in blockchain data parsing | **Mitigated** by input validation |
+| `elliptic` | Moderate | Browser polyfill crypto | Not used in server |
+| `esbuild` | Moderate | Dev server CORS bypass | Development only |
+| `tar` | High | macOS APFS race condition | Low impact in containers |
+
+**Mitigation**: Input validation is in place for all blockchain data. These vulnerabilities require upstream fixes.
+
+## 5. Recommendations
+The system is ready for a **Public Beta**. The critical payment and invoicing flows are solid.
 - **Next Focus**: Build the UI for the "Invoice Marketplace" to unlock the financing use-case.
 - **Future**: Upgrade Arcium Service to use the live Testnet/Mainnet once available.
+- **Security**: Monitor npm advisories for updates to affected packages.

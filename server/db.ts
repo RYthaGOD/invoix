@@ -13,8 +13,22 @@ const schemaPg = { ...schemaPgCore, ...schemaWebhooks };
 
 // Use SQLite for local development (no DATABASE_URL needed)
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
-// Fail-safe: Use SQLite if no DATABASE_URL is provided, even in production (e.g. local preview)
+const isProduction = process.env.NODE_ENV === 'production';
+
+// CRITICAL: In production, DATABASE_URL is REQUIRED
+// We only fall back to SQLite in development/test modes
 const useSQLite = !process.env.DATABASE_URL;
+
+if (useSQLite && isProduction) {
+  console.error('❌ CRITICAL: DATABASE_URL is not set in production mode!');
+  console.error('   SQLite is not suitable for production use.');
+  console.error('   Please set DATABASE_URL to a PostgreSQL connection string.');
+  throw new Error('DATABASE_URL environment variable is required in production mode');
+}
+
+if (useSQLite && !isProduction) {
+  console.warn('⚠️  Using SQLite database - this is only suitable for development/testing');
+}
 
 // Export the schema so other files can use the correct one (SQLite vs Postgres)
 // WE CAST TO schemaPg TYPE TO SATISFY TYPESCRIPT

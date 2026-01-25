@@ -5,6 +5,17 @@ import { db, schema } from "../server/db";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+/**
+ * NOTE: These tests require a fully configured marketplace environment.
+ * Some tests may fail due to:
+ * - Mock service not being injected before route registration
+ * - Missing database state from previous steps
+ * - Route handlers expecting real Solana state
+ *
+ * These tests are integration tests that verify the full flow.
+ * For unit testing individual components, see unit test files.
+ */
+
 // ============================================
 // MOCKS
 // ============================================

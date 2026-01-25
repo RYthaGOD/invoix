@@ -415,6 +415,11 @@ export function registerMarketplaceRoutes(app: Express): void {
             // Simple MVP: Create it. If they don't sign, it's a "Ghost Listing" (purchase will fail).
             // or we could add a flag 'transferredToEscrow'.
 
+            // Handle riskFlags serialization for SQLite (stores as JSON string) vs PostgreSQL (native array)
+            const riskFlagsValue = process.env.DATABASE_URL
+                ? risk.flags  // PostgreSQL: native array
+                : JSON.stringify(risk.flags) as any;  // SQLite: JSON string
+
             const [listing] = await db.insert(schema.invoiceMarketplace)
                 .values({
                     invoiceId,
@@ -428,7 +433,7 @@ export function registerMarketplaceRoutes(app: Express): void {
                     currency: invoice.currency,
                     riskScore: risk.score,
                     riskLevel: risk.level,
-                    riskFlags: risk.flags,
+                    riskFlags: riskFlagsValue,
                     sellerCreditScore: sellerScore?.score,
                     sellerCreditTier: sellerScore?.tier,
                     customerCreditScore: customerScore?.score || null,

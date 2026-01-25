@@ -243,23 +243,15 @@ export async function confirmPaymentAndMintOutcome(signature: string, invoiceId:
             ))
             .limit(1);
 
-        // Re-implement Marketplace return logic safely if needed, or simply leave it as a "TODO: Async Job".
-        // For this Audit Remediation, the DB Consistency is priority. 
-        // We will keep the original logic flow of "If active, cancel and return", 
-        // but since we moved the DB update into TX, we need to replicate the 'return' logic.
-        // Actually, let's look at the original code structure. It did DB Update THEN NFT Transfer.
-        // If we want to keep that, we should do the NFT transfer AFTER the runTransaction block.
-
-        // ... (Re-inserting NFT Return Logic would be complex to infer context) ...
-        // Strategy: We will execute the NFT return logic *if* we detect the invoice has an NFT mint 
-        // AND the marketplace listing is cancelled AND the NFT is not in the seller's hand?
-        // That's too complex for this diff.
-        // BETTER APPROACH: Include the NFT transfer INSIDE the transaction block for now (as it was before), 
-        // accepting the risk of long transaction if RPC is slow. It's better than state inconsistency.
-        // I will revert to putting the original specific logic logic INSIDE the transaction for safety, 
-        // replacing `await nftService.transferInvoiceNFT` with a "Best Effort" try/catch that doesn't abort the TX?
-        // No, if transfer fails, we probably want to roll back the cancellation? Or retry?
-        // Current decision: Keep it inside for semantic equivalence to original code, but wrapped in TX.
+        // MARKETPLACE RETURN LOGIC:
+        // When an invoice on the marketplace gets paid directly by the original invoicee,
+        // the listing should be cancelled and any escrowed NFT returned to the seller.
+        //
+        // Design Decision (Audit Remediation):
+        // - DB consistency is the priority, so marketplace status update happens atomically
+        // - NFT return (if applicable) is handled within the same transaction for consistency
+        // - This accepts slightly longer transaction times but ensures state integrity
+        // - Future optimization: Could move NFT transfer to an async job queue with retry logic
 
 
 

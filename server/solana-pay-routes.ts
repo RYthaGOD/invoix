@@ -39,11 +39,16 @@ export function registerSolanaPayRoutes(app: Express) {
             }
 
             // --- SOLANA ACTIONS (BLINK) METADATA ---
+            // SECURITY: Only show minimal info needed for the Blink to work
+            // Full details are validated in POST when payer authenticates
+            const truncatedRecipient = invoice.invoicerWalletAddress.slice(0, 4) + "..." + invoice.invoicerWalletAddress.slice(-4);
+
             res.status(200).json({
                 icon: `${BASE_URL}/logo.png`, // Must be absolute URL
                 title: `Invoice #${invoice.invoiceNumber}`,
-                description: `Pay ${invoice.remainingAmount} ${invoice.currency} to ${invoice.invoicerWalletAddress.slice(0, 4)}...${invoice.invoicerWalletAddress.slice(-4)}. Due: ${new Date(invoice.dueDate).toLocaleDateString()}`,
+                description: `Pay ${invoice.remainingAmount} ${invoice.currency} to ${truncatedRecipient}`,
                 label: `Pay ${invoice.remainingAmount} ${invoice.currency}`,
+                // Note: Sensitive details (due date, full amounts) only shown after payer auth in POST
                 links: {
                     actions: [
                         {

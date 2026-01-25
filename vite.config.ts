@@ -35,22 +35,58 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: {
+            // Core React
             vendor: ["react", "react-dom", "wouter"],
+
+            // UI Components (Radix + animations)
             ui: [
               "@radix-ui/react-slot",
               "@radix-ui/react-accordion",
+              "@radix-ui/react-dialog",
+              "@radix-ui/react-dropdown-menu",
+              "@radix-ui/react-select",
+              "@radix-ui/react-tabs",
+              "@radix-ui/react-toast",
+              "@radix-ui/react-tooltip",
               "framer-motion",
               "lucide-react",
               "clsx",
               "tailwind-merge",
             ],
-            solana: [
+
+            // Solana core
+            "solana-core": [
               "@solana/web3.js",
+            ],
+
+            // Solana wallet adapters
+            "solana-wallet": [
               "@solana/wallet-adapter-base",
               "@solana/wallet-adapter-react",
               "@solana/wallet-adapter-react-ui",
             ],
-            utils: ["date-fns", "zod", "bs58", "buffer"],
+
+            // SPL Token (separate chunk for tree-shaking)
+            "solana-spl": [
+              "@solana/spl-token",
+            ],
+
+            // Metaplex (large - separate chunk)
+            metaplex: [
+              "@metaplex-foundation/umi",
+              "@metaplex-foundation/mpl-token-metadata",
+            ],
+
+            // React Query
+            query: [
+              "@tanstack/react-query",
+            ],
+
+            // Utilities
+            utils: ["date-fns", "zod", "bs58", "buffer", "decimal.js"],
+
+            // Charts (if using recharts/chart.js)
+            charts: ["recharts"],
           },
         },
       },

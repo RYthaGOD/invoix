@@ -48,11 +48,13 @@ logger.info("Config reload trigger", "system", { timestamp: Date.now() });
 checkSecurityEnvVars();
 
 export const app = express();
-const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
 
+// Session secret validation - MUST fail in production if not set
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
-  logger.warn("SESSION_SECRET not set in production! Using insecure default.", "security");
+  logger.error("CRITICAL: SESSION_SECRET not set in production! Server cannot start.", "security");
+  throw new Error("SESSION_SECRET environment variable is required in production mode");
 }
+const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-in-production";
 
 // Trust proxy - MUST be set before rate limiting middleware
 app.set('trust proxy', true);
@@ -350,7 +352,10 @@ export const startupPromise = (async () => {
     app.use(errorHandler);
 
     // 5. Static Assets
-    if (app.get("env") === "development") {
+    // Skip static file serving in test mode - we're testing the API, not the frontend
+    if (process.env.NODE_ENV === "test") {
+      logger.info("Test mode: skipping static file serving", "boot");
+    } else if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);

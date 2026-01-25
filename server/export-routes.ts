@@ -1,12 +1,23 @@
-import { Router, Request } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { invoiceStorage } from "./invoice-storage";
 import { Parser } from "json2csv";
 import type { Invoice } from "./invoice-storage";
+import rateLimit from "express-rate-limit";
+import { logger } from "./logger";
 
 const router = Router();
 
+// Rate limiter for exports (10 requests per 15 minutes - prevent bulk data extraction)
+const exportRateLimit = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,
+    message: { success: false, message: "Too many export requests. Please try again later." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // Mounted at /api/exports via routes.ts
-router.get("/:type", async (req, res) => {
+router.get("/:type", exportRateLimit, async (req, res) => {
     // 1. Auth Check - Use session-based auth
     if (!req.session?.walletAddress) {
         return res.status(401).json({ success: false, message: "Unauthorized - Please log in" });
@@ -74,7 +85,7 @@ router.get("/:type", async (req, res) => {
         res.send(csv);
 
     } catch (error: any) {
-        console.error("Export failed:", error);
+        logger.error("Export failed", "export", { error: error.message });
         res.status(500).send("Export failed");
     }
 });

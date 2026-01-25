@@ -5,6 +5,26 @@
 
 import { log } from "./vite";
 
+// Base58 alphabet for Solana public keys
+const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+/**
+ * Validate that a string is a valid base58-encoded Solana public key
+ */
+function isValidBase58PublicKey(value: string): boolean {
+  // Solana public keys are 32 bytes, base58 encoded to 32-44 characters
+  if (value.length < 32 || value.length > 44) {
+    return false;
+  }
+  // Check all characters are valid base58
+  for (const char of value) {
+    if (!BASE58_ALPHABET.includes(char)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 interface EnvVar {
   key: string;
   required: boolean;
@@ -95,8 +115,12 @@ const ENVIRONMENT_VARIABLES: EnvVar[] = [
   {
     key: "MARKETPLACE_PROGRAM_ID",
     required: false,
-    description: "Program ID for the Invoice Marketplace Smart Contract",
-    defaultValue: "InvxMkt111111111111111111111111111111111111",
+    description: "Program ID for the Invoice Marketplace Smart Contract (no default - must be set for marketplace features)",
+  },
+  {
+    key: "ARCIUM_PROGRAM_ID",
+    required: false,
+    description: "Program ID for Arcium MXE on-chain accounts (no default - must be set for Arcium features)",
   },
 ];
 
@@ -156,6 +180,15 @@ export function validateEnvironment(): void {
           `❌ SOLANA_RPC_URL must be a valid HTTP/HTTPS URL`
         );
       }
+
+      // Validate program IDs are valid base58 public keys
+      if ((envVar.key === "MARKETPLACE_PROGRAM_ID" || envVar.key === "ARCIUM_PROGRAM_ID") && value) {
+        if (!isValidBase58PublicKey(value)) {
+          errors.push(
+            `❌ ${envVar.key} must be a valid Solana public key (base58 encoded, 32-44 characters)`
+          );
+        }
+      }
     }
   }
 
@@ -163,6 +196,13 @@ export function validateEnvironment(): void {
   if (process.env.ENABLE_NFT_MINTING === 'true' && !process.env.PAYER_PRIVATE_KEY) {
     errors.push(
       `❌ PAYER_PRIVATE_KEY is required when NFT Minting is enabled.\n   This key is needed to mint 'Glass Citadel' audit receipts.\n   💡 FIX: Run 'npx tsx scripts/generate-payer.ts' to create one automatically.`
+    );
+  }
+
+  // Dynamic Validation: Arcium Encryption Requirements
+  if (process.env.ENABLE_ARCIUM_ENCRYPTION === 'true' && !process.env.ARCIUM_PROGRAM_ID) {
+    warnings.push(
+      `⚠️  ARCIUM_PROGRAM_ID not set but Arcium encryption is enabled.\n   On-chain invoice accounts will not be created.\n   💡 FIX: Set ARCIUM_PROGRAM_ID to your deployed Arcium MXE program.`
     );
   }
 

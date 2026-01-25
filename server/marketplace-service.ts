@@ -13,16 +13,36 @@ import { getSolanaConnection, getBlockhash } from "./solana-sdk";
  * Handles interaction with the Non-Custodial Marketplace Smart Contract
  */
 
-// Placeholder ID - User must update after deployment
-const PROGRAM_ID = new PublicKey(process.env.MARKETPLACE_PROGRAM_ID || "InvxMkt111111111111111111111111111111111111");
+// Program ID - MUST be configured via environment variable
+function getMarketplaceProgramId(): PublicKey {
+    const programIdStr = process.env.MARKETPLACE_PROGRAM_ID;
+    if (!programIdStr) {
+        throw new Error(
+            "MARKETPLACE_PROGRAM_ID environment variable is not set. " +
+            "Please deploy your marketplace program and set this variable."
+        );
+    }
+    return new PublicKey(programIdStr);
+}
 
-// Minimal IDL for the Marketplace Program
-const IDL: any = {
-    "version": "0.1.0",
-    "name": "marketplace_program",
-    "metadata": {
-        "address": PROGRAM_ID.toString()
-    },
+// Lazy initialization to allow service to be imported without failing
+let PROGRAM_ID: PublicKey | null = null;
+function getProgramId(): PublicKey {
+    if (!PROGRAM_ID) {
+        PROGRAM_ID = getMarketplaceProgramId();
+    }
+    return PROGRAM_ID;
+}
+
+// Minimal IDL for the Marketplace Program (address set dynamically)
+function getMarketplaceIDL(): any {
+    const programId = getProgramId();
+    return {
+        "version": "0.1.0",
+        "name": "marketplace_program",
+        "metadata": {
+            "address": programId.toString()
+        },
     "instructions": [
         {
             "name": "listInvoice",
@@ -99,12 +119,13 @@ const IDL: any = {
             ]
         }
     ]
-};
+    };
+}
 
 export class MarketplaceService {
     private connection: Connection;
     private provider: anchor.AnchorProvider;
-    private program: any;
+    private _program: any = null;
 
     constructor() {
         this.connection = getSolanaConnection();
@@ -116,7 +137,16 @@ export class MarketplaceService {
             commitment: "confirmed",
         });
 
-        this.program = new Program(IDL, this.provider);
+        // Program is lazily initialized to allow service import without failing
+        // if MARKETPLACE_PROGRAM_ID is not set
+    }
+
+    // Lazy program initialization
+    private get program(): any {
+        if (!this._program) {
+            this._program = new Program(getMarketplaceIDL(), this.provider);
+        }
+        return this._program;
     }
 
     /**
@@ -160,10 +190,10 @@ export class MarketplaceService {
 
             const treeAuthority = await this.getTreeAuthority(new PublicKey(tree_id));
 
-            // Arcium Program ID
-            const arciumProgramId = new PublicKey(
-                process.env.ARCIUM_PROGRAM_ID || "5qs2TBEvAUEJiUVj7XupdjVxz9UyAxSy6mEkRSGyDbqe"
-            );
+            // Arcium Program ID - use SystemProgram as placeholder if not configured
+            const arciumProgramId = process.env.ARCIUM_PROGRAM_ID
+                ? new PublicKey(process.env.ARCIUM_PROGRAM_ID)
+                : SystemProgram.programId;
 
             // Invoice Account - use provided PDA or default to system program (placeholder)
             const invoiceAccount = arciumInvoicePda
@@ -249,9 +279,9 @@ export class MarketplaceService {
             // Token Accounts (with Token-2022 support)
             const buyerAta = await this.getAta(buyer, new PublicKey(currencyMint), tokenProgramPubkey);
             const sellerAta = await this.getAta(seller, new PublicKey(currencyMint), tokenProgramPubkey);
-            const treasuryWallet = process.env.TREASURY_WALLET || process.env.PLATFORM_TREASURY_WALLET;
+            const treasuryWallet = process.env.PLATFORM_TREASURY_WALLET;
             if (!treasuryWallet) {
-                throw new Error("Treasury wallet not configured (TREASURY_WALLET or PLATFORM_TREASURY_WALLET)");
+                throw new Error("PLATFORM_TREASURY_WALLET environment variable is required");
             }
             const treasuryAta = await this.getAta(new PublicKey(treasuryWallet), new PublicKey(currencyMint), tokenProgramPubkey);
 

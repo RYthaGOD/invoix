@@ -1,6 +1,7 @@
 
 import { db, schema } from "./db";
-import { eq, and, lt } from "drizzle-orm";
+import { eq, and, lt, sql } from "drizzle-orm";
+
 import { logger } from "./logger";
 import { PublicKey } from "@solana/web3.js";
 
@@ -162,7 +163,9 @@ async function reconcileActiveListings() {
                         await db.update(schema.invoices)
                             .set({
                                 nftTransferredTo: currentOwner,
-                                nftBurnedAt: null
+                                nftBurnedAt: null,
+                                // CRITICAL: Sync Arcium Allowed Parties for decryption access
+                                arciumAllowedParties: sql`array_append(${schema.invoices.arciumAllowedParties}, ${currentOwner})`
                             })
                             .where(eq(schema.invoices.id, listing.invoiceId));
                     }

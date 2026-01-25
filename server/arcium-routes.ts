@@ -17,6 +17,7 @@ import { db } from './db';
 import { invoices } from '../shared/invoice-schema';
 import { eq } from 'drizzle-orm';
 import { logger } from './logger';
+import { Connection } from '@solana/web3.js';
 
 const router = Router();
 
@@ -27,12 +28,13 @@ const router = Router();
 router.get('/status', (req, res) => {
     try {
         const arciumService = getArciumService();
-        const programId = process.env.ARCIUM_PROGRAM_ID || '5qs2TBEvAUEJiUVj7XupdjVxz9UyAxSy6mEkRSGyDbqe';
+        const programId = process.env.ARCIUM_PROGRAM_ID;
 
         res.json({
             available: arciumService.isAvailable(),
+            configured: !!programId,
             mode: process.env.ARCIUM_MODE || 'sdk-only',
-            programId,
+            programId: programId || null,
             encryptionEnabled: process.env.ENABLE_ARCIUM_ENCRYPTION === 'true',
             network: process.env.SOLANA_NETWORK || 'devnet',
         });
@@ -55,6 +57,13 @@ router.get('/invoice-pda/:invoiceId', (req, res) => {
             return res.status(400).json({ error: 'Authority public key required' });
         }
 
+        if (!process.env.ARCIUM_PROGRAM_ID) {
+            return res.status(503).json({
+                error: 'Arcium program not configured',
+                message: 'ARCIUM_PROGRAM_ID environment variable is not set'
+            });
+        }
+
         const onChainService = getArciumOnChainService();
         const pda = onChainService.getInvoicePdaPreview(authority, invoiceId);
 
@@ -62,7 +71,7 @@ router.get('/invoice-pda/:invoiceId', (req, res) => {
             pda,
             invoiceId,
             authority,
-            programId: process.env.ARCIUM_PROGRAM_ID || '5qs2TBEvAUEJiUVj7XupdjVxz9UyAxSy6mEkRSGyDbqe',
+            programId: process.env.ARCIUM_PROGRAM_ID,
         });
     } catch (error: any) {
         logger.error('Failed to derive invoice PDA', 'arcium-routes', {
@@ -228,9 +237,12 @@ router.post('/decrypt', requireAuth, async (req, res) => {
         }
 
         // 3. Authorization check - only invoice parties can decrypt
+        // SECURITY FIX: Include marketplace buyer (nftTransferredTo) in authorized list
         const isAuthorized =
             invoice.invoicerWalletAddress === requestorPublicKey ||
-            invoice.invoiceeWalletAddress === requestorPublicKey;
+            invoice.invoiceeWalletAddress === requestorPublicKey ||
+            (invoice as any).nftTransferredTo === requestorPublicKey ||
+            ((invoice.arciumAllowedParties as string[]) || []).includes(requestorPublicKey);
 
         if (!isAuthorized) {
             logger.warn('Unauthorized decryption attempt', 'arcium-routes', {
@@ -238,6 +250,7 @@ router.post('/decrypt', requireAuth, async (req, res) => {
                 requestor: requestorPublicKey,
                 invoicer: invoice.invoicerWalletAddress,
                 invoicee: invoice.invoiceeWalletAddress,
+                owner: (invoice as any).nftTransferredTo
             });
             return res.status(403).json({ error: 'Unauthorized - you are not a party to this invoice' });
         }
@@ -288,6 +301,29 @@ router.post('/update-pda', requireAuth, async (req, res) => {
 
         if (!invoiceId || !pda) {
             return res.status(400).json({ error: 'Invoice ID and PDA required' });
+        }
+
+        // SECURITY: Verify the transaction actually happened on-chain
+        if (txSignature) {
+            try {
+                const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+                const tx = await connection.getTransaction(txSignature, { maxSupportedTransactionVersion: 0 });
+
+                if (!tx) {
+                    return res.status(400).json({ error: 'Transaction not found on-chain' });
+                }
+
+                if (tx.meta?.err) {
+                    return res.status(400).json({ error: 'Transaction failed on-chain' });
+                }
+
+                // Optional: Verify the transaction actually interacts with our program or the specific PDA
+                // This prevents users from submitting random valid signatures
+            } catch (txErr) {
+                logger.warn('Failed to verify on-chain transaction', 'arcium-routes', { error: txErr });
+                // We don't block here if RPC fails, but we log it. 
+                // In strict mode, we might want to fail.
+            }
         }
 
         // Update invoice with PDA and signature

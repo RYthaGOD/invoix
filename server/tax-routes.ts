@@ -1,6 +1,6 @@
 
 import { Router } from "express";
-import { requireWalletOwnership } from "./security";
+import { requireWalletOwnership, globalRateLimit, strictRateLimit } from "./security";
 import {
     getAnnualTaxSummary,
     getTransactionExport
@@ -14,7 +14,7 @@ export function registerTaxRoutes(app: any) {
      * Get available tax years
      * Returns list of years where user has activity
      */
-    router.get("/years", requireWalletOwnership, async (req, res) => {
+    router.get("/years", requireWalletOwnership, globalRateLimit, async (req, res) => {
         try {
             // For now, simple implementation: current year and last year
             // Real impl would query DB for min/max invoice dates
@@ -32,7 +32,7 @@ export function registerTaxRoutes(app: any) {
     /**
      * Get annual summary for dashboard
      */
-    router.get("/summary/:year", requireWalletOwnership, async (req, res) => {
+    router.get("/summary/:year", requireWalletOwnership, globalRateLimit, async (req, res) => {
         try {
             const year = parseInt(req.params.year);
             const wallet = (req as any).authenticatedWallet;
@@ -52,7 +52,7 @@ export function registerTaxRoutes(app: any) {
     /**
      * Get 1099-K Threshold Status
      */
-    router.get("/threshold/:year", requireWalletOwnership, async (req, res) => {
+    router.get("/threshold/:year", requireWalletOwnership, globalRateLimit, async (req, res) => {
         try {
             const year = parseInt(req.params.year);
             const wallet = (req as any).authenticatedWallet;
@@ -84,7 +84,7 @@ export function registerTaxRoutes(app: any) {
     /**
      * Export Transactions as CSV
      */
-    router.get("/export/:year/csv", requireWalletOwnership, async (req, res) => {
+    router.get("/export/:year/csv", requireWalletOwnership, strictRateLimit, async (req, res) => {
         try {
             const year = parseInt(req.params.year);
             const wallet = (req as any).authenticatedWallet;

@@ -1,15 +1,27 @@
 
 import type { Express } from "express";
 import { invoiceStorage } from "./invoice-storage";
-import { strictRateLimit, requireWalletOwnership } from "./security";
+import { strictRateLimit, globalRateLimit, requireWalletOwnership } from "./security";
 import { InsertCustomerProfile, customerProfiles } from "@shared/invoice-schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
+
+// Zod validation schema for customer creation/update
+const customerSchema = z.object({
+    customerWalletAddress: z.string().min(32).max(44),
+    customerName: z.string().min(1).max(200),
+    customerEmail: z.string().email().optional().nullable(),
+    customerPhone: z.string().max(50).optional().nullable(),
+    customerAddress: z.string().max(500).optional().nullable(),
+    customerNotes: z.string().max(2000).optional().nullable(),
+    paymentTerms: z.string().max(100).optional().nullable(),
+});
 
 export function registerCustomerRoutes(app: Express): void {
 
     // GET /api/customers?wallet=...
-    app.get("/api/customers", requireWalletOwnership, async (req, res) => {
+    app.get("/api/customers", requireWalletOwnership, globalRateLimit, async (req, res) => {
         try {
             const walletAddress = req.query.wallet as string;
             const customers = await invoiceStorage.getCustomerProfiles(walletAddress);
@@ -23,16 +35,22 @@ export function registerCustomerRoutes(app: Express): void {
     // POST /api/customers
     app.post("/api/customers", requireWalletOwnership, strictRateLimit, async (req, res) => {
         try {
-            const customerData: InsertCustomerProfile = req.body;
+            // Zod validation
+            const parseResult = customerSchema.safeParse(req.body);
+            if (!parseResult.success) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Validation error",
+                    errors: parseResult.error.errors
+                });
+            }
 
             // FIX R3-11: Force businessWalletAddress from authenticated session
             // Prevents users from creating customers under someone else's wallet
-            customerData.businessWalletAddress = req.session.walletAddress!;
-
-            // Basic validation
-            if (!customerData.customerWalletAddress || !customerData.customerName) {
-                return res.status(400).json({ success: false, message: "Missing required fields" });
-            }
+            const customerData: InsertCustomerProfile = {
+                ...parseResult.data,
+                businessWalletAddress: req.session.walletAddress!,
+            };
 
             const newCustomer = await invoiceStorage.createCustomerProfile(customerData);
             res.json({ success: true, customer: newCustomer });
@@ -43,7 +61,7 @@ export function registerCustomerRoutes(app: Express): void {
     });
 
     // PATCH /api/customers/:id
-    app.patch("/api/customers/:id", requireWalletOwnership, async (req, res) => {
+    app.patch("/api/customers/:id", requireWalletOwnership, globalRateLimit, async (req, res) => {
         try {
             const { id } = req.params;
             const sessionWallet = req.session.walletAddress!;
@@ -75,7 +93,7 @@ export function registerCustomerRoutes(app: Express): void {
     });
 
     // DELETE /api/customers/:id
-    app.delete("/api/customers/:id", requireWalletOwnership, async (req, res) => {
+    app.delete("/api/customers/:id", requireWalletOwnership, strictRateLimit, async (req, res) => {
         try {
             const { id } = req.params;
             const sessionWallet = req.session.walletAddress!;

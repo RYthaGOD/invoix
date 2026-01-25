@@ -8,6 +8,7 @@ import { LineItemEditor } from "@/components/line-item-editor";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { safeAdd, safeMultiply, safeSubtract } from "@shared/math";
 import { getCurrencySymbol } from "@/lib/currency-utils";
+import { PrivacyControls } from "./privacy-controls";
 
 export interface LineItem {
     description: string;
@@ -54,7 +55,7 @@ export function InvoiceForm({
     onTemplateSelect,
     solPrice
 }: InvoiceFormProps) {
-    const { register, control, handleSubmit, watch, reset, formState: { errors } } = useForm<InvoiceFormData>({
+    const { register, control, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<InvoiceFormData>({
         defaultValues: {
             currency: "USDC",
             customerEmail: "",
@@ -406,50 +407,7 @@ export function InvoiceForm({
                     </label>
 
                     <div className="space-y-3">
-                        <label className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-all cursor-pointer group border border-transparent hover:border-white/10">
-                            <div className="pt-1">
-                                <input
-                                    {...register("encryptWithArcium")}
-                                    type="checkbox"
-                                    className="w-5 h-5 rounded border-cyan-500/50 bg-cyan-500/5 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-0"
-                                />
-                            </div>
-                            <div className="flex-1">
-                                <div className="text-white font-medium group-hover:text-cyan-300 transition-colors flex items-center gap-2">
-                                    Arcium MXE Encryption 🔐
-                                    <div className="relative group/tooltip">
-                                        <Info className="w-3 h-3 text-cyan-500/50 cursor-help" />
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-black/90 border border-cyan-500/20 rounded text-xs text-cyan-100 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10">
-                                            Multi-Party Execution Environment ensures data remains encrypted even during processing. Only you and the client hold the keys.
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="text-gray-400 text-sm">
-                                    End-to-end encryption using Arcium Confidential Computing.
-                                </div>
-                            </div>
-                        </label>
-
-                        <AnimatePresence>
-                            {watch("encryptWithArcium") && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden"
-                                >
-                                    <div className="px-12 py-3 bg-cyan-500/5 border-l-2 border-cyan-500/30 rounded-r-lg space-y-2">
-                                        <div className="text-[10px] text-cyan-400 font-bold flex items-center gap-1">
-                                            <ShieldCheck className="w-3 h-3" />
-                                            CONFIDENTIAL DATA MASKING ENABLED
-                                        </div>
-                                        <p className="text-xs text-gray-400 leading-relaxed italic">
-                                            "Only you and the customer will be able to see the decrypted data. Unauthorized parties will only see masked identifiers."
-                                        </p>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        <PrivacyControls register={register} watch={watch} setValue={setValue} />
                     </div>
                 </div>
             </motion.div>

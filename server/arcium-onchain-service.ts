@@ -10,51 +10,68 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { logger } from "./logger";
 import { createHash } from "crypto";
+import { Buffer } from "buffer";
+import { getTokenMint, getDecimalsForMint } from "@shared/config";
 
-// Arcium MXE Program ID
-const ARCIUM_PROGRAM_ID = new PublicKey(
-    process.env.ARCIUM_PROGRAM_ID || "5qs2TBEvAUEJiUVj7XupdjVxz9UyAxSy6mEkRSGyDbqe"
-);
 
-// Minimal IDL for Arcium MXE create_invoice instruction
-const ARCIUM_IDL: any = {
-    version: "0.1.0",
-    name: "arcium_mxe",
-    metadata: { address: ARCIUM_PROGRAM_ID.toString() },
-    instructions: [
-        {
-            name: "createInvoice",
-            accounts: [
-                { name: "invoice", isMut: true, isSigner: false },
-                { name: "authority", isMut: true, isSigner: true },
-                { name: "payer", isMut: false, isSigner: false },
-                { name: "mint", isMut: false, isSigner: false },
-                { name: "systemProgram", isMut: false, isSigner: false },
-            ],
-            args: [
-                { name: "invoiceId", type: "bytes" },
-                { name: "amount", type: "u64" },
-                { name: "dueDate", type: "i64" },
-                { name: "contentHash", type: { array: ["u8", 32] } },
-                { name: "assetId", type: { array: ["u8", 32] } },
-            ],
-        },
-    ],
-};
+// Arcium MXE Program ID - validated on first use
+function getArciumProgramId(): PublicKey {
+    const programIdStr = process.env.ARCIUM_PROGRAM_ID;
+    if (!programIdStr) {
+        throw new Error(
+            "ARCIUM_PROGRAM_ID environment variable is not set. " +
+            "Please deploy your Arcium MXE program and set this variable, " +
+            "or disable Arcium features by setting ENABLE_ARCIUM_ENCRYPTION=false."
+        );
+    }
+    return new PublicKey(programIdStr);
+}
 
-// Token mint addresses for common stablecoins
-const TOKEN_MINTS: Record<string, string> = {
-    USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-    PYUSD: "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
-    EURC: "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr",
-    SOL: "So11111111111111111111111111111111111111112",
-};
+// Lazy initialization
+let ARCIUM_PROGRAM_ID: PublicKey | null = null;
+function getProgramId(): PublicKey {
+    if (!ARCIUM_PROGRAM_ID) {
+        ARCIUM_PROGRAM_ID = getArciumProgramId();
+    }
+    return ARCIUM_PROGRAM_ID;
+}
+
+// Minimal IDL for Arcium MXE create_invoice instruction (dynamically generated)
+function getArciumIDL(): any {
+    const programId = getProgramId();
+    return {
+        version: "0.1.0",
+        name: "arcium_mxe",
+        address: programId.toString(),
+        metadata: { address: programId.toString() },
+        instructions: [
+            {
+                name: "createInvoice",
+                accounts: [
+                    { name: "invoice", isMut: true, isSigner: false },
+                    { name: "authority", isMut: true, isSigner: true },
+                    { name: "payer", isMut: false, isSigner: false },
+                    { name: "mint", isMut: false, isSigner: false },
+                    { name: "systemProgram", isMut: false, isSigner: false },
+                ],
+                args: [
+                    { name: "invoiceId", type: "bytes" },
+                    { name: "amount", type: "u64" },
+                    { name: "dueDate", type: "i64" },
+                    { name: "contentHash", type: { array: ["u8", 32] } },
+                    { name: "assetId", type: { array: ["u8", 32] } },
+                ],
+            },
+        ],
+    };
+}
+
+// Token mint addresses handled via shared/config
 
 export class ArciumOnChainService {
     private connection: Connection;
     private provider: anchor.AnchorProvider;
-    private program: Program;
+    private program: Program | null = null;
     private serverKeypair: Keypair | null = null;
 
     constructor() {
@@ -72,10 +89,18 @@ export class ArciumOnChainService {
             commitment: "confirmed",
         });
 
-        this.program = new Program(ARCIUM_IDL, this.provider);
+        // Initialize program lazily to avoid IDL parsing issues during static analysis/tests
+        // this.program = new Program(ARCIUM_IDL, this.provider);
 
         // Load server keypair for server-side signing if available
         this.loadServerKeypair();
+    }
+
+    private getProgram(): Program {
+        if (!this.program) {
+            this.program = new Program(getArciumIDL(), this.provider);
+        }
+        return this.program;
     }
 
     private loadServerKeypair(): void {
@@ -97,9 +122,13 @@ export class ArciumOnChainService {
      */
     deriveInvoicePda(authority: PublicKey, invoiceId: string): [PublicKey, number] {
         const invoiceIdBytes = Buffer.from(invoiceId, "utf-8");
+
+        // Use the validated program ID (will throw if not configured)
+        const programId = getProgramId();
+
         return PublicKey.findProgramAddressSync(
             [Buffer.from("invoice"), authority.toBuffer(), invoiceIdBytes],
-            ARCIUM_PROGRAM_ID
+            programId
         );
     }
 
@@ -157,20 +186,24 @@ export class ArciumOnChainService {
 
             // Prepare arguments
             const invoiceIdBytes = Buffer.from(invoice.id, "utf-8");
-            const amount = new anchor.BN(Math.round(parseFloat(invoice.totalAmount) * 1e6)); // Convert to micro units
+            // Get token mint
+            const currency = invoice.currency?.toUpperCase() || "USDC";
+            const network = process.env.SOLANA_NETWORK || "devnet";
+            const mintAddress = getTokenMint(currency, network);
+
+            // Dynamic amount conversion
+            const decimals = getDecimalsForMint(mintAddress);
+            const amount = new anchor.BN(Math.round(parseFloat(invoice.totalAmount) * Math.pow(10, decimals)));
+
             const dueDate = new anchor.BN(Math.floor(new Date(invoice.dueDate).getTime() / 1000));
             const contentHash = this.createContentHash(invoice);
             const assetId = this.createPlaceholderAssetId();
-
-            // Get token mint
-            const currency = invoice.currency?.toUpperCase() || "USDC";
-            const mintAddress = TOKEN_MINTS[currency] || TOKEN_MINTS.USDC;
 
             // Customer wallet (payer in Arcium terms = who pays the invoice)
             const payer = new PublicKey(invoice.invoiceeWalletAddress);
 
             // Build instruction
-            const ix = await this.program.methods
+            const ix = await this.getProgram().methods
                 .createInvoice(
                     invoiceIdBytes,
                     amount,

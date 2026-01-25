@@ -6,8 +6,9 @@ import { getInvoiceNFTService } from "./nft-service";
 import { z } from "zod";
 import crypto from "crypto";
 import { requireWalletOwnership, strictRateLimit } from "./security";
+import { DEFAULT_RPC_URL, SOL_PRICE_FALLBACK_USD } from "@shared/config";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+const SOLANA_RPC_URL = DEFAULT_RPC_URL;
 
 // Configuration
 const GATEKEEPER_TOKEN_MINT = process.env.GATEKEEPER_TOKEN_MINT || "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
@@ -49,7 +50,7 @@ async function getSolPrice(): Promise<number> {
 
         return price;
     } catch (error: any) {
-        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "180");
+        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || String(SOL_PRICE_FALLBACK_USD));
         console.error(`Error fetching SOL price, using fallback $${solPriceCache?.price || fallbackPrice}`, error);
         return solPriceCache?.price || fallbackPrice;
     }

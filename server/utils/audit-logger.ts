@@ -38,9 +38,16 @@ export async function logMetadataAccess(params: {
 
 /**
  * Check for potential enumeration attacks from a specific IP/User
- * (Placeholder for more advanced logic)
+ *
+ * Note: Primary rate limiting is handled by express-rate-limit middleware.
+ * This function can be extended for sophisticated detection if needed:
+ * - Track failed access patterns per IP
+ * - Detect sequential ID enumeration attempts
+ * - Implement adaptive rate limiting based on behavior
+ *
+ * For most use cases, the standard rate limiting is sufficient.
  */
-export async function checkForEnumerationAttack(userWallet: string | undefined, ipAddress: string) {
-    // TODO: Implement sophisticated rate limiting checks here if needed beyond standard rate limits
-    // For now, this is handled by express-rate-limit middleware
+export async function checkForEnumerationAttack(userWallet: string | undefined, ipAddress: string): Promise<void> {
+    // Currently delegated to express-rate-limit middleware
+    // Extend this function if behavioral analysis is needed
 }

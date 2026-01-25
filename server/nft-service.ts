@@ -1197,9 +1197,12 @@ export class InvoiceNFTService {
       // const seller = toPublicKey(sellerPublicKey); // Unused, using Web3 PublicKey below
       const escrow = this.umi.identity.publicKey;
 
-      // Treasury Address for 1% Fee
-      const TREASURY_ADDRESS = process.env.TREASURY_WALLET || "D6jX1pG4zZp2jP6rWB5yE7x4xN9mQ2s1"; // Default to devnet treasury if missing
-      const treasury = new PublicKey(TREASURY_ADDRESS);
+      // Treasury Address for 1% Fee - Use centralized config
+      const { TREASURY_WALLET_ADDRESS } = await import("@shared/config");
+      if (!process.env.PLATFORM_TREASURY_WALLET) {
+        throw new Error("PLATFORM_TREASURY_WALLET environment variable is required for marketplace transactions");
+      }
+      const treasury = new PublicKey(TREASURY_WALLET_ADDRESS);
 
       // 1. USDC Transfer Instructions (Split Payment)
       const { getStablecoinConfig } = await import("@shared/stablecoin-config");

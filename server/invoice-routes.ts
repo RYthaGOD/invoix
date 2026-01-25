@@ -1354,11 +1354,22 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
           // Access granted if:
           // 1. User is Invoicer
           // 2. User is Invoicee
-          // 3. User is authorized Buyer/Auditor (future: add logic for this)
-          const hasAccess =
+          // 3. User is the marketplace buyer who purchased the invoice
+          let hasAccess =
             invoice.invoicerWalletAddress === walletAddress ||
             invoice.invoiceeWalletAddress === walletAddress;
-          // TODO: Add Marketplace Buyer check here if sold
+
+          // Check if user is a marketplace buyer who purchased this invoice
+          if (!hasAccess) {
+            const marketplaceListing = await db.select()
+              .from(schema.invoiceMarketplace)
+              .where(eq(schema.invoiceMarketplace.invoiceId, id))
+              .limit(1);
+
+            if (marketplaceListing.length > 0 && marketplaceListing[0].soldTo === walletAddress) {
+              hasAccess = true;
+            }
+          }
 
           if (!hasAccess) {
             await logMetadataAccess({ identifier, userWallet: walletAddress, accessGranted: false, ipAddress: userIp, details: "UNAUTHORIZED" });
@@ -1410,10 +1421,10 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
 
         if (identifier.startsWith("business-")) {
           const id = identifier.replace("business-", "");
-          // Business profiles are generally public-ish, but let's log it
-          // TODO: Decide if business profiles should be restricted. 
-          // For now, allow public read but rate limited.
-          // IF we want to restrict, check ownerWalletAddress === walletAddress
+          // Business Identity NFT metadata is PUBLIC by design.
+          // These serve as verifiable trust signals for B2B transactions.
+          // Access is rate-limited but not restricted to owner.
+          // The metadata contains only public business information (name, logo, verification level).
 
           const profileList = await db.select().from(schema.businessProfiles).where(eq(schema.businessProfiles.id, id));
           if (profileList.length === 0) {

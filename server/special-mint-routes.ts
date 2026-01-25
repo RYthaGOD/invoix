@@ -7,11 +7,12 @@ import { z } from "zod";
 import { strictRateLimit, requireWalletOwnership } from "./security";
 import { logger } from "./logger";
 import { timingSafeEqual } from "crypto";
+import { DEFAULT_RPC_URL, SOL_PRICE_FALLBACK_USD } from "@shared/config";
 
 // Session type is extended in auth-routes.ts
 
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+const SOLANA_RPC_URL = DEFAULT_RPC_URL;
 
 // Configuration
 const GATEKEEPER_TOKEN_MINT = "AMFBfC8moRTmo4JKCBjmBXVTftMZTsgqDyb8SSL6pump";
@@ -59,8 +60,8 @@ async function getSolPrice(): Promise<number> {
 
         return price;
     } catch (error: any) {
-        // Use cached value, then env fallback, then conservative $100 default
-        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || "100");
+        // Use cached value, then env fallback, then centralized default
+        const fallbackPrice = parseFloat(process.env.SOL_PRICE_FALLBACK || String(SOL_PRICE_FALLBACK_USD));
         logger.error("Error fetching SOL price, using fallback", "special-mint", { error, fallback: solPriceCache?.price || fallbackPrice });
         return solPriceCache?.price || fallbackPrice;
     }
