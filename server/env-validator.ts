@@ -181,12 +181,15 @@ export function validateEnvironment(): void {
         );
       }
 
-      // Validate program IDs are valid base58 public keys
+      // Validate program IDs are valid base58 public keys (warn only, don't crash)
       if ((envVar.key === "MARKETPLACE_PROGRAM_ID" || envVar.key === "ARCIUM_PROGRAM_ID") && value) {
         if (!isValidBase58PublicKey(value)) {
-          errors.push(
-            `❌ ${envVar.key} must be a valid Solana public key (base58 encoded, 32-44 characters)`
+          // Clear invalid program ID and warn (don't crash the server)
+          warnings.push(
+            `⚠️  ${envVar.key} is not a valid Solana public key (base58 encoded, 32-44 characters).\n   Feature will be disabled. Set a valid program ID to enable.`
           );
+          // Clear the invalid value so features using it will be disabled
+          delete process.env[envVar.key];
         }
       }
     }
