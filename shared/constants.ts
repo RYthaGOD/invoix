@@ -214,9 +214,22 @@ export const TOAST_DURATION = {
 // FEATURE FLAGS
 // ========================================
 
+// Feature flags - some read from environment variables for runtime configuration
+const getArciumMxeEnabled = (): boolean => {
+    // In Node.js environment, check process.env
+    if (typeof process !== 'undefined' && process.env) {
+        return process.env.ENABLE_ARCIUM_ENCRYPTION === 'true';
+    }
+    // In browser environment, check for Vite env vars
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+        return (import.meta as any).env.VITE_ENABLE_ARCIUM_ENCRYPTION === 'true';
+    }
+    return false;
+};
+
 export const FEATURES = {
     ENABLE_MARKETPLACE: true,
-    ENABLE_ARCIUM_MXE: false,  // SDK-only mode until live network
+    ENABLE_ARCIUM_MXE: getArciumMxeEnabled(),  // Synced with ENABLE_ARCIUM_ENCRYPTION env var
     ENABLE_SUBSCRIPTIONS: true,
     ENABLE_WEBHOOKS: true,
     ENABLE_EMAIL_NOTIFICATIONS: false,  // Mock mode

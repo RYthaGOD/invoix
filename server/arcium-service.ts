@@ -125,18 +125,89 @@ export class ArciumService {
   }
 
   /**
+   * Validate a Solana address format (base58, 32-44 characters)
+   */
+  private isValidSolanaAddress(address: string): boolean {
+    if (typeof address !== 'string') return false;
+    if (address.length < 32 || address.length > 44) return false;
+    // Base58 character set (no 0, O, I, l)
+    return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+  }
+
+  /**
    * Encrypt transaction data using x25519 ECDH + RescueCipher.
-   * 
+   *
    * The flow:
-   * 1. Generate ephemeral x25519 keypair
-   * 2. Derive shared secret with server's public key
-   * 3. Use RescueCipher to encrypt the data
-   * 4. Return encrypted data + ephemeral public key
+   * 1. Validate input parameters
+   * 2. Generate ephemeral x25519 keypair
+   * 3. Derive shared secret with server's public key
+   * 4. Use RescueCipher to encrypt the data
+   * 5. Return encrypted data + ephemeral public key
    */
   async encryptTransaction(
     transactionData: ConfidentialTransactionData,
     allowedParties: string[]
   ): Promise<EncryptedTransactionResult> {
+
+    // Input validation
+    if (!transactionData || typeof transactionData !== 'object') {
+      return {
+        encryptedData: "",
+        encryptionKey: "",
+        success: false,
+        error: "Invalid transaction data: must be a non-null object",
+      };
+    }
+
+    // Validate required fields
+    if (!transactionData.amount || !transactionData.fromAddress || !transactionData.toAddress) {
+      return {
+        encryptedData: "",
+        encryptionKey: "",
+        success: false,
+        error: "Missing required fields: amount, fromAddress, and toAddress are required",
+      };
+    }
+
+    // Validate fromAddress and toAddress are valid Solana addresses
+    if (!this.isValidSolanaAddress(transactionData.fromAddress)) {
+      return {
+        encryptedData: "",
+        encryptionKey: "",
+        success: false,
+        error: "Invalid fromAddress: must be a valid Solana address (base58, 32-44 chars)",
+      };
+    }
+
+    if (!this.isValidSolanaAddress(transactionData.toAddress)) {
+      return {
+        encryptedData: "",
+        encryptionKey: "",
+        success: false,
+        error: "Invalid toAddress: must be a valid Solana address (base58, 32-44 chars)",
+      };
+    }
+
+    // Validate allowed parties (at least 2 for multi-party encryption)
+    if (!Array.isArray(allowedParties) || allowedParties.length < 2) {
+      return {
+        encryptedData: "",
+        encryptionKey: "",
+        success: false,
+        error: "Invalid allowedParties: must be an array with at least 2 parties",
+      };
+    }
+
+    for (const party of allowedParties) {
+      if (!this.isValidSolanaAddress(party)) {
+        return {
+          encryptedData: "",
+          encryptionKey: "",
+          success: false,
+          error: `Invalid party address: ${party.substring(0, 10)}... is not a valid Solana address`,
+        };
+      }
+    }
 
     if (!this.isAvailable()) {
       console.error("⛔ Arcium SDK not initialized. Cannot encrypt.");
@@ -178,7 +249,10 @@ export class ArciumService {
         encryptedData: "",
         encryptionKey: "",
         success: false,
-        error: error instanceof Error ? error.message : "Unknown encryption error",
+        // Sanitize error messages in production to prevent information leakage
+        error: process.env.NODE_ENV === "production"
+          ? "Encryption service temporarily unavailable"
+          : (error instanceof Error ? error.message : "Unknown encryption error"),
       };
     }
   }

@@ -121,8 +121,20 @@ export function useCreateInvoiceWithArcium() {
             const rawTx = signedTx.serialize();
             const signature = await connection.sendRawTransaction(rawTx);
 
-            setStatus("Confirming Secure Account... ⏳");
-            const confirmation = await connection.confirmTransaction(signature, "confirmed");
+            setStatus("Confirming Secure Account... ⏳ (timeout: 60s)");
+
+            // Transaction confirmation with explicit 60-second timeout
+            const CONFIRMATION_TIMEOUT_MS = 60000;
+
+            const confirmationPromise = connection.confirmTransaction(signature, "confirmed");
+
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error("Transaction confirmation timeout (60s). The transaction may still complete - check your wallet."));
+                }, CONFIRMATION_TIMEOUT_MS);
+            });
+
+            const confirmation = await Promise.race([confirmationPromise, timeoutPromise]);
 
             if (confirmation.value.err) {
                 throw new Error(`On-chain transaction failed: ${JSON.stringify(confirmation.value.err)}`);

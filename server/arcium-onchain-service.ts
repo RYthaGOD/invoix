@@ -74,6 +74,11 @@ export class ArciumOnChainService {
     private program: Program | null = null;
     private serverKeypair: Keypair | null = null;
 
+    // Program verification cache
+    private programVerified: boolean | null = null;
+    private programVerifiedAt: number = 0;
+    private static VERIFICATION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
     constructor() {
         const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
         this.connection = new Connection(rpcUrl, "confirmed");
@@ -114,6 +119,80 @@ export class ArciumOnChainService {
                 logger.warn("Failed to load server keypair for Arcium", "arcium-onchain");
             }
         }
+    }
+
+    /**
+     * Verify that the Arcium program is deployed and executable on-chain.
+     * Results are cached for 5 minutes to reduce RPC calls.
+     *
+     * @returns true if program is deployed and executable, false otherwise
+     */
+    async verifyProgramDeployed(): Promise<boolean> {
+        // Check cache first
+        const now = Date.now();
+        if (
+            this.programVerified !== null &&
+            (now - this.programVerifiedAt) < ArciumOnChainService.VERIFICATION_CACHE_TTL
+        ) {
+            return this.programVerified;
+        }
+
+        try {
+            // Check if ARCIUM_PROGRAM_ID is configured
+            if (!process.env.ARCIUM_PROGRAM_ID) {
+                logger.warn("ARCIUM_PROGRAM_ID not configured", "arcium-onchain");
+                this.programVerified = false;
+                this.programVerifiedAt = now;
+                return false;
+            }
+
+            const programId = getProgramId();
+            const accountInfo = await this.connection.getAccountInfo(programId);
+
+            if (!accountInfo) {
+                logger.warn("Arcium program not found on chain", "arcium-onchain", {
+                    programId: programId.toString(),
+                    network: process.env.SOLANA_NETWORK || "unknown"
+                });
+                this.programVerified = false;
+                this.programVerifiedAt = now;
+                return false;
+            }
+
+            // Verify the account is executable (i.e., it's a program)
+            if (!accountInfo.executable) {
+                logger.warn("Arcium program account is not executable", "arcium-onchain", {
+                    programId: programId.toString()
+                });
+                this.programVerified = false;
+                this.programVerifiedAt = now;
+                return false;
+            }
+
+            logger.info("Arcium program verified on-chain", "arcium-onchain", {
+                programId: programId.toString(),
+                dataLen: accountInfo.data.length
+            });
+
+            this.programVerified = true;
+            this.programVerifiedAt = now;
+            return true;
+        } catch (error: any) {
+            logger.error("Failed to verify Arcium program", "arcium-onchain", {
+                error: error.message
+            });
+            this.programVerified = false;
+            this.programVerifiedAt = now;
+            return false;
+        }
+    }
+
+    /**
+     * Clear the program verification cache (useful for testing)
+     */
+    clearVerificationCache(): void {
+        this.programVerified = null;
+        this.programVerifiedAt = 0;
     }
 
     /**

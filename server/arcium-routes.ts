@@ -21,22 +21,48 @@ import { Connection } from '@solana/web3.js';
 
 const router = Router();
 
+// Track last health check time for status endpoint
+let lastHealthCheck: Date | null = null;
+let lastProgramVerification: boolean | null = null;
+
 /**
  * GET /api/arcium/status
  * Check Arcium service availability and configuration
  */
-router.get('/status', (req, res) => {
+router.get('/status', async (req, res) => {
     try {
         const arciumService = getArciumService();
         const programId = process.env.ARCIUM_PROGRAM_ID;
 
+        // Get server's x25519 public key if available
+        let serverPublicKey: string | null = null;
+        if (arciumService.isAvailable()) {
+            const pubKey = arciumService.getServerPublicKey();
+            if (pubKey) {
+                serverPublicKey = Buffer.from(pubKey).toString('hex');
+            }
+        }
+
+        // Check program deployment (cached in the service)
+        let programDeployed = false;
+        if (programId) {
+            const onChainService = getArciumOnChainService();
+            programDeployed = await onChainService.verifyProgramDeployed().catch(() => false);
+            lastProgramVerification = programDeployed;
+        }
+
+        lastHealthCheck = new Date();
+
         res.json({
             available: arciumService.isAvailable(),
             configured: !!programId,
-            mode: process.env.ARCIUM_MODE || 'sdk-only',
+            mode: programDeployed ? 'on-chain' : 'sdk-only',
             programId: programId || null,
+            programDeployed,
             encryptionEnabled: process.env.ENABLE_ARCIUM_ENCRYPTION === 'true',
             network: process.env.SOLANA_NETWORK || 'devnet',
+            serverPublicKey,
+            lastHealthCheck: lastHealthCheck.toISOString(),
         });
     } catch (error: any) {
         logger.error('Failed to get Arcium status', 'arcium-routes', { error: error.message });
@@ -117,6 +143,24 @@ router.post('/create-invoice-tx', requireAuth, async (req, res) => {
         }
 
         const onChainService = getArciumOnChainService();
+
+        // Check if on-chain program is available - graceful fallback to SDK-only mode
+        const programAvailable = await onChainService.verifyProgramDeployed().catch(() => false);
+
+        if (!programAvailable) {
+            logger.info('Arcium program not available, returning SDK-only mode', 'arcium-routes', {
+                invoiceId,
+            });
+
+            // Return SDK-only response - encryption still works, just no on-chain account
+            return res.json({
+                transaction: null,
+                invoicePda: null,
+                mode: 'sdk-only',
+                message: 'On-chain program unavailable. Encryption available via SDK-only mode.',
+                encryptionAvailable: getArciumService().isAvailable(),
+            });
+        }
 
         const { transaction, invoicePda } =
             await onChainService.createInvoiceAccountTransaction(
@@ -317,12 +361,40 @@ router.post('/update-pda', requireAuth, async (req, res) => {
                     return res.status(400).json({ error: 'Transaction failed on-chain' });
                 }
 
-                // Optional: Verify the transaction actually interacts with our program or the specific PDA
+                // SECURITY: Verify the transaction actually interacts with our Arcium program
                 // This prevents users from submitting random valid signatures
-            } catch (txErr) {
-                logger.warn('Failed to verify on-chain transaction', 'arcium-routes', { error: txErr });
-                // We don't block here if RPC fails, but we log it. 
-                // In strict mode, we might want to fail.
+                const programId = process.env.ARCIUM_PROGRAM_ID;
+                if (programId) {
+                    const { PublicKey } = await import('@solana/web3.js');
+                    const programKey = new PublicKey(programId);
+
+                    // Get account keys from the transaction message
+                    const accountKeys = tx.transaction.message.getAccountKeys();
+                    const staticKeys = accountKeys.staticAccountKeys;
+
+                    const interactsWithProgram = staticKeys.some(
+                        (key: any) => key.equals(programKey)
+                    );
+
+                    if (!interactsWithProgram) {
+                        logger.warn('Transaction does not interact with Arcium program', 'arcium-routes', {
+                            txSignature,
+                            expectedProgram: programId,
+                        });
+                        return res.status(400).json({
+                            error: 'Invalid transaction - does not interact with Arcium program'
+                        });
+                    }
+                }
+            } catch (txErr: any) {
+                logger.warn('Failed to verify on-chain transaction', 'arcium-routes', {
+                    error: txErr.message,
+                    txSignature
+                });
+                // In strict mode (production), we fail; otherwise we log and continue
+                if (process.env.NODE_ENV === 'production') {
+                    return res.status(400).json({ error: 'Transaction verification failed' });
+                }
             }
         }
 
