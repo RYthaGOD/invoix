@@ -98,6 +98,8 @@ interface Invoice {
   nftMerkleTree?: string;
   nftMintedAt?: string;
   isArciumEncrypted: boolean;
+  xeroInvoiceId?: string;
+  qboInvoiceId?: string;
 }
 
 const statusConfig = {
@@ -1027,8 +1029,20 @@ export default function InvoiceDetail() {
           </div>
 
           {/* NFT & Privacy Info */}
-          {(invoice.nftMint || invoice.isPrivate || invoice.isArciumEncrypted) && (
+          {(invoice.nftMint || invoice.isPrivate || invoice.isArciumEncrypted || invoice.xeroInvoiceId || invoice.qboInvoiceId) && (
             <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/10">
+              {invoice.xeroInvoiceId && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-[#13b5ea]/10 border border-[#13b5ea]/30 rounded-lg text-[#13b5ea]" title={`Xero ID: ${invoice.xeroInvoiceId}`}>
+                  <Link className="w-4 h-4" />
+                  <span className="text-sm">Xero Synced</span>
+                </div>
+              )}
+              {invoice.qboInvoiceId && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-[#2ca01c]/10 border border-[#2ca01c]/30 rounded-lg text-[#2ca01c]" title={`QuickBooks ID: ${invoice.qboInvoiceId}`}>
+                  <Link className="w-4 h-4" />
+                  <span className="text-sm">QuickBooks Synced</span>
+                </div>
+              )}
               {invoice.nftMint && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                   <span className="text-2xl">🎨</span>

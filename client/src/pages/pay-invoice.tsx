@@ -9,11 +9,13 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { CheckCircle, Clock, AlertCircle, ExternalLink, Copy, Check, ShieldCheck, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, ExternalLink, Copy, Check, ShieldCheck, Loader2, Lock, Key, Unlock } from "lucide-react";
 import { TREASURY_WALLET_ADDRESS } from "@shared/config";
 import { PaymentStatus } from "@/components/payment-status";
 import { usePaymentConfirmation } from "@/hooks/usePaymentConfirmation";
 import { useAuth } from "@/hooks/use-auth";
+import { decryptData, importKey, deriveKeyFromSignature } from "@/lib/encryption";
+import { fetchFromArweave } from "@/lib/storage";
 
 interface Invoice {
     id: string;
@@ -33,6 +35,10 @@ interface Invoice {
     description: string;
     createdAt: string;
     nftTransferredTo?: string; // New: For marketplace support
+    isEncrypted?: boolean;
+    encryptedData?: string;
+    encryptionIV?: string;
+    lineItems?: any[]; // Add line items for display if available
 }
 
 export default function PayInvoice() {
@@ -40,7 +46,7 @@ export default function PayInvoice() {
     const invoiceId = params?.invoiceId;
 
     const { connection } = useConnection();
-    const { publicKey, signTransaction, connected } = useWallet();
+    const { publicKey, signTransaction, signMessage, connected } = useWallet();
 
     // Auth hook for SIWS authentication
     const { isAuthenticated, login, isLoading: authLoading, authMode, lazorkitWallet } = useAuth();
@@ -62,6 +68,96 @@ export default function PayInvoice() {
     // Accounting & Notes State
     const [paymentNotes, setPaymentNotes] = useState("");
     const [isBusinessExpense, setIsBusinessExpense] = useState(false);
+
+    // Decryption State
+    const [decryptedInvoice, setDecryptedInvoice] = useState<Invoice | null>(null);
+    const [decryptionError, setDecryptionError] = useState<string | null>(null);
+    const [manualKey, setManualKey] = useState("");
+    const [isDecrypting, setIsDecrypting] = useState(false);
+
+    // 1. Auto-Decrypt from URL Hash
+    useEffect(() => {
+        const checkHashAndDecrypt = async () => {
+            if (invoice?.isEncrypted && !decryptedInvoice && window.location.hash) {
+                const keyStr = window.location.hash.slice(1); // remove #
+                if (!keyStr) return;
+
+                setIsDecrypting(true);
+                try {
+                    const key = await importKey(keyStr);
+                    const txId = invoice.encryptedData?.replace("ar://", "") || "";
+                    if (!txId) throw new Error("No encrypted data link found.");
+
+                    const encryptedBlob = await fetchFromArweave(txId);
+                    const decrypted = await decryptData(encryptedBlob, key);
+
+                    setDecryptedInvoice({ ...invoice, ...decrypted });
+                    setDecryptionError(null);
+                } catch (e: any) {
+                    console.error("Link decryption failed", e);
+                    setDecryptionError("Invalid key in link or corrupted data.");
+                } finally {
+                    setIsDecrypting(false);
+                }
+            }
+        };
+        checkHashAndDecrypt();
+    }, [invoice, window.location.hash]);
+
+    // 2. Manual Decryption (Input)
+    const handleManualDecrypt = async () => {
+        if (!invoice || !manualKey) return;
+        setIsDecrypting(true);
+        try {
+            const key = await importKey(manualKey);
+            const txId = invoice.encryptedData?.replace("ar://", "") || "";
+            const encryptedBlob = await fetchFromArweave(txId);
+            const decrypted = await decryptData(encryptedBlob, key);
+
+            setDecryptedInvoice({ ...invoice, ...decrypted });
+            setDecryptionError(null);
+        } catch (e) {
+            setDecryptionError("Invalid key.");
+        } finally {
+            setIsDecrypting(false);
+        }
+    }
+
+    // 3. Wallet Decryption (Derive)
+    const handleWalletDecrypt = async () => {
+        if (!invoice || !publicKey || !signMessage) return;
+        setIsDecrypting(true);
+        try {
+            // Must match the message signed during creation in invoice-form.tsx
+            const message = new TextEncoder().encode("Sign to encrypt invoice data");
+            const signature = await signMessage(message);
+            // Convert signature to base64 for PBKDF2 salt/input
+            const signatureBase64 = window.btoa(String.fromCharCode(...signature));
+
+            const key = await deriveKeyFromSignature(signatureBase64);
+            const keyStr = await import("@/lib/encryption").then(m => m.exportKey(key));
+
+            const txId = invoice.encryptedData?.replace("ar://", "") || "";
+            if (!txId) throw new Error("No encrypted data link found.");
+
+            const encryptedBlob = await fetchFromArweave(txId);
+            const decrypted = await decryptData(encryptedBlob, key);
+
+            setDecryptedInvoice({ ...invoice, ...decrypted });
+            // Set the manual key/hash so the share button works
+            setManualKey(keyStr);
+            setDecryptionError(null);
+
+            // Auto-update URL without reload so refresh works
+            window.history.replaceState(null, "", `#${keyStr}`);
+
+        } catch (e: any) {
+            console.error(e);
+            setDecryptionError("Decryption failed. Are you the original creator?");
+        } finally {
+            setIsDecrypting(false);
+        }
+    }
 
     // Use Custom Hook for Confirmation
     const { status: paymentStatus, error: confirmationError, elapsedSeconds } = usePaymentConfirmation({
@@ -569,7 +665,8 @@ export default function PayInvoice() {
         );
     }
 
-    const isPaid = invoice.status === "paid" || paymentStatus === 'verified';
+    const displayInvoice = decryptedInvoice || invoice;
+    const isPaid = displayInvoice.status === "paid" || paymentStatus === 'verified';
     const isOverdue = new Date(invoice.dueDate) < new Date() && !isPaid;
 
     // --- SECURITY FIX: Payer Authorization Check ---
@@ -740,6 +837,84 @@ export default function PayInvoice() {
                             </div>
                         </div>
 
+                        {/* Line Items / Encrypted Content */}
+                        <div className="border-t border-white/10 pt-6 mb-6">
+                            <h3 className="text-gray-400 text-sm mb-4">Line Items</h3>
+
+                            {displayInvoice.isEncrypted && !decryptedInvoice ? (
+                                <div className="bg-white/5 rounded-lg p-6 text-center border border-purple-500/30 dashed-border">
+                                    <Lock className="w-10 h-10 text-purple-400 mx-auto mb-3" />
+                                    <h4 className="text-white font-semibold mb-2">Encrypted Invoice</h4>
+                                    <p className="text-gray-400 text-sm mb-4">
+                                        The details of this invoice are encrypted on-chain.
+                                    </p>
+
+                                    <div className="flex flex-col gap-3 max-w-sm mx-auto">
+                                        {/* Method A: Manual Key (e.g. from Link) */}
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Enter decryption key..."
+                                                className="flex-1 bg-black/20 border border-white/10 rounded px-3 py-2 text-sm text-white focus:border-purple-500/50 outline-none"
+                                                value={manualKey}
+                                                onChange={(e) => setManualKey(e.target.value)}
+                                            />
+                                            <button
+                                                onClick={handleManualDecrypt}
+                                                disabled={isDecrypting || !manualKey}
+                                                className="bg-white/10 hover:bg-white/20 text-white p-2 rounded transition-colors disabled:opacity-50"
+                                            >
+                                                {isDecrypting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+
+                                        <div className="text-xs text-gray-500">- OR -</div>
+
+                                        {/* Method B: Wallet Decrypt (Creator) */}
+                                        <button
+                                            onClick={handleWalletDecrypt}
+                                            disabled={isDecrypting || !publicKey}
+                                            className="w-full py-2 bg-gradient-to-r from-purple-900/50 to-purple-800/50 hover:from-purple-900 hover:to-purple-800 border border-purple-500/30 rounded text-purple-200 text-sm font-medium transition-all flex items-center justify-center gap-2"
+                                        >
+                                            {isDecrypting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                                            I am the Creator (Sign to Decrypt)
+                                        </button>
+
+                                        {decryptionError && (
+                                            <p className="text-red-400 text-xs mt-2">{decryptionError}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="text-gray-500 border-b border-white/10">
+                                            <tr>
+                                                <th className="pb-2 font-medium">Description</th>
+                                                <th className="pb-2 font-medium text-right">Qty</th>
+                                                <th className="pb-2 font-medium text-right">Price</th>
+                                                <th className="pb-2 font-medium text-right">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {(displayInvoice.lineItems || []).map((item: any, idx: number) => (
+                                                <tr key={idx} className="group hover:bg-white/5 transition-colors">
+                                                    <td className="py-3 text-white">{item.description}</td>
+                                                    <td className="py-3 text-right text-gray-300">{item.quantity}</td>
+                                                    <td className="py-3 text-right text-gray-300">
+                                                        {parseFloat(item.unitPrice).toFixed(2)}
+                                                    </td>
+                                                    <td className="py-3 text-right text-white font-medium">
+                                                        {(parseFloat(item.quantity) * parseFloat(item.unitPrice)).toFixed(2)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Due Date */}
                         <div className="border-t border-white/10 pt-6 mb-6">
                             <p className="text-gray-400 text-sm mb-1">Due Date</p>
@@ -852,6 +1027,6 @@ export default function PayInvoice() {
                     </p>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

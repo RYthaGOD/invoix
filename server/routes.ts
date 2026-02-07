@@ -162,6 +162,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/arcium", arciumRouter);
 
   // ================================================
+  // ACCOUNTING INTEGRATIONS (Xero/QBO)
+  // ================================================
+  const { default: integrationRouter } = await import("./routes/integration-routes");
+  app.use("/api/integrations", integrationRouter);
+
+  // ================================================
   // TAX DATA EXPORT ROUTES (Annual Reporting)
   // ================================================
   const { registerTaxRoutes } = await import("./tax-routes");

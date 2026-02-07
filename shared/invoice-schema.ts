@@ -6,7 +6,7 @@
  */
 
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, decimal, integer, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, decimal, integer, boolean, index, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -54,20 +54,18 @@ export const invoices = pgTable("invoices", {
   paymentTerms: text("payment_terms"), // e.g., "Net 30", "Due on receipt"
   paymentInstructions: text("payment_instructions"), // Instructions for customer
 
-  // Privacy Settings (leveraging our privacy implementation)
-  // FIX R3-6: isPrivate=true by DEFAULT for security
-  // This means all invoices are private unless explicitly made public
-  // Public invoices (isPrivate=false) can be viewed by anyone with the link if status != draft
+  // Privacy Settings
   isPrivate: boolean("is_private").notNull().default(true),
   hideAmounts: boolean("hide_amounts").notNull().default(true), // Hide amounts from public view
   hideParties: boolean("hide_parties").notNull().default(true), // Hide wallet addresses
 
-  // Arcium v0.5 Confidential Computing
-  isArciumEncrypted: boolean("is_arcium_encrypted").notNull().default(false),
-  arciumEncryptedData: text("arcium_encrypted_data"), // Encrypted invoice details
-  arciumEncryptionKey: text("arcium_encryption_key"),
-  arciumComputationId: text("arcium_computation_id"),
-  arciumAllowedParties: text("arcium_allowed_parties").array(), // Can include auditors
+  // Encrypted Invoice Data (Client-Side AES-GCM)
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
+  encryptedData: text("encrypted_data"), // JSON Blob: { iv, data }
+  encryptionIV: text("encryption_iv"),   // IV used for encryption
+
+  // MagicBlock Private State (Beta)
+  magicBlockStateId: text("magic_block_state_id"),
 
   // x402 Micropayment Fee (for using invoice service)
   x402ServiceFeeUSD: decimal("x402_service_fee_usd", { precision: 18, scale: 6 }).notNull().default("0.01"), // $0.01 per invoice
@@ -92,12 +90,12 @@ export const invoices = pgTable("invoices", {
   paidAt: timestamp("paid_at"), // When fully paid
   cancelledAt: timestamp("cancelled_at"),
 
+  // Accounting Sync IDs (Phase 5)
+  xeroInvoiceId: text("xero_invoice_id"),
+  qboInvoiceId: text("qbo_invoice_id"),
+
   // Privacy v2
   privacySalt: text("privacy_salt"), // 32-byte hex salt for preventing rainbow table attacks
-
-  // Arcium On-Chain Account (for marketplace)
-  arciumInvoicePda: text("arcium_invoice_pda"), // On-chain Arcium InvoiceAccount address
-  arciumTxSignature: text("arcium_tx_signature"), // Transaction signature for on-chain invoice creation
 }, (table) => {
   return {
     invoicerWalletIdx: index("invoicer_wallet_idx").on(table.invoicerWalletAddress),
@@ -257,9 +255,15 @@ export const businessProfiles = pgTable("business_profiles", {
   businessAddress: text("business_address"),
   businessWebsite: text("business_website"),
 
-  // Tax Information
-  taxId: text("tax_id"), // EIN, VAT number, etc.
-  taxRegistrationNumber: text("tax_registration_number"),
+  // Consolidating Tax Information (NZ Compliance)
+  taxId: text("tax_id"), // General Tax ID (Legacy)
+  taxRegistrationNumber: text("tax_registration_number"), // Legacy
+
+  // New Zealand Specific Fields
+  nzbn: text("nzbn").unique(), // 13-digit GLN
+  gstNumber: text("gst_number"), // 8-9 digits
+  isGstRegistered: boolean("is_gst_registered").default(false),
+  industryCode: text("industry_code"), // ANZSIC code
 
   // Branding
   logoUrl: text("logo_url"),
@@ -272,6 +276,10 @@ export const businessProfiles = pgTable("business_profiles", {
 
   // Privacy Preferences
   defaultPrivacySettings: boolean("default_privacy_settings").notNull().default(true),
+
+  // Accounting Integrations (Phase 5)
+  xeroConnection: jsonb("xero_connection"), // Stores { accessToken, refreshToken, expiresAt, tenantId }
+  quickbooksConnection: jsonb("quickbooks_connection"), // Stores { accessToken, refreshToken, expiresAt, realmId }
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -630,6 +638,8 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   nftMintedAt: true,
   nftTransferredTo: true,
   nftBurnedAt: true,
+  xeroInvoiceId: true,
+  qboInvoiceId: true,
 }).extend({
   invoicerWalletAddress: z.string().min(32, "Invalid Solana wallet address").optional(), // Backend injects this from Session
   invoiceeWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
@@ -639,6 +649,24 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   }, "Total amount must be positive"),
   dueDate: z.date().or(z.string()),
   x402PaymentSignature: z.string().optional(), // Spam control payment signature
+
+  // Encryption Fields
+  isEncrypted: z.boolean().optional(),
+  encryptedData: z.string().optional(),
+  encryptionIV: z.string().optional(),
+  encryptedData: z.string().optional(),
+  encryptionIV: z.string().optional(),
+  magicBlockStateId: z.string().optional(),
+
+  // Calculation Overrides (Required for Encrypted Invoices)
+  subtotal: z.string().refine(val => {
+    try { return new Decimal(val).isPositive(); } catch { return false; }
+  }, "Subtotal must be positive").optional(),
+  taxAmount: z.string().optional(),
+  discountAmount: z.string().optional(),
+
+  // Allow passing items structure even if encrypted (might be opaque)
+  items: z.array(z.any()).optional(),
 });
 
 export const insertLineItemSchema = createInsertSchema(invoiceLineItems).omit({
@@ -689,6 +717,10 @@ export const insertBusinessProfileSchema = createInsertSchema(businessProfiles).
 }).extend({
   ownerWalletAddress: z.string().min(32, "Invalid Solana wallet address"),
   businessName: z.string().min(1, "Business name required"),
+  // NZ Compliance Validation
+  nzbn: z.string().length(13, "NZBN must be exactly 13 digits").regex(/^\d+$/, "NZBN must be numeric").optional().nullable(),
+  gstNumber: z.string().min(8).max(9, "GST Number must be 8-9 digits").regex(/^\d+$/, "GST Number must be numeric").optional().nullable(),
+  industryCode: z.string().optional().nullable(),
 });
 
 export const insertCustomerProfileSchema = createInsertSchema(customerProfiles).omit({

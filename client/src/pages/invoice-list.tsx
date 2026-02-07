@@ -49,6 +49,8 @@ interface Invoice {
   description?: string;
   nftMint?: string;
   isPrivate: boolean;
+  xeroInvoiceId?: string;
+  qboInvoiceId?: string;
 }
 
 const statusConfig = {
@@ -191,6 +193,16 @@ export default function InvoiceList() {
             {invoice.isPrivate && (
               <span className="text-xs px-2 py-0.5 bg-gray-500/20 text-gray-300 rounded-full border border-gray-500/30 flex items-center gap-1">
                 🔒 Private
+              </span>
+            )}
+            {invoice.xeroInvoiceId && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-[#13b5ea]/20 text-[#13b5ea] rounded border border-[#13b5ea]/30 flex items-center gap-1" title={`Synced to Xero: ${invoice.xeroInvoiceId}`}>
+                Xero
+              </span>
+            )}
+            {invoice.qboInvoiceId && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-[#2ca01c]/20 text-[#2ca01c] rounded border border-[#2ca01c]/30 flex items-center gap-1" title={`Synced to QBO: ${invoice.qboInvoiceId}`}>
+                QBO
               </span>
             )}
           </div>

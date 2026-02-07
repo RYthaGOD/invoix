@@ -11,6 +11,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { Suspense, lazy } from "react";
 import { Loader } from "@/components/ui/loader";
 import { DevnetBanner } from "@/components/devnet-banner";
+import { MagicBlockProvider } from "@/providers/MagicBlockProvider";
 
 // Lazy Load Pages
 const InvoiceLanding = lazy(() => import("@/pages/invoice-landing"));
@@ -189,17 +190,19 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <SolanaWalletProvider>
-          <AuthProvider>
-            <ThemeProvider defaultTheme="dark">
-              <TooltipProvider>
-                <RealtimeProvider>
-                  <DevnetBanner />
-                  <Toaster />
-                  <Router />
-                </RealtimeProvider>
-              </TooltipProvider>
-            </ThemeProvider>
-          </AuthProvider>
+          <MagicBlockProvider>
+            <AuthProvider>
+              <ThemeProvider defaultTheme="dark">
+                <TooltipProvider>
+                  <RealtimeProvider>
+                    <DevnetBanner />
+                    <Toaster />
+                    <Router />
+                  </RealtimeProvider>
+                </TooltipProvider>
+              </ThemeProvider>
+            </AuthProvider>
+          </MagicBlockProvider>
         </SolanaWalletProvider>
       </ErrorBoundary>
     </QueryClientProvider>

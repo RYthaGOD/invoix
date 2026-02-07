@@ -317,6 +317,26 @@ export async function registerInvoiceRoutes(app: Express): Promise<void> {
       }
     ).catch((err) => logger.error("Failed to emit invoice.created webhook", "webhook", { error: err }));
 
+    // E. Accounting Sync (Sync newly created invoice to Xero/QBO)
+    try {
+      const businessProfile = await invoiceStorage.getBusinessProfile(authenticatedWallet);
+      if (businessProfile?.xeroConnection) {
+        const { xeroService } = await import("./services/accounting/xero");
+        xeroService.syncInvoice(invoice, lineItems || []).catch(err =>
+          logger.error("Xero Sync Failed", "accounting", { error: err, invoiceId: invoice.id })
+        );
+      }
+
+      if (businessProfile?.quickbooksConnection) {
+        const { quickbooksService } = await import("./services/accounting/quickbooks");
+        quickbooksService.syncInvoice(invoice, lineItems || []).catch(err =>
+          logger.error("QuickBooks Sync Failed", "accounting", { error: err, invoiceId: invoice.id })
+        );
+      }
+    } catch (syncErr) {
+      logger.warn("Failed to check for accounting connection", "accounting", { error: syncErr });
+    }
+
     // 7. Response
     res.status(201).json({
       success: true,

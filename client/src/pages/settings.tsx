@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Shield, Database, FileSpreadsheet, Code } from 'lucide-react';
+import { Download, Shield, Database, FileSpreadsheet, Code, Link2, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -95,6 +95,10 @@ export default function SettingsPage() {
                         <Database className="w-4 h-4" />
                         Data & Exports
                     </TabsTrigger>
+                    <TabsTrigger value="accounting" className="gap-2">
+                        <RefreshCw className="w-4 h-4" />
+                        Accounting & NZ Tax
+                    </TabsTrigger>
                     <TabsTrigger value="profile" className="gap-2">
                         <Shield className="w-4 h-4" />
                         Profile & Security
@@ -185,6 +189,88 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="accounting" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Accounting Software Integration</CardTitle>
+                            <CardDescription>
+                                Connect your Solana invoice data directly to your New Zealand accounting software.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* Xero Integration */}
+                                <div className="border rounded-lg p-5 space-y-4 hover:border-blue-500/50 transition-all">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-[#13b5ea]/10 rounded-lg flex items-center justify-center">
+                                                <img src="https://upload.wikimedia.org/wikipedia/en/thumb/9/9f/Xero_software_logo.svg/200px-Xero_software_logo.svg.png" className="w-6 h-6 object-contain" alt="Xero" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-lg">Xero</h3>
+                                                <p className="text-xs text-muted-foreground">Standard for NZ SMEs</p>
+                                            </div>
+                                        </div>
+                                        {profileData?.profile?.xeroConnection ? (
+                                            <span className="flex items-center gap-1 text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">
+                                                <CheckCircle2 className="w-3 h-3" /> Connected
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                                Not Linked
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Automatically sync invoices as Draft or Approved. Handles NZD conversion via real-time spot rates.
+                                    </p>
+                                    <Button
+                                        onClick={() => window.location.href = "/api/integrations/auth/xero"}
+                                        className="w-full bg-[#13b5ea] hover:bg-[#13b5ea]/90 text-white gap-2"
+                                    >
+                                        <Link2 className="w-4 h-4" />
+                                        {profileData?.profile?.xeroConnection ? "Reconnect Xero" : "Connect to Xero"}
+                                    </Button>
+                                </div>
+
+                                {/* QuickBooks Integration */}
+                                <div className="border rounded-lg p-5 space-y-4 hover:border-green-500/50 transition-all">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-[#2ca01c]/10 rounded-lg flex items-center justify-center">
+                                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/QuickBooks_logo.svg/1200px-QuickBooks_logo.svg.png" className="w-6 h-6 object-contain" alt="QuickBooks" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-lg">QuickBooks</h3>
+                                                <p className="text-xs text-muted-foreground">Global standard</p>
+                                            </div>
+                                        </div>
+                                        {profileData?.profile?.quickbooksConnection ? (
+                                            <span className="flex items-center gap-1 text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">
+                                                <CheckCircle2 className="w-3 h-3" /> Connected
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                                Not Linked
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Sync transactions and client details. Multi-currency support for cross-border B2B invoicing.
+                                    </p>
+                                    <Button
+                                        onClick={() => window.location.href = "/api/integrations/auth/quickbooks"}
+                                        className="w-full bg-[#2ca01c] hover:bg-[#2ca01c]/90 text-white gap-2"
+                                    >
+                                        <Link2 className="w-4 h-4" />
+                                        {profileData?.profile?.quickbooksConnection ? "Reconnect QuickBooks" : "Connect to QuickBooks"}
+                                    </Button>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

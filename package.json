@@ -25,12 +25,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "clean": "rm -rf dist node_modules/.vite",
-    "verify:marketplace": "tsx scripts/verify-marketplace-api.ts",
-    "verify:arcium": "tsx scripts/verify-arcium-crypto.ts"
+    "verify:marketplace": "tsx scripts/verify-marketplace-api.ts"
   },
   "dependencies": {
-    "@arcium-hq/client": "^0.6.3",
-    "@arcium-hq/reader": "^0.6.3",
     "@bull-board/api": "^6.16.2",
     "@bull-board/express": "^6.16.2",
     "@coral-xyz/anchor": "^0.30.1",
